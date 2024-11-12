@@ -9,7 +9,7 @@ packages = ["src"]
 [project]
 name = "Job_Match"
 version = "0.0.1"
-description = "FastApi Project"
+description = "An application that can match companies with professionals that are looking for a job."
 classifiers = ["Private :: Do Not Upload", "Programming Language :: Python :: 3.12"]
 readme = "README.md"
 requires-python = ">=3.12"
