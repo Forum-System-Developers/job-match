@@ -7,17 +7,24 @@ packages = ["src"]
 
 
 [project]
-name = "Base_FastApi_Project"
+name = "Job_Match"
 version = "0.0.1"
-description = "Base FastApi Project"
-classifiers = ["Private :: Do Not Upload", "Programming Language :: Python :: 3.11"]
+description = "An application that can match companies with professionals that are looking for a job."
+classifiers = ["Private :: Do Not Upload", "Programming Language :: Python :: 3.12"]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 
 dependencies = [
-    "fastapi==0.103.1", "uvicorn==0.23.2", "environs==9.5.0", "pydantic-settings==2.0.3",
-    "SQLAlchemy==2.0.21"
+    "fastapi==0.114.2",
+    "uvicorn[standard]==0.32.0",
+    "SQLAlchemy==2.0.34",
+    "python-jose==3.3.0",
+    "psycopg2==2.9.9",
+    "passlib[bcrypt]==1.7.4",
+    "bcrypt==4.0.1",
+    "email-validator==2.2.0",
+    "python-multipart==0.0.12"
 ]
 
 [project.optional-dependencies]
@@ -27,27 +34,16 @@ test = [
 ]
 
 [project.urls]
-Source = "https://stash.gfk.com/projects/SQC/repos/sqc_modelmaker/browse"
+Source = "https://github.com/Forum-System-Developers/job-match"
 
 [tool.black]
 exclude = '(\.git|\.mypy_cache|\.venv)'
 include = '\.pyi?$'
 target-version = ['py311']
-max-line-length = 88
+line-length = 88
 
 [tool.isort]
 profile = "black"
-
-[tool.flake8]
-max-line-length = 120
-max-complexity = 20
-count = true
-ignore = ["E203", "E127", "E128", "W291", "F821", "F811", "W503", "C417"]
-per-file-ignores = [
-    "tests/*:T20",
-    "integration_tests/*:T20",
-    "cli.py:T20"
-]
 
 [tool.pytest.ini_options]
 addopts = "--cache-clear --log-cli-level=DEBUG --strict-markers --cov-branch --cov-fail-under=30"
