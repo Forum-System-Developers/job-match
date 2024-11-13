@@ -2,8 +2,8 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.app.sql_app.database import Base
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from src.app.sql_app.database import Base
 
 
 class JobAd(Base):
