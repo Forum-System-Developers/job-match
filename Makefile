@@ -40,4 +40,3 @@ fix:
 	black src tests
 	@printf " >>> $(GREEN)black done$(COFF)\n"
 	@printf "Generating $(CYAN)licenses.md$(COFF) file\n"
-	pip-licenses --with-authors -f markdown --output-file licenses.md
