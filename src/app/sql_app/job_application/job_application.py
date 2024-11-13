@@ -1,20 +1,18 @@
 from sqlalchemy import (
+    Boolean,
     Column,
+    DateTime,
     Enum,
     ForeignKey,
-    DateTime,
-    func,
     Numeric,
     String,
-    Boolean,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+from app.sql_app.job_application.job_application_status import JobApplicationStatus
 from src.app.sql_app.database import Base
-from app.sql_app.job_application.job_application_status import (
-    JobApplicationStatus,
-)
 
 
 class JobApplication(Base):
