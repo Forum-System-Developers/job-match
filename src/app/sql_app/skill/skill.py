@@ -1,8 +1,9 @@
-from sqlalchemy import Column, func, String
+from sqlalchemy import Column, func, String, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.app.sql_app.database import Base
+from src.app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class Skill(Base):
@@ -27,7 +28,7 @@ class Skill(Base):
         nullable=False,
     )
     skill = Column(String, unique=True, nullable=False)
-    # level = Column(Enum("SkillLevel"), nullable=False)
+    level = Column(Enum(SkillLevel), nullable=False)
 
     job_applications = relationship(
         "JobApplicationSkills", back_populates="job_application"
