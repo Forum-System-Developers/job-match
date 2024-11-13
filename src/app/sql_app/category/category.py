@@ -33,5 +33,5 @@ class Category(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
 
-    job_ads = relationship("JobAds", back_populates="category")
+    job_ads = relationship("JobAd", back_populates="category")
     job_applications = relationship("JobApplication", back_populates="category")
