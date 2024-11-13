@@ -1,0 +1,30 @@
+from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.sql_app.database import Base
+
+
+class CompanyAddress(Base):
+    """
+    Represents a company address model.
+
+    Attributes:
+        id (UUID): Unique identifier for the company address.
+        city_id (UUID): Foreign key referencing the city.
+        company_id (UUID): Foreign key referencing the company.
+        address (str): The address of the company.
+    Relationships:
+        city (relationship): Relationship to the City model.
+        company_address (relationship): Relationship to the Company model.
+    """
+
+    __tablename__ = "company_addresses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
+    city_id = Column(UUID(as_uuid=True), ForeignKey("cities.id"), nullable=False)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
+    address = Column(String, nullable=False)
+
+    city = relationship("City", back_populates="company_addresses")
+    company_address = relationship("Company", back_populates="company_addresses")
