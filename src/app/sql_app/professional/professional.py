@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Integer, Enum, ForeignKey
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.sql_app.database import Base
 from app.sql_app.professional.professional import ProfessionalType
