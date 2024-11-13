@@ -2,8 +2,8 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.app.sql_app.database import Base
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from src.app.sql_app.database import Base
 
 
 class JobAd(Base):
@@ -36,6 +36,9 @@ class JobAd(Base):
         nullable=False,
     )
     company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
+    category_id = Column(
+        UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
+    )
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     min_salary = Column(Numeric(10, 2), nullable=False)
@@ -49,4 +52,5 @@ class JobAd(Base):
     )
 
     job_ads_requirements = relationship("JobAdsRequirement", back_populates="job_ad")
+    category = relationship("Category", back_populates="job_ads")
     company = relationship("Company", back_populates="job_ads")
