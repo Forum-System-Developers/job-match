@@ -32,6 +32,11 @@ class JobApplication(Base):
         created_at (datetime): Timestamp when the job application was created.
         updated_at (datetime): Timestamp when the job application was last updated.
         category_id (UUID): The identifier of the Company this Job application has been matched with.
+
+    Relationships:
+        professional (Professional): The user who created the job application.
+        category (Category): The category for the Job Ad that was matched with the Job Application.
+        skills (list[Skill]): The skillset indicated on this job application.
     """
 
     __tablename__ = "job_applications"
