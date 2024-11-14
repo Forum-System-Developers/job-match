@@ -10,7 +10,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-from src.app.sql_app.user.user import User
 from src.app.sql_app.category.category import Category
 from src.app.sql_app.city.city import City
 from src.app.sql_app.company.company import Company
@@ -25,6 +24,7 @@ from src.app.sql_app.match.match import Match
 from src.app.sql_app.professional.professional import Professional
 from src.app.sql_app.search_history.search_history import SearchHistory
 from src.app.sql_app.skill.skill import Skill
+from src.app.sql_app.user.user import User
 
 
 # Dependency

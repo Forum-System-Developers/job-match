@@ -11,8 +11,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.job_application.job_application_status import JobStatus
 from src.app.sql_app.database import Base
+from src.app.sql_app.job_application.job_application_status import JobStatus
 
 
 class JobApplication(Base):
@@ -51,7 +51,7 @@ class JobApplication(Base):
     status = Column(Enum(JobStatus), nullable=False)
     description = Column(String, nullable=False)
     professional_id = Column(
-        UUID(as_uuid=True), ForeignKey("profesional.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
     is_main = Column(Boolean, nullable=True)
     created_at = Column(

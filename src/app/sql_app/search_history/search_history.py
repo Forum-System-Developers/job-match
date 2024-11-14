@@ -2,8 +2,8 @@ from sqlalchemy import Column, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.database import Base
-from app.sql_app.search_history.history_type import HistoryType
+from src.app.sql_app.database import Base
+from src.app.sql_app.search_history.history_type import HistoryType
 
 
 class SearchHistory(Base):

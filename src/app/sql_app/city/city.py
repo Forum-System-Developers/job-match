@@ -2,7 +2,7 @@ from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.database import Base
+from src.app.sql_app.database import Base
 
 
 class City(Base):
