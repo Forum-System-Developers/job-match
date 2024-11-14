@@ -2,8 +2,8 @@ from sqlalchemy import Column, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.database import Base
-from app.sql_app.search_history.search_history import SearchHistory
+from src.app.sql_app.database import Base
+from src.app.sql_app.search_history.history_type import HistoryType
 
 
 class SearchHistory(Base):
@@ -22,8 +22,8 @@ class SearchHistory(Base):
     __tablename__ = "search_history"
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    type = Column(Enum(SearchHistory), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
+    type = Column(Enum(HistoryType), nullable=False)
     parameter = Column(String, nullable=False)
 
     user = relationship("User", back_populates="search_history")

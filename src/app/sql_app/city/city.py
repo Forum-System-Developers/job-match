@@ -2,7 +2,7 @@ from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.database import Base
+from src.app.sql_app.database import Base
 
 
 class City(Base):
@@ -18,7 +18,7 @@ class City(Base):
         company_addresses (relationship): Relationship to the CompanyAddress model.
     """
 
-    __tablename__ = "cities"
+    __tablename__ = "city"
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     name = Column(String, nullable=False)

@@ -20,11 +20,13 @@ class JobAdsRequirement(Base):
         job_application (relationship): Relationship to the JobApplication model.
     """
 
-    __tablename__ = "job_ads_requirements"
+    __tablename__ = "job_ads_requirement"
 
-    job_ad_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    job_ad_id = Column(
+        UUID(as_uuid=True), ForeignKey("user.id"), nullable=False, primary_key=True
+    )
     job_application_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("user.id"), nullable=False, primary_key=True
     )
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

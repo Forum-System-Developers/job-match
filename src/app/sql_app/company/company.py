@@ -28,7 +28,7 @@ class Company(Base):
         job_ads (JobAd): The job advertisements posted by the company.
     """
 
-    __tablename__ = "companies"
+    __tablename__ = "company"
 
     id = Column(
         UUID(as_uuid=True),
@@ -38,7 +38,7 @@ class Company(Base):
         nullable=False,
     )
     user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False
+        UUID(as_uuid=True), ForeignKey("user.id"), unique=True, nullable=False
     )
     description = Column(String, nullable=False)
     name = Column(String(50), nullable=False)

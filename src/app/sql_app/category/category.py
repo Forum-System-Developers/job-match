@@ -21,7 +21,7 @@ class Category(Base):
         skills (list[Skill]): The skillset indicated on this job application.
     """
 
-    __tablename__ = "categories"
+    __tablename__ = "category"
 
     id = Column(
         UUID(as_uuid=True),

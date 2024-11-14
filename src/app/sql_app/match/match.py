@@ -19,11 +19,11 @@ class Match(Base):
         job_application (JobApplication): The job application associated with this match.
     """
 
-    __tablename__ = "matches"
+    __tablename__ = "match"
 
-    job_ad_id = Column(UUID(as_uuid=True), ForeignKey("job_ads.id"), primary_key=True)
+    job_ad_id = Column(UUID(as_uuid=True), ForeignKey("job_ad.id"), primary_key=True)
     job_application_id = Column(
-        UUID(as_uuid=True), ForeignKey("job_applications.id"), primary_key=True
+        UUID(as_uuid=True), ForeignKey("job_application.id"), primary_key=True
     )
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
