@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.job_application.job_application_status import JobApplicationStatus
+from app.sql_app.job_application.job_application_status import JobStatus
 from src.app.sql_app.database import Base
 
 
@@ -23,7 +23,7 @@ class JobApplication(Base):
         id (UUID): The unique identifier of the Job application.
         min_salary (float): Lower limit of the salary range the Professional is applying for.
         max_salary (float): Upper limit of the salary the Professional is applying for.
-        status (JobApplicationStatus): The status of the Job application.
+        status (JobStatus): The status of the Job application.
         description (str): The Job application description.
         professional_id (UUID): Foreign key referencing the Professional associated with this Job application.
         is_main (bool): Property representing if this is the Professional's main application. This property is nullable.
@@ -37,7 +37,7 @@ class JobApplication(Base):
         skills (list[Skill]): The skillset indicated on this job application.
     """
 
-    __tablename__ = "job_applications"
+    __tablename__ = "job_application"
 
     id = Column(
         UUID(as_uuid=True),
@@ -48,10 +48,10 @@ class JobApplication(Base):
     )
     min_salary = Column(Numeric(10, 2), nullable=True)
     max_salary = Column(Numeric(10, 2), nullable=True)
-    status = Column(Enum(JobApplicationStatus), nullable=False)
+    status = Column(Enum(JobStatus), nullable=False)
     description = Column(String, nullable=False)
     professional_id = Column(
-        UUID(as_uuid=True), ForeignKey("profesionals.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("profesional.id"), nullable=False
     )
     is_main = Column(Boolean, nullable=True)
     created_at = Column(
@@ -63,10 +63,8 @@ class JobApplication(Base):
         server_onupdate=func.now(),
         nullable=True,
     )
-    job_ad = Column(UUID(as_uuid=True), ForeignKey("job_ads.id"), nullable=False)
-    category_id = Column(
-        UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
-    )
+    job_ad = Column(UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("category.id"), nullable=False)
 
     professional = relationship("Professional", back_populates="job_applications")
     category = relationship("Category", back_populates="job_applications")

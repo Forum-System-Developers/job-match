@@ -18,7 +18,7 @@ class City(Base):
         company_addresses (relationship): Relationship to the CompanyAddress model.
     """
 
-    __tablename__ = "cities"
+    __tablename__ = "city"
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     name = Column(String, nullable=False)
