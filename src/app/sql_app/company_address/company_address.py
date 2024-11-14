@@ -19,11 +19,11 @@ class CompanyAddress(Base):
         company_address (relationship): Relationship to the Company model.
     """
 
-    __tablename__ = "company_addresses"
+    __tablename__ = "company_address"
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
-    city_id = Column(UUID(as_uuid=True), ForeignKey("cities.id"), nullable=False)
-    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
+    city_id = Column(UUID(as_uuid=True), ForeignKey("city.id"), nullable=False)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("company.id"), nullable=False)
     address = Column(String, nullable=False)
 
     city = relationship("City", back_populates="company_addresses")

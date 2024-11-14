@@ -23,7 +23,7 @@ class JobRequirement(Base):
         job_ad_requirements (relationship): Relationship to the JobAdsRequirement model.
     """
 
-    __tablename__ = "job_requirements"
+    __tablename__ = "job_requirement"
 
     id = Column(
         UUID(as_uuid=True),

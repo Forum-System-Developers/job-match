@@ -26,7 +26,7 @@ class JobAd(Base):
         company (relationship): Relationship to the Company model.
     """
 
-    __tablename__ = "job_ads"
+    __tablename__ = "job_ad"
 
     id = Column(
         UUID(as_uuid=True),
@@ -35,10 +35,8 @@ class JobAd(Base):
         unique=True,
         nullable=False,
     )
-    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
-    category_id = Column(
-        UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
-    )
+    company_id = Column(UUID(as_uuid=True), ForeignKey("company.id"), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("category.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     min_salary = Column(Numeric(10, 2), nullable=False)

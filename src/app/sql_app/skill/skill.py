@@ -18,7 +18,7 @@ class Skill(Base):
         job_applications (list[JobApplicationSkills]): A list of Job applications that are associated with this skill.
     """
 
-    __tablename__ = "job_applications"
+    __tablename__ = "skill"
 
     id = Column(
         UUID(as_uuid=True),

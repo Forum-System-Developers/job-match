@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.sql_app.database import Base
-from app.sql_app.user.user import UserType
+from app.sql_app.user.user_type import UserType
 
 
 class User(Base):
@@ -25,7 +25,7 @@ class User(Base):
         company (relationship): Company profile details of the user, if applicable.
     """
 
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id = Column(
         UUID(as_uuid=True),
