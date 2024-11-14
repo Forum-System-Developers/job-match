@@ -71,3 +71,4 @@ class JobApplication(Base):
     professional = relationship("Professional", back_populates="job_applications")
     category = relationship("Category", back_populates="job_applications")
     skills = relationship("JobApplicationSkill", back_populates="skill")
+    matches = relationship("Match", back_populates="job_application")

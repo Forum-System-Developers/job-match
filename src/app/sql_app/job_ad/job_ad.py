@@ -54,3 +54,4 @@ class JobAd(Base):
     job_ads_requirements = relationship("JobAdsRequirement", back_populates="job_ad")
     category = relationship("Category", back_populates="job_ads")
     company = relationship("Company", back_populates="job_ads")
+    matches = relationship("Match", back_populates="job_ad")
