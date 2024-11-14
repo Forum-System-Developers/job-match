@@ -21,3 +21,12 @@ def create_uuid_extension():
     with engine.connect() as connection:
         with connection.begin():
             connection.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
