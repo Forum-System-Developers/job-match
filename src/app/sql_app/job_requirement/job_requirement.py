@@ -4,8 +4,8 @@ from sqlalchemy import Column, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.sql_app.job_requirement.skill_level import SkillLevel
 from src.app.sql_app.database import Base
+from src.app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class JobRequirement(Base):
@@ -23,7 +23,7 @@ class JobRequirement(Base):
         job_ad_requirements (relationship): Relationship to the JobAdsRequirement model.
     """
 
-    __tablename__ = "job_requirements"
+    __tablename__ = "job_requirement"
 
     id = Column(
         UUID(as_uuid=True),

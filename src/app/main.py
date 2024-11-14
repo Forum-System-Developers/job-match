@@ -44,3 +44,5 @@ def _create_app() -> FastAPI:
 
 app = _create_app()
 _setup_cors(app)
+
+initialize_database()
