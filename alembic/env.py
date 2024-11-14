@@ -1,23 +1,19 @@
-import sys
 import os
-
-
+import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
 from src.app.core.config import get_settings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from src.app.sql_app.user.user import User
 from src.app.sql_app.category.category import Category
 from src.app.sql_app.city.city import City
 from src.app.sql_app.company.company import Company
 from src.app.sql_app.company_address.company_address import CompanyAddress
+from src.app.sql_app.database import Base, create_uuid_extension
 from src.app.sql_app.job_ad.job_ad import JobAd
 from src.app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
 from src.app.sql_app.job_application.job_application import JobApplication
@@ -28,8 +24,7 @@ from src.app.sql_app.match.match import Match
 from src.app.sql_app.professional.professional import Professional
 from src.app.sql_app.search_history.search_history import SearchHistory
 from src.app.sql_app.skill.skill import Skill
-
-from src.app.sql_app.database import Base, create_uuid_extension
+from src.app.sql_app.user.user import User
 
 settings = get_settings()
 database_url = settings.DATABASE_URL.replace("%", "%%")
