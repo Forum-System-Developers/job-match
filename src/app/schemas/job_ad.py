@@ -19,6 +19,7 @@ class JobAd(BaseModel):
         created_at (datetime): Timestamp when the job advertisement was created.
         updated_at (datetime): Timestamp when the job advertisement was last updated.
     """
+
     id: int
     title: str
     description: str
