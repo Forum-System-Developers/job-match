@@ -12,6 +12,8 @@ class JobAd(Base):
 
     Attributes:
         id (UUID): Unique identifier for the job advertisement.
+        category_id (UUID): Foreign key referencing the category of the job ad.
+        location_id (UUID): Foreign key referencing the location of the job ad.
         company_id (UUID): Foreign key referencing the company that posted the job ad.
         title (str): Title of the job position.
         description (str): Description of the job position.
@@ -24,6 +26,9 @@ class JobAd(Base):
     Relationships:
         job_ads_requirements (relationship): Relationship to the JobAdsRequirement model.
         company (relationship): Relationship to the Company model.
+        category (relationship): Relationship to the Category model.
+        location (relationship): Relationship to the City model.
+        matches (relationship): Relationship to the Match model.
     """
 
     __tablename__ = "job_ad"
@@ -37,6 +42,7 @@ class JobAd(Base):
     )
     company_id = Column(UUID(as_uuid=True), ForeignKey("company.id"), nullable=False)
     category_id = Column(UUID(as_uuid=True), ForeignKey("category.id"), nullable=False)
+    location_id = Column(UUID(as_uuid=True), ForeignKey("city.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     min_salary = Column(Numeric(10, 2), nullable=False)
@@ -51,5 +57,6 @@ class JobAd(Base):
 
     job_ads_requirements = relationship("JobAdsRequirement", back_populates="job_ad")
     category = relationship("Category", back_populates="job_ads")
+    location = relationship("City", back_populates="job_ads")
     company = relationship("Company", back_populates="job_ads")
     matches = relationship("Match", back_populates="job_ad")
