@@ -15,7 +15,6 @@ router = APIRouter()
 
 @router.post(
     "/",
-    "/",
     response_model=ProfessionalResponse,
     description="Create a profile for a Professional.",
 )
@@ -23,7 +22,7 @@ def create(
     professional: ProfessionalBase,
     status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    # user: User = Depends(get_current_user),
+    # user: User = Depends(get_current_user), #TODO
     db: Session = Depends(get_db),
 ) -> ProfessionalResponse:
     """
@@ -55,7 +54,7 @@ def create(
 
 
 @router.put(
-    "/",
+    "/{professional_id}",
     response_model=ProfessionalResponse,
     description="Update a profile for a Professional.",
 )
@@ -63,7 +62,7 @@ def update(
     professional: ProfessionalBase,
     status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    # user: User = Depends(get_current_user),
+    # user: User = Depends(get_current_user), #TODO
     db: Session = Depends(get_db),
 ) -> ProfessionalResponse:
     """
@@ -81,7 +80,7 @@ def update(
 
     def _update():
         return professional_service.update(
-            # user=user,
+            # user=user, #TODO
             professional=professional,
             status=status,
             db=db,

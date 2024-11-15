@@ -38,8 +38,8 @@ def create(
     professional = Professional(
         **professional.model_dump(exclude={"city"}),
         photo=photo,
-        # user_id=user.id,
-        # city_id=city.id,
+        # user_id=user.id, #TODO
+        # city_id=city.id, #TODO
         status=professional_status,
     )
 
@@ -74,7 +74,7 @@ def update(
     professional = _get_by_id(professional_id=None, db=db)  # TODO
     # city = cities_service.get_by_name() #TODO
 
-    # if not professional:
+    # if not professional: #TODO
     #     logger.error(f"Professional with id {user.id} not found")
     #     raise ApplicationError(
     #         detail="Professional not found",
