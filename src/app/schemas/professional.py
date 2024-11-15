@@ -25,6 +25,9 @@ class ProfessionalBase(BaseModel):
         example="A seasoned web developer with expertise in FastAPI"
     )
 
+    class Config:
+        from_attributes = True
+
 
 class ProfessionalResponse(ProfessionalBase):
     """
