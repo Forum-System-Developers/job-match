@@ -25,3 +25,4 @@ class City(Base):
 
     professionals = relationship("Professional", back_populates="city")
     company_addresses = relationship("CompanyAddress", back_populates="city")
+    job_ads = relationship("JobAd", back_populates="location")
