@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ProfessionalStatus(Enum):
+class ProfessionalStatus(str, Enum):
     """
     ProfessionalStatus is an enumeration representing the status of a professional.
 

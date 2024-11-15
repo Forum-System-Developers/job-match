@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import Column, Enum, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,7 +16,7 @@ class Professional(Base):
         user_id (UUID): Foreign key referencing the user associated with the professional.
         cities_id (UUID): Identifier for the city associated with the professional.
         description (str): Description of the professional.
-        photo (str, optional): URL or path to the professional's photo.
+        photo (bytes, optional): URL or path to the professional's photo.
         status (ProfessionalStatus): Status of the professional, represented as an enum.
         active_application_count (int, optional): Count of active job applications by the professional.
         first_name (str): First name of the professional.
@@ -38,11 +38,11 @@ class Professional(Base):
         nullable=False,
     )
     user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
-    cities_id = Column(UUID(as_uuid=True), nullable=False)
+    city_id = Column(UUID(as_uuid=True), ForeignKey("city.id"), nullable=False)
     description = Column(String, nullable=False)
-    photo = Column(String, nullable=True)
-    status = Column(Enum(ProfessionalStatus), nullable=False)
-    active_application_count = Column(Integer, nullable=True)
+    photo = Column(LargeBinary, nullable=True)
+    status = Column(Enum(ProfessionalStatus, native_enum=False), nullable=False)
+    active_application_count = Column(Integer, nullable=False, default=0)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
 
