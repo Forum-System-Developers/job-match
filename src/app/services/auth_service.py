@@ -1,14 +1,20 @@
 import logging
 from datetime import datetime, timedelta
+from uuid import UUID
 
-from fastapi import status
+from fastapi import Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 from src.app.core.config import get_settings
 from src.app.exceptions.custom_exceptions import ApplicationError
 from src.app.schemas.token import Token, TokenData
+from src.app.schemas.user import UserResponse
+from src.app.services import user_service
+from src.app.sql_app.database import get_db
 from src.app.sql_app.user.user import User
+from src.app.utils.password_utils import verify_password
 
 oauth2_scheme = OAuth2PasswordBearer()
 logger = logging.getLogger(__name__)
@@ -97,3 +103,85 @@ def create_access_and_refresh_tokens(user: User) -> Token:
     return Token(
         access_token=access_token, refresh_token=refresh_token, token_type="bearer"
     )
+
+
+def verify_token(token: str, db: Session) -> dict:
+    """
+    Verifies a JWT token and retrieves the associated user from the database.
+    Args:
+        token (str): The JWT token to be verified.
+        db (Session): The database session to use for retrieving the user.
+    Returns:
+        dict: The decoded payload of the JWT token.
+    Raises:
+        ApplicationError: If the token cannot be verified or decoded.
+    """
+
+    try:
+        payload = jwt.decode(
+            token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
+        )
+        logger.info(f"Decoded token payload: {payload}")
+    except JWTError:
+        logger.error("Could not verify token")
+        raise ApplicationError(
+            detail="Could not verify token", status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+    user_id = UUID(payload.get("sub"))
+    user_service.get_by_id(user_id=user_id, db=db)
+
+    logger.info(f"Retrieved user {user_id}")
+
+    return payload
+
+
+def authenticate_user(username: str, password: str, db: Session) -> User:
+    """
+    Authenticate a user by their username and password.
+    Args:
+        username (str): The username of the user.
+        password (str): The password of the user.
+        db (Session): The database session to use for querying the user.
+    Returns:
+        User: The authenticated user object.
+    Raises:
+        ApplicationError: If the user cannot be authenticated due to invalid credentials.
+    """
+
+    user = user_service.get_by_username(username=username, db=db)
+    logger.info(f"Retrieved user {user.id} with username {username}")
+
+    verified_password = verify_password(password, user.password)
+
+    if not verified_password:
+        logger.error(f"Invalid password for user {user.id}")
+        raise ApplicationError(
+            detail="Could not authenticate user",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+    logger.info(f"Password verified for user {user.id}")
+
+    return user
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> UserResponse:
+    """
+    Retrieve the current user based on the provided token.
+    Args:
+        token (str): The authentication token provided by the user.
+        db (Session): The database session dependency.
+    Returns:
+        UserResponse: The user information retrieved from the database.
+    Raises:
+        ApplicationError: If user not found.
+    """
+
+    token_data = verify_token(token=token, db=db)
+    user_id = token_data.get("sub")
+    user = user_service.get_by_id(user_id=user_id, db=db)
+    logger.info(f"Retrieved current user {user_id}")
+
+    return user
