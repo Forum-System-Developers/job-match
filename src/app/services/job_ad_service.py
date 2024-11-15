@@ -14,6 +14,24 @@ from src.app.sql_app.job_ad.job_ad import JobAd
 logger = logging.getLogger(__name__)
 
 
+def get_all(db: Session, skip: int = 0, limit: int = 50) -> list[JobAdResponse]:
+    """
+    Retrieve all job advertisements.
+
+    Args:
+        db (Session): The database session used to query the job advertisements.
+        skip (int): The number of job advertisements to skip.
+        limit (int): The maximum number of job advertisements to retrieve.
+
+    Returns:
+        list[JobAdResponse]: The list of job advertisements.
+    """
+    job_ads = db.query(JobAd).offset(skip).limit(limit).all()
+    logger.info(f"Retrieved {len(job_ads)} job ads")
+
+    return [JobAdResponse.model_validate(job_ad) for job_ad in job_ads]
+
+
 def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     """
     Retrieve a job advertisement by its unique identifier.
