@@ -1,8 +1,9 @@
-import datetime
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, condecimal
 
+from src.app.schemas.custom_types import Salary
 from src.app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 
@@ -26,3 +27,12 @@ class JobAdResponse(BaseJobAd):
 
 class JobAdCreate(BaseJobAd):
     company_id: UUID
+
+
+class JobAdUpdate(BaseModel):
+    title: str | None
+    description: str | None
+    location: str | None
+    min_salary: Salary | None
+    max_salary: Salary | None
+    status: JobAdStatus | None
