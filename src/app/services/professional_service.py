@@ -101,9 +101,6 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
 
     Args:
         professional_id (UUID): The identifier.
-        last_name (str): Last name of the professional.
-        description (str): Description of the professional.
-        photo Optional[bytes]: Photo of the professional.
         db (Session): Database dependency.
 
     Returns:
