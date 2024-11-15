@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from src.app.schemas.professional import ProfessionalBase, ProfessionalResponse
 from src.app.services import professional_service
+from src.app.services.auth_service import get_current_user
 from src.app.sql_app.database import get_db
 from src.app.sql_app.professional.professional_status import ProfessionalStatus
+from src.app.sql_app.user.user import User
 from src.app.utils.process_request import process_request
 
 router = APIRouter()
@@ -22,7 +24,7 @@ def create(
     professional: ProfessionalBase,
     status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    # user: User = Depends(get_current_user), #TODO
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ProfessionalResponse:
     """
@@ -40,7 +42,7 @@ def create(
 
     def _create():
         return professional_service.create(
-            # user=user,
+            user=user,
             professional=professional,
             status=status,
             db=db,
@@ -59,19 +61,22 @@ def create(
     description="Update a profile for a Professional.",
 )
 def update(
+    professional_id: UUID,
     professional: ProfessionalBase,
     status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    # user: User = Depends(get_current_user), #TODO
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ProfessionalResponse:
     """
     Update a professional profile.
 
     Args:
+        professional_id (UUID): The identifier of the professional, taken as a path parameter.
         professional (ProfessionalBase): The professional's details from the request body.
         status (ProfessionalStatus): Status of the professional - Active/Busy.
         photo (UploadFile | None): The professional's photo (if provided).
+        user (User): The current logged in user.
         db (Session): Database session dependency.
 
     Returns:
@@ -80,7 +85,7 @@ def update(
 
     def _update():
         return professional_service.update(
-            # user=user, #TODO
+            professional_id=professional_id,
             professional=professional,
             status=status,
             db=db,
