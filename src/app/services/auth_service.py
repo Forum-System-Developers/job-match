@@ -78,21 +78,6 @@ def _create_token(data: dict, expires_delta: timedelta) -> str:
         )
 
 
-def _create_token_data(user: User) -> TokenData:
-    """
-    Create token data for a given user.
-    Args:
-        user (User): The user object for which the token data is to be created.
-    Returns:
-        TokenData: The token data containing the user's ID as the subject.
-    """
-
-    token_data = TokenData(sub=user.id)
-    logger.info(f"Created token data for user {user.id}")
-
-    return token_data
-
-
 def create_access_and_refresh_tokens(user: User) -> Token:
     """
     Create access and refresh tokens for a given user.
@@ -102,7 +87,7 @@ def create_access_and_refresh_tokens(user: User) -> Token:
         Token: An object containing the access token, refresh token, and token type.
     """
 
-    token_data = _create_token_data(user=user)
+    token_data = TokenData(sub=str(user.id))
     logger.info(f"Created token data for user {user.id}")
     access_token = _create_access_token(token_data)
     logger.info(f"Created access token for user {user.id}")
