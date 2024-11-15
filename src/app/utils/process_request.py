@@ -1,13 +1,13 @@
+import logging
 from typing import Callable, Union
 
 from fastapi import status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.exceptions.custom_exceptions import ApplicationError
-from app.utils.logger import get_logger
+from src.app.exceptions.custom_exceptions import ApplicationError
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def process_request(
