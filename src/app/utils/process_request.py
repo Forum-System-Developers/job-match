@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Union
 
 from fastapi import status
@@ -5,6 +6,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.app.exceptions.custom_exceptions import ApplicationError
+
+logger = logging.getLogger(__name__)
 
 
 def process_request(
@@ -29,16 +32,19 @@ def process_request(
     try:
         return get_entities_fn()
     except ApplicationError as ex:
+        logger.exception(str(ex))
         return JSONResponse(
             status_code=ex.data.status,
             content={"detail": {"error": ex.data.detail}},
         )
     except TypeError as ex:
+        logger.exception(not_found_err_msg)
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"detail": {"error": str(ex)}},
         )
     except SyntaxError as ex:
+        logger.exception("Pers thrown an exception")
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": {"error": str(ex)}},

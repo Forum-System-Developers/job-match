@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
@@ -14,13 +15,14 @@ router = APIRouter()
 
 @router.post(
     "/",
+    "/",
     response_model=ProfessionalResponse,
     description="Create a profile for a Professional.",
 )
 def create(
     professional: ProfessionalBase,
     status: ProfessionalStatus = Form(),
-    photo: Optional[UploadFile] = File(None),
+    photo: UploadFile | None = File(None),
     # user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ProfessionalResponse:
