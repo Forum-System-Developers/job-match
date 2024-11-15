@@ -3,13 +3,9 @@ from typing import Optional
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
-from src.app.sql_app.professional.professional import Professional
 from src.app.schemas.professional import ProfessionalBase
+from src.app.sql_app.professional.professional import Professional
 from src.app.sql_app.professional.professional_status import ProfessionalStatus
-
-from src.app.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 def create(
