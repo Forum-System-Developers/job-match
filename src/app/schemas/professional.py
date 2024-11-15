@@ -18,7 +18,7 @@ class ProfessionalBase(BaseModel):
         first_name (str): First name of the professional.
         last_name (str): Last name of the professional.
         description (str): Description of the professional.
-
+        city (str): The city the professional is located in.
     """
 
     first_name: str = Field(example="Jane")
@@ -26,6 +26,7 @@ class ProfessionalBase(BaseModel):
     description: str = Field(
         example="A seasoned web developer with expertise in FastAPI"
     )
+    city: str = Field(example="Sofia")
 
     class Config:
         from_attributes = True
