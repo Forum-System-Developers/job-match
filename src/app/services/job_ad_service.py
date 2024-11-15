@@ -1,17 +1,18 @@
+import logging
 from typing import Optional
 from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.exceptions.custom_exceptions import ApplicationError
-from app.sql_app.job_ad.job_ad import JobAd
-from app.utils.logger import get_logger
+from src.app.exceptions.custom_exceptions import ApplicationError
+from src.app.schemas.job_ad import JobAdResponse
+from src.app.sql_app.job_ad.job_ad import JobAd
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def get_by_id(id: UUID, db: Session) -> Optional[JobAd]:
+def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     """
     Retrieve a job advertisement by its unique identifier.
 
@@ -20,7 +21,7 @@ def get_by_id(id: UUID, db: Session) -> Optional[JobAd]:
         db (Session): The database session used to query the job advertisement.
 
     Returns:
-        Optional[JobAd]: The job advertisement if found, otherwise None.
+        Optional[JobAdResponse]: The job advertisement if found, otherwise None.
     """
     job_ad = db.query(JobAd).filter(JobAd.id == id).first()
     if job_ad is None:
@@ -31,4 +32,4 @@ def get_by_id(id: UUID, db: Session) -> Optional[JobAd]:
         )
     logger.info(f"Retrieved job ad with id {id}")
 
-    return job_ad
+    return JobAdResponse.model_validate(job_ad)

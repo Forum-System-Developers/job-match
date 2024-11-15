@@ -2,10 +2,10 @@ import datetime
 
 from pydantic import BaseModel, condecimal
 
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from src.app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 
-class JobAd(BaseModel):
+class JobAdResponse(BaseModel):
     """
     JobAd schema representing a job advertisement.
 
@@ -28,3 +28,6 @@ class JobAd(BaseModel):
     status: JobAdStatus
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        from_attributes = True
