@@ -29,6 +29,7 @@ def create(
 
     Args:
         professional (ProfessionalBase): The professional's details from the request body.
+        status (ProfessionalStatus): Status of the professional - Active/Busy.
         photo (Optional[UploadFile]): The professional's photo (if provided).
         db (Session): Database session dependency.
 
@@ -47,5 +48,5 @@ def create(
 
     return process_request(
         get_entities_fn=_create,
-        not_found_err_msg=f"Job Ad with id {id} not found",
+        not_found_err_msg="Professional could not be created",
     )
