@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
-from src.app.schemas.professional import ProfessionalBase
+from src.app.schemas.professional import ProfessionalBase, ProfessionalResponse
 from src.app.sql_app.professional.professional import Professional
 from src.app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -14,7 +14,7 @@ def create(
     status: ProfessionalStatus,
     db: Session,
     photo: Optional[UploadFile] = None,
-) -> Professional:
+) -> ProfessionalResponse:
     """
     Creates an instance of the Professional model.
 
@@ -31,8 +31,15 @@ def create(
     # city = cities_service.get_by_id()
 
     professional = Professional(
-        professional.model_dump(),
+        **professional.model_dump(),
+        photo=photo,
         # user_id=user.id,
         # city_id=city.id,
         status=status,
     )
+
+    db.add(professional)
+    db.commit()
+    db.refresh(professional)
+
+    return ProfessionalResponse.model_validate(professional, from_attributes=True)
