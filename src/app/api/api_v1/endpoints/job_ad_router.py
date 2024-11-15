@@ -12,6 +12,21 @@ router = APIRouter()
 
 
 @router.get(
+    "/",
+    response_model=list[JobAdResponse],
+    description="Retrieve all job advertisements.",
+)
+def get_all_job_ads(db: Session = Depends(get_db)) -> list[JobAdResponse]:
+    def _get_all_job_ads():
+        return job_ad_service.get_all(db)
+
+    return process_request(
+        get_entities_fn=_get_all_job_ads,
+        not_found_err_msg="No job ads found",
+    )
+
+
+@router.get(
     "/{id}",
     description="Retrieve a job advertisement by its unique identifier.",
 )
