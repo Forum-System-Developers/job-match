@@ -16,17 +16,20 @@ class ExceptionData(BaseModel):
 
 class ApplicationError(Exception):
     """
-    Custom exception class for application errors.
+    ApplicationError is a custom exception class that includes detailed error information.
 
     Attributes:
-        data (ExceptionData): An instance of ExceptionData containing details about the error.
-
-    Args:
-        data (ExceptionData): The data associated with the exception.
+        data (ExceptionData): An instance of ExceptionData containing the error details.
     """
 
-    def __init__(self, data: ExceptionData):
-        self.data = data
+    def __init__(self, detail: str, status_code: int):
+        self.data = ExceptionData(detail=detail, status=status_code)
 
     def __str__(self):
+        """
+        Returns a string representation of the ApplicationError.
+
+        Returns:
+            str: A formatted string containing the status code and detail of the exception.
+        """
         return f"Error {self.data.status}: {self.data.detail}"

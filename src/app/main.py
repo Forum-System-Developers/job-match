@@ -2,8 +2,10 @@
 Boot FastApi app
 """
 
+import logging
 from urllib.parse import urljoin
 
+from ecs_logging import StdlibFormatter
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
@@ -42,7 +44,21 @@ def _create_app() -> FastAPI:
     return app_
 
 
+def _setup_logger() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    ecs_handler = logging.StreamHandler()
+    ecs_handler.setFormatter(StdlibFormatter())
+
+    logger = logging.getLogger()
+    logger.addHandler(ecs_handler)
+
+
 app = _create_app()
 _setup_cors(app)
+_setup_logger()
 
 # initialize_database()
