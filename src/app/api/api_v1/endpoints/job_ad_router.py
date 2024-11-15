@@ -1,11 +1,9 @@
-from typing import Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from starlette.responses import JSONResponse
 
-from src.app.schemas.job_ad import JobAdCreate, JobAdResponse
+from src.app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from src.app.services import job_ad_service
 from src.app.sql_app.database import get_db
 from src.app.utils.process_request import process_request
@@ -15,12 +13,9 @@ router = APIRouter()
 
 @router.get(
     "/{id}",
-    response_model=Union[JobAdResponse, JSONResponse],
     description="Retrieve a job advertisement by its unique identifier.",
 )
-def get_job_ad_by_id(
-    id: UUID, db: Session = Depends(get_db)
-) -> Union[JobAdResponse, JSONResponse]:
+def get_job_ad_by_id(id: UUID, db: Session = Depends(get_db)) -> JobAdResponse:
     def _get_job_ad_by_id():
         return job_ad_service.get_by_id(id=id, db=db)
 
@@ -32,16 +27,33 @@ def get_job_ad_by_id(
 
 @router.post(
     "/",
-    response_model=Union[JobAdResponse, JSONResponse],
+    response_model=JobAdResponse,
     description="Create a new job advertisement.",
 )
 def create_job_ad(
     job_ad_data: JobAdCreate, db: Session = Depends(get_db)
-) -> Union[JobAdResponse, JSONResponse]:
+) -> JobAdResponse:
     def _create_job_ad():
         return job_ad_service.create(job_ad_data=job_ad_data, db=db)
 
     return process_request(
         get_entities_fn=_create_job_ad,
         not_found_err_msg="Job Ad not created",
+    )
+
+
+@router.put(
+    "/{id}",
+    response_model=JobAdResponse,
+    description="Update a job advertisement by its unique identifier.",
+)
+def update_job_ad(
+    id: UUID, job_ad_data: JobAdUpdate, db: Session = Depends(get_db)
+) -> JobAdResponse:
+    def _update_job_ad():
+        return job_ad_service.update(id=id, job_ad_data=job_ad_data, db=db)
+
+    return process_request(
+        get_entities_fn=_update_job_ad,
+        not_found_err_msg=f"Job Ad with id {id} not found",
     )
