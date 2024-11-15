@@ -9,22 +9,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-from src.app.sql_app.category.category import Category
-from src.app.sql_app.city.city import City
-from src.app.sql_app.company.company import Company
-from src.app.sql_app.company_address.company_address import CompanyAddress
-from src.app.sql_app.job_ad.job_ad import JobAd
-from src.app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
-from src.app.sql_app.job_application.job_application import JobApplication
-from src.app.sql_app.job_application_skill.job_application_skill import (
-    JobApplicationSkill,
-)
-from src.app.sql_app.match.match import Match
-from src.app.sql_app.professional.professional import Professional
-from src.app.sql_app.search_history.search_history import SearchHistory
-from src.app.sql_app.skill.skill import Skill
-from src.app.sql_app.user.user import User
-
 
 # Dependency
 def get_db():
@@ -64,6 +48,23 @@ def create_tables():
     in the Base class. It binds the metadata to the specified engine and creates
     the tables if they do not already exist.
     """
+
+    from src.app.sql_app.category.category import Category
+    from src.app.sql_app.city.city import City
+    from src.app.sql_app.company.company import Company
+    from src.app.sql_app.company_address.company_address import CompanyAddress
+    from src.app.sql_app.job_ad.job_ad import JobAd
+    from src.app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
+    from src.app.sql_app.job_application.job_application import JobApplication
+    from src.app.sql_app.job_application_skill.job_application_skill import (
+        JobApplicationSkill,
+    )
+    from src.app.sql_app.match.match import Match
+    from src.app.sql_app.professional.professional import Professional
+    from src.app.sql_app.search_history.search_history import SearchHistory
+    from src.app.sql_app.skill.skill import Skill
+    from src.app.sql_app.user.user import User
+
     Base.metadata.create_all(bind=engine)
 
 
