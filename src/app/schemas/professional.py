@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from src.app.sql_app.professional.professional_status import ProfessionalStatus
+
 
 class ProfessionalBase(BaseModel):
     """
@@ -42,4 +44,8 @@ class ProfessionalResponse(ProfessionalBase):
     """
 
     photo: Optional[bytes] = None
+    status: ProfessionalStatus
     active_application_count: int
+
+    class Config:
+        from_attributes = True
