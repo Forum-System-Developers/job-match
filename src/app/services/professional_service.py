@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.professional import (
-    FilterParams,
     ProfessionalBase,
     ProfessionalResponse,
 )
+from app.schemas.common import FilterParams
 from app.services import address_service
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
@@ -48,11 +48,11 @@ def create(
     logger.info(f"City {city} fetched")
 
     if photo is not None:
-        updload_photo = photo.file.read()
+        upload_photo = photo.file.read()
 
     professional = Professional(
         **professional_create.model_dump(exclude={"city"}),
-        photo=updload_photo,
+        photo=upload_photo,
         user_id=user.id,
         city_id=city.id,
         status=professional_status,
