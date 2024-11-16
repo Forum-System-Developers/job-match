@@ -1,8 +1,14 @@
-from sqlalchemy import Column, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app.skill.skill import Skill
 
 
 class JobApplicationSkill(Base):
@@ -20,13 +26,17 @@ class JobApplicationSkill(Base):
 
     __tablename__ = "job_application_skill"
 
-    job_application_id = Column(
+    job_application_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("job_application.id"),
         nullable=False,
         primary_key=True,
     )
-    skill_id = Column(UUID(as_uuid=True), ForeignKey("skill.id"), primary_key=True)
+    skill_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("skill.id"), primary_key=True
+    )
 
-    job_application = relationship("JobApplication", back_populates="skills")
-    skill = relationship("Skill", back_populates="job_applications")
+    job_application: Mapped["JobApplication"] = relationship(
+        "JobApplication", back_populates="skills"
+    )
+    skill: Mapped["Skill"] = relationship("Skill", back_populates="job_applications")

@@ -33,6 +33,6 @@ class JobAdUpdate(BaseModel):
     title: str | None
     description: str | None
     location: str | None
-    min_salary: Salary | None
-    max_salary: Salary | None
+    min_salary: Salary | None  # type: ignore
+    max_salary: Salary | None  # type: ignore
     status: JobAdStatus | None

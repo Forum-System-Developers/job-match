@@ -1,8 +1,16 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.company_address.company_address import CompanyAddress
+    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.user.user import User
 
 
 class Company(Base):
@@ -30,33 +38,37 @@ class Company(Base):
 
     __tablename__ = "company"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    user_id = Column(
+    user_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user.id"), unique=True, nullable=False
     )
-    description = Column(String, nullable=False)
-    name = Column(String(50), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    phone_number = Column(String(25), unique=True, nullable=False)
-    logo = Column(String, nullable=False)
-    active_job_count = Column(Integer, nullable=True)
-    successfull_matches_count = Column(Integer, nullable=True)
-    created_at = Column(
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    phone_number: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
+    logo: Mapped[str] = mapped_column(String, nullable=False)
+    active_job_count: Mapped[int] = mapped_column(Integer, nullable=True)
+    successfull_matches_count: Mapped[int] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         server_onupdate=func.now(),
         nullable=True,
     )
 
-    user = relationship("User", back_populates="company")
-    address = relationship("CompanyAddress", back_populates="company")
-    job_ads = relationship("JobAd", back_populates="company")
+    user: Mapped["User"] = relationship("User", back_populates="company")
+    address: Mapped["CompanyAddress"] = relationship(
+        "CompanyAddress", back_populates="company"
+    )
+    job_ads: Mapped["JobAd"] = relationship(
+        "JobAd", back_populates="company", uselist=True, collection_class=list
+    )

@@ -1,10 +1,17 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer, LargeBinary, String
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Enum, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.sql_app.database import Base
 from app.sql_app.professional.professional_status import ProfessionalStatus
+
+if TYPE_CHECKING:
+    from app.sql_app.city.city import City
+    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app.user.user import User
 
 
 class Professional(Base):
@@ -16,7 +23,7 @@ class Professional(Base):
         user_id (UUID): Foreign key referencing the user associated with the professional.
         cities_id (UUID): Identifier for the city associated with the professional.
         description (str): Description of the professional.
-        photo (bytes, optional): URL or path to the professional's photo.
+        photo (bytes, optional): Professional's photo.
         status (ProfessionalStatus): Status of the professional, represented as an enum.
         active_application_count (int, optional): Count of active job applications by the professional.
         first_name (str): First name of the professional.
@@ -30,22 +37,35 @@ class Professional(Base):
 
     __tablename__ = "professional"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
-    city_id = Column(UUID(as_uuid=True), ForeignKey("city.id"), nullable=False)
-    description = Column(String, nullable=False)
-    photo = Column(LargeBinary, nullable=True)
-    status = Column(Enum(ProfessionalStatus, native_enum=False), nullable=False)
-    active_application_count = Column(Integer, nullable=False, default=0)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user.id"), nullable=False
+    )
+    city_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
+    )
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    photo: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    status: Mapped[ProfessionalStatus] = mapped_column(
+        Enum(ProfessionalStatus, native_enum=False), nullable=False
+    )
+    active_application_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    first_name: Mapped[str] = mapped_column(String, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, nullable=False)
 
-    user = relationship("User", back_populates="professional")
-    city = relationship("City", back_populates="professionals")
-    job_applications = relationship("JobApplication", back_populates="professional")
+    user: Mapped["User"] = relationship("User", back_populates="professional")
+    city: Mapped["City"] = relationship("City", back_populates="professionals")
+    job_applications: Mapped["JobApplication"] = relationship(
+        "JobApplication",
+        back_populates="professional",
+        uselist=True,
+        collection_class=list,
+    )

@@ -1,10 +1,18 @@
+from datetime import datetime
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.sql_app.database import Base
 from app.sql_app.user.user_type import UserType
+
+if TYPE_CHECKING:
+    from app.sql_app.company.company import Company
+    from app.sql_app.professional.professional import Professional
+    from app.sql_app.search_history.search_history import SearchHistory
 
 
 class User(Base):
@@ -27,27 +35,31 @@ class User(Base):
 
     __tablename__ = "user"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    username = Column(String, unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    user_type = Column(Enum(UserType), nullable=False)
-    created_at = Column(
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    user_type: Mapped[UserType] = mapped_column(Enum(UserType), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         server_onupdate=func.now(),
         nullable=False,
     )
 
-    search_history = relationship("SearchHistory", back_populates="user")
-    professional = relationship("Professional", back_populates="user")
-    company = relationship("Company", back_populates="user")
+    search_history: Mapped["SearchHistory"] = relationship(
+        "SearchHistory", back_populates="user", uselist=True, collection_class=list
+    )
+    professional: Mapped["Professional"] = relationship(
+        "Professional", back_populates="user"
+    )
+    company: Mapped["Company"] = relationship("Company", back_populates="user")

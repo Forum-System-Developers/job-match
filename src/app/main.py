@@ -3,10 +3,12 @@ Boot FastApi app
 """
 
 import logging
+from typing import List
 from urllib.parse import urljoin
 
 from ecs_logging import StdlibFormatter
 from fastapi import FastAPI
+from sqlalchemy import cast
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.api_v1.api import api_router
@@ -20,14 +22,15 @@ def _setup_cors(p_app: FastAPI) -> None:
     Set all CORS enabled origins
     """
     if get_settings().BACKEND_CORS_ORIGINS:
+        allow_origins: List[str] = [
+            str(origin) for origin in get_settings().BACKEND_CORS_ORIGINS
+        ]
         p_app.add_middleware(
             CORSMiddleware,
-            allow_origins=[
-                str(origin) for origin in get_settings().BACKEND_CORS_ORIGINS
-            ],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_origins=allow_origins,  # type: ignore[arg-type]
+            allow_credentials=bool(True),  # type: ignore[arg-type]
+            allow_methods=list(["*"]),  # type: ignore[arg-type]
+            allow_headers=list(["*"]),  # type: ignore[arg-type]
         )
 
 

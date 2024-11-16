@@ -1,18 +1,19 @@
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Numeric,
-    String,
-    func,
-)
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
 from app.sql_app.job_application.job_application_status import JobStatus
+
+if TYPE_CHECKING:
+    from app.sql_app.category.category import Category
+    from app.sql_app.job_application_skill.job_application_skill import (
+        JobApplicationSkill,
+    )
+    from app.sql_app.match.match import Match
+    from app.sql_app.professional.professional import Professional
 
 
 class JobApplication(Base):
@@ -39,34 +40,49 @@ class JobApplication(Base):
 
     __tablename__ = "job_application"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    min_salary = Column(Numeric(10, 2), nullable=True)
-    max_salary = Column(Numeric(10, 2), nullable=True)
-    status = Column(Enum(JobStatus), nullable=False)
-    description = Column(String, nullable=False)
-    professional_id = Column(
+    min_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
+    max_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
+    status: Mapped[str] = mapped_column(Enum(JobStatus), nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    professional_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
-    is_main = Column(Boolean, nullable=True)
-    created_at = Column(
+    is_main: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(
+    updated_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         server_onupdate=func.now(),
         nullable=True,
     )
-    job_ad = Column(UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("category.id"), nullable=False)
+    job_ad: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False
+    )
+    category_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
+    )
 
-    professional = relationship("Professional", back_populates="job_applications")
-    category = relationship("Category", back_populates="job_applications")
-    skills = relationship("JobApplicationSkill", back_populates="skill")
-    matches = relationship("Match", back_populates="job_application")
+    professional: Mapped["Professional"] = relationship(
+        "Professional", back_populates="job_applications"
+    )
+    category: Mapped["Category"] = relationship(
+        "Category", back_populates="job_applications"
+    )
+    skills: Mapped["JobApplicationSkill"] = relationship(
+        "JobApplicationSkill",
+        back_populates="skill",
+        uselist=True,
+        collection_class=list,
+    )
+    matches: Mapped["Match"] = relationship(
+        "Match", back_populates="job_application", uselist=True, collection_class=list
+    )

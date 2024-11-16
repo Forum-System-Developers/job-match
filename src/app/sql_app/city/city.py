@@ -1,8 +1,15 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.company_address.company_address import CompanyAddress
+    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.professional.professional import Professional
 
 
 class City(Base):
@@ -20,9 +27,17 @@ class City(Base):
 
     __tablename__ = "city"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
-    name = Column(String, nullable=False)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, unique=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
-    professionals = relationship("Professional", back_populates="city")
-    company_addresses = relationship("CompanyAddress", back_populates="city")
-    job_ads = relationship("JobAd", back_populates="location")
+    professionals: Mapped["Professional"] = relationship(
+        "Professional", back_populates="city", uselist=True, collection_class=list
+    )
+    company_addresses: Mapped["CompanyAddress"] = relationship(
+        "CompanyAddress", back_populates="city", uselist=True, collection_class=list
+    )
+    job_ads: Mapped["JobAd"] = relationship(
+        "JobAd", back_populates="location", uselist=True, collection_class=list
+    )
