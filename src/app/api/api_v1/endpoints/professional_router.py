@@ -1,10 +1,11 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import status as status_code
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.professional import ProfessionalBase, ProfessionalResponse
+from app.schemas.professional import ProfessionalBase
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
@@ -17,7 +18,6 @@ router = APIRouter()
 
 @router.post(
     "/",
-    response_model=ProfessionalResponse,
     description="Create a profile for a Professional.",
 )
 def create(
@@ -26,7 +26,7 @@ def create(
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ProfessionalResponse:
+) -> JSONResponse:
     """
     Creates a professional profile.
 
@@ -51,13 +51,13 @@ def create(
 
     return process_request(
         get_entities_fn=_create,
+        status_code=status_code.HTTP_201_CREATED,
         not_found_err_msg="Professional could not be created",
     )
 
 
 @router.put(
     "/{professional_id}",
-    response_model=ProfessionalResponse,
     description="Update a profile for a Professional.",
 )
 def update(
@@ -67,7 +67,7 @@ def update(
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ProfessionalResponse:
+) -> JSONResponse:
     """
     Update a professional profile.
 
@@ -94,5 +94,6 @@ def update(
 
     return process_request(
         get_entities_fn=_update,
+        status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Professional could not be updated",
     )
