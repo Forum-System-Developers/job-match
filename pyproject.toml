@@ -27,7 +27,8 @@ dependencies = [
     "python-multipart==0.0.12",
     "pydantic-settings==2.6.1",
     "ecs-logging==2.2.0",
-    "types-passlib 1.7.7.20240819"
+    "types-passlib 1.7.7.20240819",
+    "sqlalchemy-stubs 0.4"
 ]
 
 [project.optional-dependencies]
@@ -69,3 +70,5 @@ omit = [
   "**/src/profiler_utils.py",
 ]
 
+[tool.mypy]
+plugins = ["sqlalchemy.ext.mypy.plugin"]
