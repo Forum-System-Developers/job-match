@@ -141,7 +141,7 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
         logger.info(f"Updated job ad (id: {id}) max salary to {job_ad_data.max_salary}")
 
     if job_ad_data.status is not None:
-        job_ad.status = job_ad_data
+        job_ad.status = job_ad_data.status
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
 
     if any(value is None for value in vars(job_ad_data).values()):
