@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, Integer, LargeBinary, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,7 +10,6 @@ from app.sql_app.database import Base
 if TYPE_CHECKING:
     from app.sql_app.company_address.company_address import CompanyAddress
     from app.sql_app.job_ad.job_ad import JobAd
-    from app.sql_app.user.user import User
 
 
 class Company(Base):
@@ -45,14 +44,13 @@ class Company(Base):
         unique=True,
         nullable=False,
     )
-    user_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id"), unique=True, nullable=False
-    )
-    description: Mapped[str] = mapped_column(String, nullable=False)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone_number: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
-    logo: Mapped[str] = mapped_column(String, nullable=False)
+    logo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     active_job_count: Mapped[int] = mapped_column(Integer, nullable=True)
     successfull_matches_count: Mapped[int] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -65,7 +63,6 @@ class Company(Base):
         nullable=True,
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="company")
     address: Mapped["CompanyAddress"] = relationship(
         "CompanyAddress", back_populates="company"
     )
