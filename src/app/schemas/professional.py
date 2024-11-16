@@ -21,12 +21,12 @@ class ProfessionalBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
-    first_name: str = Field(example="Jane")
-    last_name: str = Field(example="Doe")
+    first_name: str = Field(examples=["Jane"])
+    last_name: str = Field(examples=["Doe"])
     description: str = Field(
-        example="A seasoned web developer with expertise in FastAPI"
+        examples=["A seasoned web developer with expertise in FastAPI"]
     )
-    city: str = Field(example="Sofia")
+    city: str = Field(examples=["Sofia"])
 
     class Config:
         from_attributes = True
@@ -40,7 +40,7 @@ class ProfessionalResponse(ProfessionalBase):
         first_name (str): First name of the professional.
         last_name (str): Last name of the professional.
         description (str): Description of the professional.
-        photo Optional[bytes]: Photo of the professional.
+        photo bytes | None: Photo of the professional.
         active_application_count (int): Number of active applications.
     """
 

@@ -1,8 +1,8 @@
 import logging
-from typing import Optional
 from uuid import UUID
 
 from fastapi import UploadFile, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def create(
     user: User,
-    professional: ProfessionalBase,
+    professional_create: ProfessionalBase,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -36,9 +36,12 @@ def create(
     """
     # city = cities_service.get_by_name() #TODO
 
+    if photo is not None:
+        updload_photo = photo.file.read()
+
     professional = Professional(
-        **professional.model_dump(exclude={"city"}),
-        photo=photo,
+        **professional_create.model_dump(exclude={"city"}),
+        photo=updload_photo,
         user_id=user.id,
         # city_id=city.id, #TODO
         status=professional_status,
@@ -54,7 +57,7 @@ def create(
 
 def update(
     professional_id: UUID,
-    update_professional: ProfessionalBase,
+    professional_update: ProfessionalBase,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -81,10 +84,14 @@ def update(
         )
 
     # professional.city_id = city.id # TODO
-    professional.description = update_professional.description
+    professional.description = professional_update.description
     professional.status = professional_status
-    professional.first_name = update_professional.first_name
-    professional.last_name = update_professional.last_name
+    professional.first_name = professional_update.first_name
+    professional.last_name = professional_update.last_name
+
+    if photo is not None:
+        updload_photo = photo.file.read()
+        professional.photo = updload_photo
 
     db.commit()
     db.refresh(professional)

@@ -1,11 +1,14 @@
-from enum import Enum
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, String, func
+from sqlalchemy import DateTime, Enum, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
 from app.sql_app.job_requirement.skill_level import SkillLevel
+
+if TYPE_CHECKING:
+    from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
 
 
 class JobRequirement(Base):
@@ -25,22 +28,25 @@ class JobRequirement(Base):
 
     __tablename__ = "job_requirement"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    description = Column(String, nullable=False)
-    skill_level = Column(Enum(SkillLevel), nullable=False)
-    created_at = Column(
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    skill_level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(
+    updated_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ad_requirements = relationship(
-        "JobAdsRequirement", back_populates="job_requirement"
+    job_ad_requirements: Mapped["JobAdsRequirement"] = relationship(
+        "JobAdsRequirement",
+        back_populates="job_requirement",
+        uselist=True,
+        collection_class=list,
     )

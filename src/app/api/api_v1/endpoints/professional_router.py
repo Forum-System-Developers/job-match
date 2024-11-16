@@ -22,7 +22,7 @@ router = APIRouter()
 )
 def create(
     professional: ProfessionalBase,
-    status: ProfessionalStatus = Form(),
+    professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -44,7 +44,7 @@ def create(
         return professional_service.create(
             user=user,
             professional=professional,
-            status=status,
+            professional_status=professional_status,
             db=db,
             photo=photo,
         )
@@ -63,7 +63,7 @@ def create(
 def update(
     professional_id: UUID,
     professional: ProfessionalBase,
-    status: ProfessionalStatus = Form(),
+    professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -87,7 +87,7 @@ def update(
         return professional_service.update(
             professional_id=professional_id,
             professional=professional,
-            status=status,
+            professional_status=professional_status,
             db=db,
             photo=photo,
         )

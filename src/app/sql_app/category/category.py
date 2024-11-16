@@ -1,8 +1,14 @@
-from sqlalchemy import Column, String, func
+from typing import TYPE_CHECKING
+
+from sqlalchemy import String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.job_application.job_application import JobApplication
 
 
 class Category(Base):
@@ -23,15 +29,19 @@ class Category(Base):
 
     __tablename__ = "category"
 
-    id = Column(
+    id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description = mapped_column(String, nullable=False)
 
-    job_ads = relationship("JobAd", back_populates="category")
-    job_applications = relationship("JobApplication", back_populates="category")
+    job_ads: Mapped["JobAd"] = relationship(
+        "JobAd", back_populates="category", uselist=True, collection_class=list
+    )
+    job_applications: Mapped["JobApplication"] = relationship(
+        "JobApplication", back_populates="category", uselist=True, collection_class=list
+    )

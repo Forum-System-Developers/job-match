@@ -129,7 +129,7 @@ def verify_token(token: str, db: Session) -> dict:
         )
 
     user_id = UUID(payload.get("sub"))
-    user_service.get_by_id(user_id=user_id, db=db)
+    user_service.get_by_id(id=user_id, db=db)
 
     logger.info(f"Retrieved user {user_id}")
 
@@ -181,7 +181,7 @@ def get_current_user(
 
     token_data = verify_token(token=token, db=db)
     user_id = token_data.get("sub")
-    user = user_service.get_by_id(user_id=user_id, db=db)
+    user = user_service.get_by_id(id=user_id, db=db)
     logger.info(f"Retrieved current user {user_id}")
 
     return user
