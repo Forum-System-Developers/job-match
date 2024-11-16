@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 from uuid import UUID
 
 from fastapi import UploadFile, status
@@ -9,6 +8,7 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.professional import ProfessionalBase, ProfessionalResponse
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.services import address_service
 from app.sql_app.user.user import User
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def create(
     user: User,
-    professional: ProfessionalBase,
+    professional_create: ProfessionalBase,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -26,7 +26,7 @@ def create(
 
     Args:
         user (User): Current logged in user.
-        professional (str): Pydantic schema for collecting data.
+        professional_create (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
@@ -34,13 +34,20 @@ def create(
     Returns:
         Professional: Professional Pydantic response model.
     """
-    # city = cities_service.get_by_name() #TODO
+    city = address_service.get_by_name(name=professional_create.city, db=db)
+    if city is None:
+        logger.error(f"City name {professional_create.city} not found")
+        raise ApplicationError(
+            detail=f"City with name {professional_create.city} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    logger.info(f"City {city} fetched")
 
     professional = Professional(
-        **professional.model_dump(exclude={"city"}),
+        **professional_create.model_dump(exclude={"city"}),
         photo=photo,
         user_id=user.id,
-        # city_id=city.id, #TODO
+        city_id=city.id,
         status=professional_status,
     )
 
@@ -54,7 +61,7 @@ def create(
 
 def update(
     professional_id: UUID,
-    update_professional: ProfessionalBase,
+    professional_update: ProfessionalBase,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -63,7 +70,7 @@ def update(
     Upates an instance of the Professional model.
 
     Args:
-        professional (str): Pydantic schema for collecting data.
+        professional_update (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
@@ -72,7 +79,23 @@ def update(
         Professional: Professional Pydantic response model.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    # city = cities_service.get_by_name() #TODO
+    if professional is None:
+        logger.error(f"Professional with id {professional_id} not found")
+        raise ApplicationError(
+            detail=f"Professional with ID {professional_id} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    logger.info(f"Professional with ID {professional_id} fetched")
+
+    city = address_service.get_by_name(name=professional_update.city, db=db)
+    if city is None:
+        logger.error(f"City name {professional_update.city} not found")
+        raise ApplicationError(
+            detail=f"City with name {professional_update.city} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    logger.info(f"City {city} fetched")
 
     if not professional:
         logger.error(f"Professional with id {professional_id} not found")
@@ -80,11 +103,11 @@ def update(
             detail="Professional not found", status_code=status.HTTP_404_NOT_FOUND
         )
 
-    # professional.city_id = city.id # TODO
-    professional.description = update_professional.description
+    professional.city_id = city.id
+    professional.description = professional_update.description
     professional.status = professional_status
-    professional.first_name = update_professional.first_name
-    professional.last_name = update_professional.last_name
+    professional.first_name = professional_update.first_name
+    professional.last_name = professional_update.last_name
 
     db.commit()
     db.refresh(professional)
@@ -104,8 +127,4 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
     Returns:
         Professional: SQLAlchemy model for Professional.
     """
-    professional = (
-        db.query(Professional).filter(Professional.id == professional_id).first()
-    )
-
-    return professional
+    return db.query(Professional).filter(Professional.id == professional_id).first()
