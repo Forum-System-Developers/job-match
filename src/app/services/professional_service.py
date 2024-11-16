@@ -10,9 +10,9 @@ from app.schemas.professional import (
     ProfessionalBase,
     ProfessionalResponse,
 )
+from app.services import address_service
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
-from app.services import address_service
 from app.sql_app.user.user import User
 
 logger = logging.getLogger(__name__)
