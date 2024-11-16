@@ -1,15 +1,15 @@
-from uuid import UUID
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.schemas.professional import (
+    FilterParams,
     ProfessionalBase,
     ProfessionalResponse,
-    FilterParams,
 )
 from app.services import professional_service
 from app.services.auth_service import get_current_user
@@ -74,7 +74,7 @@ def update(
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ProfessionalResponse | JSONResponse:
+) -> ProfessionalResponse:
     """
     Update a professional profile.
 
@@ -87,7 +87,7 @@ def update(
         db (Session): Database session dependency.
 
     Returns:
-        ProfessionalResponse | JSONResponse: The created professional profile response.
+        ProfessionalResponse: The created professional profile response.
     """
 
     def _update():
@@ -111,10 +111,10 @@ def update(
     description="Retreive all Professional profiles.",
 )
 def get_all(
-    filter_params: Annotated[FilterParams, Query] = FilterParams(),
+    filter_params: Annotated[FilterParams, Query()] = FilterParams(),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[ProfessionalResponse] | JSONResponse:
+) -> list[ProfessionalResponse]:
     """
     Retrieve all Professional profiles with status ACTIVE.
 
@@ -123,7 +123,7 @@ def get_all(
         user (User): The current logged in User.
         db (Session): The database session.
     Returns:
-        list[ProfessionalResponse] | JSONResponse: A list of Professional Profiles that are visible for Companies.
+        list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
     """
 
     def _get_all():
@@ -131,4 +131,32 @@ def get_all(
 
     return process_request(
         get_entities_fn=_get_all, not_found_err_msg="Could not fetch Professionals"
+    )
+
+
+@router.get(
+    "/{professional_id}",
+    response_model=ProfessionalResponse,
+    description="Retreive a Professional profile by its ID.",
+)
+def get_by_id(
+    professional_id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BaseModel:
+    """
+    Retrieve all Professional profiles with status ACTIVE.
+
+    Args:
+        user (User): The current logged in User.
+        db (Session): The database session.
+    Returns:
+        ProfessionalResponse: A Professional Profile that matches the given ID.
+    """
+
+    def _get_by_id():
+        return professional_service.get_by_id(professional_id=professional_id, db=db)
+
+    return process_request(
+        get_entities_fn=_get_by_id, not_found_err_msg="Could not fetch Professional"
     )
