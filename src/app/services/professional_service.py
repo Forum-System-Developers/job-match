@@ -111,20 +111,35 @@ def update(
             detail="Professional not found", status_code=status.HTTP_404_NOT_FOUND
         )
 
-    professional.city_id = city.id
-    professional.description = professional_update.description
-    professional.status = professional_status
-    professional.first_name = professional_update.first_name
-    professional.last_name = professional_update.last_name
+    if professional.city_id != city.id:
+        professional.city_id = city.id
+        logger.info("professional city updated successfully")
+
+    if professional.description != professional_update.description:
+        professional.description = professional_update.description
+        logger.info("Professional description updated successfully")
+
+    if professional.status != professional_status:
+        professional.status = professional_status
+        logger.info("Professional status updated successfully")
+
+    if professional.first_name != professional_update.first_name:
+        professional.first_name = professional_update.first_name
+        logger.info("Professional first name updated successfully")
+
+    if professional.last_name != professional_update.last_name:
+        professional.last_name = professional_update.last_name
+        logger.info("Professional last name updated successfully")
 
     if photo is not None:
         updload_photo = photo.file.read()
         professional.photo = updload_photo
+        logger.info("Professional photo updated successfully")
 
     db.commit()
     db.refresh(professional)
 
-    logger.info(f"Professional with id {professional.id} created")
+    logger.info(f"Professional with id {professional.id} updated successfully")
     return ProfessionalResponse.model_validate(professional, from_attributes=True)
 
 
