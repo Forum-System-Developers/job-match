@@ -1,8 +1,14 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.job_application.job_application import JobApplication
 
 
 class Match(Base):
@@ -21,13 +27,19 @@ class Match(Base):
 
     __tablename__ = "match"
 
-    job_ad_id = Column(UUID(as_uuid=True), ForeignKey("job_ad.id"), primary_key=True)
-    job_application_id = Column(
+    job_ad_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("job_ad.id"), primary_key=True
+    )
+    job_application_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("job_application.id"), primary_key=True
     )
-    created_at = Column(
+    created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ad = relationship("JobAd", back_populates="matches")
-    job_application = relationship("JobApplication", back_populates="matches")
+    job_ad: Mapped["JobAd"] = relationship(
+        "JobAd", back_populates="matches", uselist=True, collection_class=list
+    )
+    job_application: Mapped["JobApplication"] = relationship(
+        "JobApplication", back_populates="matches", uselist=True, collection_class=list
+    )

@@ -1,8 +1,14 @@
-from sqlalchemy import Column, ForeignKey, String
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
+
+if TYPE_CHECKING:
+    from app.sql_app.city.city import City
+    from app.sql_app.company.company import Company
 
 
 class CompanyAddress(Base):
@@ -21,10 +27,28 @@ class CompanyAddress(Base):
 
     __tablename__ = "company_address"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
-    city_id = Column(UUID(as_uuid=True), ForeignKey("city.id"), nullable=False)
-    company_id = Column(UUID(as_uuid=True), ForeignKey("company.id"), nullable=False)
-    address = Column(String, nullable=False)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        unique=True,
+        nullable=False,
+        uselist=True,
+        collection_class=list,
+    )
+    city_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
+    )
+    company_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("company.id"), nullable=False
+    )
+    address: Mapped[str] = mapped_column(String, nullable=False)
 
-    city = relationship("City", back_populates="company_addresses")
-    company_address = relationship("Company", back_populates="company_addresses")
+    city: Mapped["City"] = relationship(
+        "City", back_populates="company_addresses", uselist=True, collection_class=list
+    )
+    company_address: Mapped["Company"] = relationship(
+        "Company",
+        back_populates="company_addresses",
+        uselist=True,
+        collection_class=list,
+    )
