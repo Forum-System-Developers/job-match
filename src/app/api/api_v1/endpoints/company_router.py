@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.schemas.company import CompanyResponse
 from app.services import job_ad_service
-from src.app.sql_app.database import get_db
-from src.app.utils.process_request import process_request
+from app.sql_app.database import get_db
+from app.utils.process_request import process_request
 
 router = APIRouter()
 
