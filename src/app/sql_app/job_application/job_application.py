@@ -65,12 +65,6 @@ class JobApplication(Base):
         server_onupdate=func.now(),
         nullable=True,
     )
-    job_ad: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False
-    )
-    category_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
-    )
     city_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
@@ -78,8 +72,8 @@ class JobApplication(Base):
     professional: Mapped["Professional"] = relationship(
         "Professional", back_populates="job_applications"
     )
-    category: Mapped["Category"] = relationship(
-        "Category", back_populates="job_applications"
+    categories: Mapped["Category"] = relationship(
+        "CategoryJobApplication", back_populates="job_applications"
     )
     skills: Mapped["JobApplicationSkill"] = relationship(
         "JobApplicationSkill",
@@ -90,4 +84,4 @@ class JobApplication(Base):
     matches: Mapped["Match"] = relationship(
         "Match", back_populates="job_application", uselist=True, collection_class=list
     )
-    city: Mapped["City"] = relationship("City", back_populates="")
+    city: Mapped["City"] = relationship("City", back_populates="job_applications")
