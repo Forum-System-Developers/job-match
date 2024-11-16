@@ -1,16 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import status as status_code
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.schemas.professional import (
-    FilterParams,
-    ProfessionalBase,
-    ProfessionalResponse,
-)
+from app.schemas.professional import FilterParams, ProfessionalBase
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
@@ -23,7 +19,6 @@ router = APIRouter()
 
 @router.post(
     "/",
-    response_model=ProfessionalResponse,
     description="Create a profile for a Professional.",
 )
 def create(
@@ -32,7 +27,7 @@ def create(
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ProfessionalResponse | JSONResponse:
+) -> JSONResponse:
     """
     Creates a professional profile.
 
@@ -58,13 +53,13 @@ def create(
 
     return process_request(
         get_entities_fn=_create,
+        status_code=status_code.HTTP_201_CREATED,
         not_found_err_msg="Professional could not be created",
     )
 
 
 @router.put(
     "/{professional_id}",
-    response_model=ProfessionalResponse,
     description="Update a profile for a Professional.",
 )
 def update(
@@ -74,7 +69,7 @@ def update(
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ProfessionalResponse:
+) -> JSONResponse:
     """
     Update a professional profile.
 
@@ -101,20 +96,20 @@ def update(
 
     return process_request(
         get_entities_fn=_update,
+        status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Professional could not be updated",
     )
 
 
 @router.get(
     "/",
-    response_model=list[ProfessionalResponse],
     description="Retreive all Professional profiles.",
 )
 def get_all(
     filter_params: Annotated[FilterParams, Query()] = FilterParams(),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[ProfessionalResponse]:
+) -> JSONResponse:
     """
     Retrieve all Professional profiles with status ACTIVE.
 
@@ -130,20 +125,21 @@ def get_all(
         return professional_service.get_all()
 
     return process_request(
-        get_entities_fn=_get_all, not_found_err_msg="Could not fetch Professionals"
+        get_entities_fn=_get_all,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not fetch Professionals",
     )
 
 
 @router.get(
     "/{professional_id}",
-    response_model=ProfessionalResponse,
     description="Retreive a Professional profile by its ID.",
 )
 def get_by_id(
     professional_id: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> BaseModel:
+) -> JSONResponse:
     """
     Retrieve all Professional profiles with status ACTIVE.
 
@@ -158,5 +154,7 @@ def get_by_id(
         return professional_service.get_by_id(professional_id=professional_id, db=db)
 
     return process_request(
-        get_entities_fn=_get_by_id, not_found_err_msg="Could not fetch Professional"
+        get_entities_fn=_get_by_id,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not fetch Professional",
     )
