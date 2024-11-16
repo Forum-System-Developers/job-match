@@ -23,7 +23,7 @@ def get_all_job_ads(
     db: Session = Depends(get_db),
 ) -> Union[BaseModel, JSONResponse]:
     def _get_all_job_ads():
-        return job_ad_service.get_all(db)
+        return job_ad_service.get_all(db=db, skip=skip, limit=limit)
 
     return process_request(
         get_entities_fn=_get_all_job_ads,
