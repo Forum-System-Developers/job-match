@@ -4,15 +4,15 @@ from uuid import UUID
 from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
-from src.app.exceptions.custom_exceptions import ApplicationError
-from src.app.schemas.professional import (
+from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.professional import (
     ProfessionalBase,
     ProfessionalResponse,
     FilterParams,
 )
-from src.app.sql_app.professional.professional import Professional
-from src.app.sql_app.professional.professional_status import ProfessionalStatus
-from src.app.sql_app.user.user import User
+from app.sql_app.professional.professional import Professional
+from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.user.user import User
 
 logger = logging.getLogger(__name__)
 

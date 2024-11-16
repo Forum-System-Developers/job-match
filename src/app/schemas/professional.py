@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from src.app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
 class ProfessionalBase(BaseModel):
@@ -21,12 +21,12 @@ class ProfessionalBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
-    first_name: str = Field(example="Jane")
-    last_name: str = Field(example="Doe")
+    first_name: str = Field(examples=["Jane"])
+    last_name: str = Field(examples=["Doe"])
     description: str = Field(
-        example="A seasoned web developer with expertise in FastAPI"
+        examples=["A seasoned web developer with expertise in FastAPI"]
     )
-    city: str = Field(example="Sofia")
+    city: str = Field(examples=["Sofia"])
 
     class Config:
         from_attributes = True
