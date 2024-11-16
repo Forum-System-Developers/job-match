@@ -2,11 +2,14 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.professional import ProfessionalBase, ProfessionalResponse
+from app.schemas.professional import (
+    FilterParams,
+    ProfessionalBase,
+    ProfessionalResponse,
+)
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.user.user import User
@@ -100,6 +103,31 @@ def update(
     return ProfessionalResponse.model_validate(professional, from_attributes=True)
 
 
+def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalResponse]:
+    """
+    Retrieve all Professional profiles.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
+    """
+
+    query = db.query(Professional).filter(
+        Professional.status == ProfessionalStatus.ACTIVE
+    )
+    logger.info("Retreived all professional profiles that are with status ACTIVE")
+
+    query = query.offset(filter_params.offset).limit(filter_params.limit).all()
+    logger.info("Limited public topics based on offset and limit")
+
+    return [
+        ProfessionalResponse.model_validate(professional, from_attributes=True)
+        for professional in query
+    ]
+
+
 def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
     """
     Retrieves an instance of the Professional model or None.
@@ -116,3 +144,16 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
     )
 
     return professional
+
+
+def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    if professional is None:
+        logger.error(f"Professional with id {professional_id} not found")
+        raise ApplicationError(
+            detail=f"Professional with id {professional_id} not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    logger.info(f"Professional with id {professional.id} created")
+    return ProfessionalResponse.model_validate(professional, from_attributes=True)
