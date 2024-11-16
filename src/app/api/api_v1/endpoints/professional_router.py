@@ -6,7 +6,7 @@ from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.professional import ProfessionalBase
+from app.schemas.professional import ProfessionalCreate
 from app.schemas.common import FilterParams
 from app.services import professional_service
 from app.services.auth_service import get_current_user
@@ -23,7 +23,7 @@ router = APIRouter()
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalBase,
+    professional: ProfessionalCreate,
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
@@ -65,7 +65,7 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalBase,
+    professional: ProfessionalCreate,
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),

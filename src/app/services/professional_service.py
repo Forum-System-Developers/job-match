@@ -2,16 +2,17 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.professional import (
-    ProfessionalBase,
+    ProfessionalCreate,
     ProfessionalResponse,
 )
 from app.schemas.common import FilterParams
 from app.services import address_service
 from app.sql_app.professional.professional import Professional
+from app.sql_app.city.city import City
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.user.user import User
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def create(
     user: User,
-    professional_create: ProfessionalBase,
+    professional_create: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -63,12 +64,14 @@ def create(
     db.refresh(professional)
 
     logger.info(f"Professional with id {professional.id} created")
-    return ProfessionalResponse.model_validate(professional, from_attributes=True)
+    return ProfessionalResponse.create(
+        professional=professional, city=city.name, application_count=0
+    )
 
 
 def update(
     professional_id: UUID,
-    professional_update: ProfessionalBase,
+    professional_update: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     db: Session,
     photo: UploadFile | None = None,
@@ -140,7 +143,11 @@ def update(
     db.refresh(professional)
 
     logger.info(f"Professional with id {professional.id} updated successfully")
-    return ProfessionalResponse.model_validate(professional, from_attributes=True)
+    return ProfessionalResponse.create(
+        professional=professional,
+        city=city.name,
+        application_count=professional.active_application_count,
+    )
 
 
 def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalResponse]:
@@ -154,17 +161,25 @@ def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalRespon
         list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
     """
 
-    query = db.query(Professional).filter(
-        Professional.status == ProfessionalStatus.ACTIVE
+    query = (
+        db.query(Professional, City.name)
+        .join(City, Professional.city_id == City.id)
+        .filter(Professional.status == ProfessionalStatus.ACTIVE)
     )
+
     logger.info("Retreived all professional profiles that are with status ACTIVE")
 
     query = query.offset(filter_params.offset).limit(filter_params.limit).all()
+
     logger.info("Limited public topics based on offset and limit")
 
     return [
-        ProfessionalResponse.model_validate(professional, from_attributes=True)
-        for professional in query
+        ProfessionalResponse.create(
+            professional=professional,
+            city=city_name,
+            application_count=professional.active_application_count,
+        )
+        for professional, city_name in query
     ]
 
 

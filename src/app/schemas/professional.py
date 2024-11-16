@@ -1,11 +1,23 @@
+import re
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr, field_validator
 
+from app.schemas.custom_types import Username, Password
 from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.professional.professional import Professional
 
 
 class ProfessionalBase(BaseModel):
+    first_name: str = Field(examples=["Jane"])
+    last_name: str = Field(examples=["Doe"])
+    description: str = Field(
+        examples=["A seasoned web developer with expertise in FastAPI"]
+    )
+    city: str = Field(examples=["Sofia"])
+
+
+class ProfessionalCreate(ProfessionalBase):
     """
     Request body model for creating or updating a professional's profile.
 
@@ -21,12 +33,19 @@ class ProfessionalBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
-    first_name: str = Field(examples=["Jane"])
-    last_name: str = Field(examples=["Doe"])
-    description: str = Field(
-        examples=["A seasoned web developer with expertise in FastAPI"]
-    )
-    city: str = Field(examples=["Sofia"])
+    username: Username = Field(examples=["username"])  # type: ignore
+    password: Password = Field(examples=["password"])  # type:ignore
+    email: EmailStr = Field(examples=["email"])
+
+    @field_validator("password")
+    def _validate_password(cls, value) -> str:
+        if not re.match(
+            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\\|;:\'",.<>/?])$'
+        ):
+            raise ValueError(
+                "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
+            )
+        return value
 
     class Config:
         from_attributes = True
@@ -48,5 +67,15 @@ class ProfessionalResponse(ProfessionalBase):
     status: ProfessionalStatus
     active_application_count: int
 
-    class Config:
-        from_attributes = True
+    @classmethod
+    def create(
+        cls, professional: Professional, city: str, application_count: int
+    ) -> "ProfessionalResponse":
+        return cls(
+            first_name=professional.first_name,
+            last_name=professional.last_name,
+            description=professional.description,
+            photo=professional.photo,
+            status=professional.status,
+            active_application_count=application_count,
+        )
