@@ -122,7 +122,7 @@ def get_all(
     """
 
     def _get_all():
-        return professional_service.get_all()
+        return professional_service.get_all(db=db, filter_params=filter_params)
 
     return process_request(
         get_entities_fn=_get_all,
