@@ -1,10 +1,14 @@
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 
-from src.app.schemas.professional import ProfessionalBase, ProfessionalResponse
+from src.app.schemas.professional import (
+    ProfessionalBase,
+    ProfessionalResponse,
+    FilterParams,
+)
 from src.app.services import professional_service
 from src.app.services.auth_service import get_current_user
 from src.app.sql_app.database import get_db
@@ -95,4 +99,22 @@ def update(
     return process_request(
         get_entities_fn=_update,
         not_found_err_msg="Professional could not be updated",
+    )
+
+
+@router.get(
+    "/",
+    response_model=list[ProfessionalResponse],
+    description="Retreive all Professional profiles.",
+)
+def get_all(
+    filter_params: Annotated[FilterParams, Query()],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    def _get_all():
+        return professional_service.get_all()
+
+    return process_request(
+        get_entities_fn=_get_all, not_found_err_msg="Could not fetch Professionals"
     )
