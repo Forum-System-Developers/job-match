@@ -10,6 +10,7 @@ from app.schemas.professional import (
     ProfessionalBase,
     ProfessionalResponse,
 )
+from app.services import address_service
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.user.user import User
@@ -29,7 +30,7 @@ def create(
 
     Args:
         user (User): Current logged in user.
-        professional (str): Pydantic schema for collecting data.
+        professional_create (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
@@ -37,7 +38,14 @@ def create(
     Returns:
         Professional: Professional Pydantic response model.
     """
-    # city = cities_service.get_by_name() #TODO
+    city = address_service.get_by_name(name=professional_create.city, db=db)
+    if city is None:
+        logger.error(f"City name {professional_create.city} not found")
+        raise ApplicationError(
+            detail=f"City with name {professional_create.city} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    logger.info(f"City {city} fetched")
 
     if photo is not None:
         updload_photo = photo.file.read()
@@ -46,7 +54,7 @@ def create(
         **professional_create.model_dump(exclude={"city"}),
         photo=updload_photo,
         user_id=user.id,
-        # city_id=city.id, #TODO
+        city_id=city.id,
         status=professional_status,
     )
 
@@ -69,7 +77,8 @@ def update(
     Upates an instance of the Professional model.
 
     Args:
-        professional (str): Pydantic schema for collecting data.
+        professional_id (UUID): The identifier of the professional.
+        professional_update (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
@@ -78,7 +87,23 @@ def update(
         Professional: Professional Pydantic response model.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    # city = cities_service.get_by_name() #TODO
+    if professional is None:
+        logger.error(f"Professional with id {professional_id} not found")
+        raise ApplicationError(
+            detail=f"Professional with ID {professional_id} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    logger.info(f"Professional with ID {professional_id} fetched")
+
+    city = address_service.get_by_name(name=professional_update.city, db=db)
+    if city is None:
+        logger.error(f"City name {professional_update.city} not found")
+        raise ApplicationError(
+            detail=f"City with name {professional_update.city} was not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    logger.info(f"City {city} fetched")
 
     if not professional:
         logger.error(f"Professional with id {professional_id} not found")
@@ -86,20 +111,35 @@ def update(
             detail="Professional not found", status_code=status.HTTP_404_NOT_FOUND
         )
 
-    # professional.city_id = city.id # TODO
-    professional.description = professional_update.description
-    professional.status = professional_status
-    professional.first_name = professional_update.first_name
-    professional.last_name = professional_update.last_name
+    if professional.city_id != city.id:
+        professional.city_id = city.id
+        logger.info("professional city updated successfully")
+
+    if professional.description != professional_update.description:
+        professional.description = professional_update.description
+        logger.info("Professional description updated successfully")
+
+    if professional.status != professional_status:
+        professional.status = professional_status
+        logger.info("Professional status updated successfully")
+
+    if professional.first_name != professional_update.first_name:
+        professional.first_name = professional_update.first_name
+        logger.info("Professional first name updated successfully")
+
+    if professional.last_name != professional_update.last_name:
+        professional.last_name = professional_update.last_name
+        logger.info("Professional last name updated successfully")
 
     if photo is not None:
         updload_photo = photo.file.read()
         professional.photo = updload_photo
+        logger.info("Professional photo updated successfully")
 
     db.commit()
     db.refresh(professional)
 
-    logger.info(f"Professional with id {professional.id} created")
+    logger.info(f"Professional with id {professional.id} updated successfully")
     return ProfessionalResponse.model_validate(professional, from_attributes=True)
 
 
