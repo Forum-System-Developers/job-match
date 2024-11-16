@@ -1,12 +1,15 @@
 import logging
-from typing import Optional
 from uuid import UUID
 
 from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from src.app.exceptions.custom_exceptions import ApplicationError
-from src.app.schemas.professional import ProfessionalBase, ProfessionalResponse
+from src.app.schemas.professional import (
+    ProfessionalBase,
+    ProfessionalResponse,
+    FilterParams,
+)
 from src.app.sql_app.professional.professional import Professional
 from src.app.sql_app.professional.professional_status import ProfessionalStatus
 from src.app.sql_app.user.user import User
@@ -93,8 +96,26 @@ def update(
     return ProfessionalResponse.model_validate(professional, from_attributes=True)
 
 
-def get_all():
-    pass
+def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalResponse]:
+    """
+    Retrieve all Professional profiles.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
+    """
+
+    query = db.query(Professional).filter(
+        Professional.status == ProfessionalStatus.ACTIVE
+    )
+    logger.info("Retreived all professional profiles that are with status ACTIVE")
+
+    query = query.offset(filter_params.offset).limit(filter_params.limit).all()
+    logger.info("Limited public topics based on offset and limit")
+
+    return query
 
 
 def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
