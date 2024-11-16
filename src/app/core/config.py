@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
 
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
-    VERSION: Optional[str] = "9.9.9.9"
+    VERSION: str = "9.9.9.9"
 
     @field_validator("BACKEND_CORS_ORIGINS", check_fields=False)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        env_file = "./.env"
+        env_file = "../.env"
         env_file_encoding = "utf-8"
         allow_extra = True
 
