@@ -16,7 +16,7 @@ from app.sql_app.database import get_db
 from app.sql_app.user.user import User
 from app.utils.password_utils import verify_password
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 logger = logging.getLogger(__name__)
 
 
