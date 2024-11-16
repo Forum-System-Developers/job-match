@@ -93,6 +93,10 @@ def update(
     return ProfessionalResponse.model_validate(professional, from_attributes=True)
 
 
+def get_all():
+    pass
+
+
 def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
     """
     Retrieves an instance of the Professional model or None.
