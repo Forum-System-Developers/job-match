@@ -26,7 +26,8 @@ dependencies = [
     "email-validator==2.2.0",
     "python-multipart==0.0.12",
     "pydantic-settings==2.6.1",
-    "ecs-logging==2.2.0"
+    "ecs-logging==2.2.0",
+    "types-passlib 1.7.7.20240819"
 ]
 
 [project.optional-dependencies]
