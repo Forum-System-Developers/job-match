@@ -70,6 +70,7 @@ def update(
     Upates an instance of the Professional model.
 
     Args:
+        professional_id (UUID): The identifier of the professional.
         professional_update (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
