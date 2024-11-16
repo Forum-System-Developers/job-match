@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 
 from ecs_logging import StdlibFormatter
 from fastapi import FastAPI
-from sqlalchemy import cast
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.api_v1.api import api_router
