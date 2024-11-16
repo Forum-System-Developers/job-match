@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from src.app.exceptions.custom_exceptions import ApplicationError
-from src.app.schemas.user import UserResponse
-from src.app.sql_app.user.user import User
+from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.user import UserResponse
+from app.sql_app.user.user import User
 
 logger = logging.getLogger(__name__)
 

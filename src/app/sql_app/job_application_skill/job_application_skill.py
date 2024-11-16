@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.app.sql_app.database import Base
+from app.sql_app.database import Base
 
 
 class JobApplicationSkill(Base):

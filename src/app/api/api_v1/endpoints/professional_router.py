@@ -4,13 +4,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
-from src.app.schemas.professional import ProfessionalBase, ProfessionalResponse
-from src.app.services import professional_service
-from src.app.services.auth_service import get_current_user
-from src.app.sql_app.database import get_db
-from src.app.sql_app.professional.professional_status import ProfessionalStatus
-from src.app.sql_app.user.user import User
-from src.app.utils.process_request import process_request
+from app.schemas.professional import ProfessionalBase, ProfessionalResponse
+from app.services import professional_service
+from app.services.auth_service import get_current_user
+from app.sql_app.database import get_db
+from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.user.user import User
+from app.utils.process_request import process_request
 
 router = APIRouter()
 
