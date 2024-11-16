@@ -2,14 +2,13 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.professional import (
+    FilterParams,
     ProfessionalBase,
     ProfessionalResponse,
-    FilterParams,
 )
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
@@ -123,7 +122,10 @@ def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalRespon
     query = query.offset(filter_params.offset).limit(filter_params.limit).all()
     logger.info("Limited public topics based on offset and limit")
 
-    return query
+    return [
+        ProfessionalResponse.model_validate(professional, from_attributes=True)
+        for professional in query
+    ]
 
 
 def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
@@ -142,3 +144,16 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
     )
 
     return professional
+
+
+def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    if professional is None:
+        logger.error(f"Professional with id {professional_id} not found")
+        raise ApplicationError(
+            detail=f"Professional with id {professional_id} not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    logger.info(f"Professional with id {professional.id} created")
+    return ProfessionalResponse.model_validate(professional, from_attributes=True)
