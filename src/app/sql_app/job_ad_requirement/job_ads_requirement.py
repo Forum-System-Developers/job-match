@@ -42,14 +42,8 @@ class JobAdsRequirement(Base):
     )
 
     job_ad: Mapped["JobAd"] = relationship(
-        "JobAd",
-        back_populates="job_ads_requirements",
-        uselist=True,
-        collection_class=list,
+        "JobAd", back_populates="job_ads_requirements"
     )
     job_application: Mapped["JobApplication"] = relationship(
-        "JobApplication",
-        back_populates="job_ads_requirements",
-        uselist=True,
-        collection_class=list,
+        "JobApplication", back_populates="job_ads_requirements"
     )

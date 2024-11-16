@@ -37,8 +37,6 @@ class JobApplicationSkill(Base):
     )
 
     job_application: Mapped["JobApplication"] = relationship(
-        "JobApplication", back_populates="skills", uselist=True, collection_class=list
+        "JobApplication", back_populates="skills"
     )
-    skill: Mapped["Skill"] = relationship(
-        "Skill", back_populates="job_applications", uselist=True, collection_class=list
-    )
+    skill: Mapped["Skill"] = relationship("Skill", back_populates="job_applications")

@@ -60,8 +60,6 @@ class User(Base):
         "SearchHistory", back_populates="user", uselist=True, collection_class=list
     )
     professional: Mapped["Professional"] = relationship(
-        "Professional", back_populates="user", uselist=True, collection_class=list
+        "Professional", back_populates="user"
     )
-    company: Mapped["Company"] = relationship(
-        "Company", back_populates="user", uselist=True, collection_class=list
-    )
+    company: Mapped["Company"] = relationship("Company", back_populates="user")

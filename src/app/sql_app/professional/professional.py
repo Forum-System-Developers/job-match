@@ -61,12 +61,8 @@ class Professional(Base):
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
 
-    user: Mapped["User"] = relationship(
-        "User", back_populates="professional", uselist=True, collection_class=list
-    )
-    city: Mapped["City"] = relationship(
-        "City", back_populates="professionals", uselist=True, collection_class=list
-    )
+    user: Mapped["User"] = relationship("User", back_populates="professional")
+    city: Mapped["City"] = relationship("City", back_populates="professionals")
     job_applications: Mapped["JobApplication"] = relationship(
         "JobApplication",
         back_populates="professional",

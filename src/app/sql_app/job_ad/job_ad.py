@@ -76,15 +76,9 @@ class JobAd(Base):
         uselist=True,
         collection_class=list,
     )
-    category: Mapped["Category"] = relationship(
-        "Category", back_populates="job_ads", uselist=True, collection_class=list
-    )
-    location: Mapped["City"] = relationship(
-        "City", back_populates="job_ads", uselist=True, collection_class=list
-    )
-    company: Mapped["Company"] = relationship(
-        "Company", back_populates="job_ads", uselist=True, collection_class=list
-    )
+    category: Mapped["Category"] = relationship("Category", back_populates="job_ads")
+    location: Mapped["City"] = relationship("City", back_populates="job_ads")
+    company: Mapped["Company"] = relationship("Company", back_populates="job_ads")
     matches: Mapped["Match"] = relationship(
         "Match", back_populates="job_ad", uselist=True, collection_class=list
     )

@@ -43,12 +43,7 @@ class CompanyAddress(Base):
     )
     address: Mapped[str] = mapped_column(String, nullable=False)
 
-    city: Mapped["City"] = relationship(
-        "City", back_populates="company_addresses", uselist=True, collection_class=list
-    )
+    city: Mapped["City"] = relationship("City", back_populates="company_addresses")
     company_address: Mapped["Company"] = relationship(
-        "Company",
-        back_populates="company_addresses",
-        uselist=True,
-        collection_class=list,
+        "Company", back_populates="company_addresses"
     )

@@ -72,16 +72,10 @@ class JobApplication(Base):
     )
 
     professional: Mapped["Professional"] = relationship(
-        "Professional",
-        back_populates="job_applications",
-        uselist=True,
-        collection_class=list,
+        "Professional", back_populates="job_applications"
     )
     category: Mapped["Category"] = relationship(
-        "Category",
-        back_populates="job_applications",
-        uselist=True,
-        collection_class=list,
+        "Category", back_populates="job_applications"
     )
     skills: Mapped["JobApplicationSkill"] = relationship(
         "JobApplicationSkill",

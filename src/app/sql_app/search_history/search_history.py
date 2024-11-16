@@ -35,6 +35,4 @@ class SearchHistory(Base):
     type: Mapped[HistoryType] = mapped_column(Enum(HistoryType), nullable=False)
     parameter = mapped_column(String, nullable=False)
 
-    user: Mapped["User"] = relationship(
-        "User", back_populates="search_history", uselist=True, collection_class=list
-    )
+    user: Mapped["User"] = relationship("User", back_populates="search_history")

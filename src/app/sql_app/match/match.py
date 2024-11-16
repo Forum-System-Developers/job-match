@@ -37,9 +37,7 @@ class Match(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ad: Mapped["JobAd"] = relationship(
-        "JobAd", back_populates="matches", uselist=True, collection_class=list
-    )
+    job_ad: Mapped["JobAd"] = relationship("JobAd", back_populates="matches")
     job_application: Mapped["JobApplication"] = relationship(
-        "JobApplication", back_populates="matches", uselist=True, collection_class=list
+        "JobApplication", back_populates="matches"
     )
