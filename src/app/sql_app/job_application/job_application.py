@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         JobApplicationSkill,
     )
     from app.sql_app.match.match import Match
+    from app.sql_app.city.city import City
     from app.sql_app.professional.professional import Professional
 
 
@@ -70,6 +71,9 @@ class JobApplication(Base):
     category_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
     )
+    city_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
+    )
 
     professional: Mapped["Professional"] = relationship(
         "Professional", back_populates="job_applications"
@@ -86,3 +90,4 @@ class JobApplication(Base):
     matches: Mapped["Match"] = relationship(
         "Match", back_populates="job_application", uselist=True, collection_class=list
     )
+    city: Mapped["City"] = relationship("City", back_populates="")
