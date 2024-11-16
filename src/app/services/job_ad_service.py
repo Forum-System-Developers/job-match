@@ -5,11 +5,11 @@ from uuid import UUID
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from src.app.exceptions.custom_exceptions import ApplicationError
-from src.app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from src.app.sql_app.city.city import City
-from src.app.sql_app.company.company import Company
-from src.app.sql_app.job_ad.job_ad import JobAd
+from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
+from app.sql_app.city.city import City
+from app.sql_app.company.company import Company
+from app.sql_app.job_ad.job_ad import JobAd
 
 logger = logging.getLogger(__name__)
 

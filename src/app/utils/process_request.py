@@ -5,7 +5,7 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from src.app.exceptions.custom_exceptions import ApplicationError
+from app.exceptions.custom_exceptions import ApplicationError
 
 logger = logging.getLogger(__name__)
 

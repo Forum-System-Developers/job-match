@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from src.app.core.config import get_settings
+from app.core.config import get_settings
 
 Base = declarative_base()
 
@@ -51,21 +51,21 @@ def create_tables():
     the tables if they do not already exist.
     """
 
-    from src.app.sql_app.category.category import Category
-    from src.app.sql_app.city.city import City
-    from src.app.sql_app.company.company import Company
-    from src.app.sql_app.company_address.company_address import CompanyAddress
-    from src.app.sql_app.job_ad.job_ad import JobAd
-    from src.app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
-    from src.app.sql_app.job_application.job_application import JobApplication
-    from src.app.sql_app.job_application_skill.job_application_skill import (
+    from app.sql_app.category.category import Category
+    from app.sql_app.city.city import City
+    from app.sql_app.company.company import Company
+    from app.sql_app.company_address.company_address import CompanyAddress
+    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
+    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app.job_application_skill.job_application_skill import (
         JobApplicationSkill,
     )
-    from src.app.sql_app.match.match import Match
-    from src.app.sql_app.professional.professional import Professional
-    from src.app.sql_app.search_history.search_history import SearchHistory
-    from src.app.sql_app.skill.skill import Skill
-    from src.app.sql_app.user.user import User
+    from app.sql_app.match.match import Match
+    from app.sql_app.professional.professional import Professional
+    from app.sql_app.search_history.search_history import SearchHistory
+    from app.sql_app.skill.skill import Skill
+    from app.sql_app.user.user import User
 
     Base.metadata.create_all(bind=engine)
 

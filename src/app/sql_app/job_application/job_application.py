@@ -11,8 +11,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.app.sql_app.database import Base
-from src.app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.database import Base
+from app.sql_app.job_application.job_application_status import JobStatus
 
 
 class JobApplication(Base):

@@ -3,10 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from src.app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from src.app.services import job_ad_service
-from src.app.sql_app.database import get_db
-from src.app.utils.process_request import process_request
+from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
+from app.services import job_ad_service
+from app.sql_app.database import get_db
+from app.utils.process_request import process_request
 
 router = APIRouter()
 

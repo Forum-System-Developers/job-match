@@ -3,8 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, condecimal
 
-from src.app.schemas.custom_types import Salary
-from src.app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.schemas.custom_types import Salary
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 
 class BaseJobAd(BaseModel):
