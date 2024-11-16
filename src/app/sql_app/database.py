@@ -1,15 +1,15 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from app.core.config import get_settings
 
-Base = declarative_base()
 
 engine = create_engine(get_settings().DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 
 # Dependency
