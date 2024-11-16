@@ -61,7 +61,6 @@ def create_tables():
     )
     from app.sql_app.match.match import Match
     from app.sql_app.professional.professional import Professional
-    from app.sql_app.search_history.search_history import SearchHistory
     from app.sql_app.skill.skill import Skill
     from app.sql_app.user.user import User
 

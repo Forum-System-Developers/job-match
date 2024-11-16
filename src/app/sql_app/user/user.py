@@ -1,18 +1,12 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, Enum, String
+from sqlalchemy import DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.sql_app.database import Base
 from app.sql_app.user.user_type import UserType
-
-if TYPE_CHECKING:
-    from app.sql_app.company.company import Company
-    from app.sql_app.professional.professional import Professional
-    from app.sql_app.search_history.search_history import SearchHistory
 
 
 class User(Base):
@@ -55,11 +49,3 @@ class User(Base):
         server_onupdate=func.now(),
         nullable=False,
     )
-
-    search_history: Mapped["SearchHistory"] = relationship(
-        "SearchHistory", back_populates="user", uselist=True, collection_class=list
-    )
-    professional: Mapped["Professional"] = relationship(
-        "Professional", back_populates="user"
-    )
-    company: Mapped["Company"] = relationship("Company", back_populates="user")
