@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str
     DATABASE_URL: str
     ALGORITHM: str
     SECRET_KEY: str
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         case_sensitive = True
         env_file = "./.env"
         env_file_encoding = "utf-8"
+        allow_extra = True
 
 
 @lru_cache()
