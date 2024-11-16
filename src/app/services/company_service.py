@@ -122,3 +122,103 @@ def _get_by_phone_number(phone_number: str, db: Session) -> Company | None:
         Company: The company object if found, otherwise None.
     """
     return db.query(Company).filter(Company.phone_number == phone_number).first()
+
+
+def _ensure_unique_email(email: str, db: Session) -> None:
+    """
+    Ensure that the email is unique in the database.
+
+    Args:
+        email (str): The email to check.
+        db (Session): The database session used to query the company.
+
+    Raises:
+        ApplicationError: If the email is not unique.
+    """
+    company = _get_by_email(email=email, db=db)
+    if company is not None:
+        logger.error(f"Company with email {email} already exists")
+        raise ApplicationError(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Company with email {email} already exists",
+        )
+
+
+def _ensure_unique_username(username: str, db: Session) -> None:
+    """
+    Ensure that the username is unique in the database.
+
+    Args:
+        username (str): The username to check.
+        db (Session): The database session used to query the company.
+
+    Raises:
+        ApplicationError: If the username is not unique.
+    """
+    company = _get_by_username(username=username, db=db)
+    if company is not None:
+        logger.error(f"Company with username {username} already exists")
+        raise ApplicationError(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Company with username {username} already exists",
+        )
+
+
+def _ensure_unique_phone_number(phone_number: str, db: Session) -> None:
+    """
+    Ensure that the phone number is unique in the database.
+
+    Args:
+        phone_number (str): The phone number to check.
+        db (Session): The database session used to query the company.
+
+    Raises:
+        ApplicationError: If the phone number is not unique.
+    """
+    company = _get_by_phone_number(phone_number=phone_number, db=db)
+    if company is not None:
+        logger.error(f"Company with phone number {phone_number} already exists")
+        raise ApplicationError(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Company with phone number {phone_number} already exists",
+        )
+
+
+def _ensure_company_exists(id: UUID, db: Session) -> Company:
+    """
+    Ensure that a company exists in the database.
+
+    Args:
+        id (UUID): The unique identifier of the company.
+        db (Session): The database session used to query the company.
+
+    Raises:
+        ApplicationError: If the company does not exist.
+    """
+    company = _get_by_id(id=id, db=db)
+    if company is None:
+        logger.error(f"Company with id {id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Company with id {id} not found",
+        )
+
+    return company
+
+
+def _ensure_valid_company_creation_data(
+    company_data: CompanyCreate, db: Session
+) -> None:
+    """
+    Ensure that the company data is valid for creation.
+
+    Args:
+        company_data (CompanyCreate): The company data to validate.
+        db (Session): The database session used to query the company.
+
+    Raises:
+        ApplicationError: If the company data is invalid.
+    """
+    _ensure_unique_username(username=company_data.username, db=db)
+    _ensure_unique_email(email=company_data.email, db=db)
+    _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)
