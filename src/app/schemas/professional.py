@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from src.app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
 class ProfessionalBase(BaseModel):

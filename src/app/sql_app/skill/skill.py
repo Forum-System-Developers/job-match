@@ -2,8 +2,8 @@ from sqlalchemy import Column, Enum, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.app.sql_app.database import Base
-from src.app.sql_app.job_requirement.skill_level import SkillLevel
+from app.sql_app.database import Base
+from app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class Skill(Base):
