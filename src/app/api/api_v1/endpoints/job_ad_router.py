@@ -20,7 +20,7 @@ router = APIRouter()
     description="Retrieve all job advertisements.",
 )
 def get_all_job_ads(
-    db: Session = Depends(get_db),
+    skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
 ) -> Union[BaseModel, JSONResponse]:
     def _get_all_job_ads():
         return job_ad_service.get_all(db=db, skip=skip, limit=limit)
