@@ -2,7 +2,12 @@
 
 from fastapi import APIRouter
 
-from app.api.api_v1.endpoints import company_router, job_ad_router, professional_router
+from app.api.api_v1.endpoints import (
+    company_router,
+    job_ad_router,
+    professional_router,
+    job_application_router,
+)
 
 api_router = APIRouter()
 
@@ -18,4 +23,8 @@ api_router.include_router(
 
 api_router.include_router(
     professional_router.router, prefix="/professionals", tags=["Professionals"]
+)
+
+api_router.include_router(
+    job_application_router.router, prefix="/job-applications", tags=["Job Applications"]
 )
