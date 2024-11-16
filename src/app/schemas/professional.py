@@ -72,10 +72,10 @@ class FilterParams(BaseModel):
 
         ```
         @app.get("/items/")
-        def get_items(filter_params: Annotated[FilterParams, Query] = FilterParams()):
+        def get_items(filter_params: Annotated[FilterParams, Query()] = FilterParams()):
             ...
         ```
     """
 
-    limit: int = Field(100, gt=0, le=100)
+    limit: int = Field(10, gt=0, le=100)
     offset: int = Field(0, ge=0)
