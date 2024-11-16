@@ -1,6 +1,9 @@
+from typing import Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
@@ -16,9 +19,11 @@ router = APIRouter()
     response_model=list[JobAdResponse],
     description="Retrieve all job advertisements.",
 )
-def get_all_job_ads(db: Session = Depends(get_db)) -> list[JobAdResponse]:
+def get_all_job_ads(
+    skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+) -> Union[BaseModel, JSONResponse]:
     def _get_all_job_ads():
-        return job_ad_service.get_all(db)
+        return job_ad_service.get_all(db=db, skip=skip, limit=limit)
 
     return process_request(
         get_entities_fn=_get_all_job_ads,
@@ -30,7 +35,9 @@ def get_all_job_ads(db: Session = Depends(get_db)) -> list[JobAdResponse]:
     "/{id}",
     description="Retrieve a job advertisement by its unique identifier.",
 )
-def get_job_ad_by_id(id: UUID, db: Session = Depends(get_db)) -> JobAdResponse:
+def get_job_ad_by_id(
+    id: UUID, db: Session = Depends(get_db)
+) -> Union[BaseModel, JSONResponse]:
     def _get_job_ad_by_id():
         return job_ad_service.get_by_id(id=id, db=db)
 
@@ -47,7 +54,7 @@ def get_job_ad_by_id(id: UUID, db: Session = Depends(get_db)) -> JobAdResponse:
 )
 def create_job_ad(
     job_ad_data: JobAdCreate, db: Session = Depends(get_db)
-) -> JobAdResponse:
+) -> Union[BaseModel, JSONResponse]:
     def _create_job_ad():
         return job_ad_service.create(job_ad_data=job_ad_data, db=db)
 
@@ -64,7 +71,7 @@ def create_job_ad(
 )
 def update_job_ad(
     id: UUID, job_ad_data: JobAdUpdate, db: Session = Depends(get_db)
-) -> JobAdResponse:
+) -> Union[BaseModel, JSONResponse]:
     def _update_job_ad():
         return job_ad_service.update(id=id, job_ad_data=job_ad_data, db=db)
 

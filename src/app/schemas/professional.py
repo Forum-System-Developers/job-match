@@ -40,7 +40,7 @@ class ProfessionalResponse(ProfessionalBase):
         first_name (str): First name of the professional.
         last_name (str): Last name of the professional.
         description (str): Description of the professional.
-        photo Optional[bytes]: Photo of the professional.
+        photo bytes | None: Photo of the professional.
         active_application_count (int): Number of active applications.
     """
 
