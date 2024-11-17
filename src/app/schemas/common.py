@@ -21,7 +21,7 @@ class FilterParams(BaseModel):
 
         ```
         @app.get("/items/")
-        def get_items(filter_params: Annotated[FilterParams, Query()] = FilterParams()):
+        def get_items (FilterParams = Depends()):
             ...
         ```
     """
