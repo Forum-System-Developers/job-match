@@ -1,6 +1,7 @@
 from typing import Optional
 from enum import Enum
 from uuid import UUID
+from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -72,7 +73,7 @@ class JobApplicationResponse(JobAplicationBase):
     last_name: str
     email: EmailStr
     photo: Optional[bytes] = None
-    status: str
+    status: JobStatus
 
     @classmethod
     def create(

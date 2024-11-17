@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, func
@@ -41,7 +43,7 @@ class JobApplication(Base):
 
     __tablename__ = "job_application"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
@@ -52,20 +54,20 @@ class JobApplication(Base):
     max_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
     status: Mapped[str] = mapped_column(Enum(JobStatus), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
-    professional_id: Mapped[UUID] = mapped_column(
+    professional_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
     is_main: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         server_onupdate=func.now(),
         nullable=True,
     )
-    city_id: Mapped[UUID] = mapped_column(
+    city_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
 

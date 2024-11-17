@@ -1,6 +1,8 @@
+from datetime import datetime
+import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,13 +29,13 @@ class Match(Base):
 
     __tablename__ = "match"
 
-    job_ad_id: Mapped[UUID] = mapped_column(
+    job_ad_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("job_ad.id"), primary_key=True
     )
-    job_application_id: Mapped[UUID] = mapped_column(
+    job_application_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("job_application.id"), primary_key=True
     )
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
