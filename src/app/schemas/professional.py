@@ -68,14 +68,12 @@ class ProfessionalResponse(ProfessionalBase):
     active_application_count: int
 
     @classmethod
-    def create(
-        cls, professional: Professional, city: str, application_count: int
-    ) -> "ProfessionalResponse":
+    def create(cls, professional: Professional, city: str) -> "ProfessionalResponse":
         return cls(
             first_name=professional.first_name,
             last_name=professional.last_name,
             description=professional.description,
             photo=professional.photo,
             status=professional.status,
-            active_application_count=application_count,
+            active_application_count=professional.active_application_count,
         )
