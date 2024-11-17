@@ -97,13 +97,6 @@ def update(
     professional = _get_by_id(professional_id=professional_id, db=db)
 
     city = address_service.get_by_name(name=professional_update.city, db=db)
-    if city is None:
-        logger.error(f"City name {professional_update.city} not found")
-        raise ApplicationError(
-            detail=f"City with name {professional_update.city} was not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-    logger.info(f"City {city} fetched")
 
     if professional.city_id != city.id:
         professional.city_id = city.id
