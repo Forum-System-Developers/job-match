@@ -21,6 +21,9 @@ def get_by_name(name: str, db: Session) -> CityResponse:
 
     Returns:
         CityResponse: Pydantic response model for City.
+
+    Raises:
+        Application Error (status_code_404) If the City is not found.
     """
     city = db.query(City).filter(City.name == name).first()
     if city is None:
