@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
@@ -94,7 +94,6 @@ def update(
     professional = _get_by_id(professional_id=professional_id, db=db)
 
     city = address_service.get_by_name(name=professional_update.city, db=db)
-
     if professional.city_id != city.id:
         professional.city_id = city.id
         logger.info("professional city updated successfully")

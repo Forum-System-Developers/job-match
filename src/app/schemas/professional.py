@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -64,15 +64,19 @@ class ProfessionalResponse(ProfessionalBase):
 
     """
 
-    photo: Optional[bytes] = None
+    id: UUID
+    email: EmailStr
+    photo: bytes | None = None
     status: ProfessionalStatus
     active_application_count: int
 
     @classmethod
     def create(cls, professional: Professional, city: str) -> "ProfessionalResponse":
         return cls(
+            id=professional.id,
             first_name=professional.first_name,
             last_name=professional.last_name,
+            email=professional.email,
             description=professional.description,
             photo=professional.photo,
             status=professional.status,
