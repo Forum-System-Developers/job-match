@@ -1,16 +1,20 @@
 from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
+from app.sql_app.job_application.job_application_status import JobStatus
 
 
 class JobAplicationBase(BaseModel):
     """
     Model for creating or updating a professional's job application.
 
-    This model is used to capture the basic information required to reate or update a job application. It includes the required attributes description, application status, and a list of Applicant skills. Optional attributes are minimum and maximum salary range The data should be passed as a JSON object in the request body.
+    This model is used to capture the basic information required to reate or update a job application. It includes the required attributes description, application status, and a list of Applicant skills. Optional attributes are minimum and maximum salary range, an city for the application. The data should be passed as a JSON object in the request body.
 
     Attributes:
+        min_salary (int): The lower boundary for the salary range.
+        max_salary (int): The upper boundary for the salary range.
         description (str): Description of the professional.
+        skills (list[str]): List of Professional Skills.
         city (str): The city the professional is located in.
     """
 
@@ -21,6 +25,7 @@ class JobAplicationBase(BaseModel):
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
     skills: list[str] = Field(examples=[["Python", "Linux", "React"]])
+    city: str | None = Field(examples=["Sofia"])
 
     @model_validator(mode="before")
     def validate_salary_range(cls, values):
@@ -47,7 +52,7 @@ class JobApplicationResponse(JobAplicationBase):
     """
 
     photo: Optional[bytes] = None
-    # status: ProfessionalStatus
+    status: JobStatus
     active_application_count: int
 
     class Config:
