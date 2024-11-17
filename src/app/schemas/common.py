@@ -47,6 +47,7 @@ class SearchParams(BaseModel):
         default=JobAdStatus.ACTIVE,
     )
 
+
 # TODO Add a Base class for JobAdSearchParams
 class JobAdSearchParams(BaseModel):
     """
@@ -63,6 +64,7 @@ class JobAdSearchParams(BaseModel):
         skills (list[str]): List of skills to be included in the search. Default is an empty list.
         job_ad_status (JobAdStatus): The status of the job ad. Default is JobAdStatus.ACTIVE.
     """
+
     order: Literal["asc", "desc"] = "desc"
     order_by: Literal["created_at", "updated_at"] = "created_at"
     title: str = Field(description="The title of the job ad")
