@@ -11,8 +11,8 @@ from app.schemas.job_application import JobAplicationBase, JobApplicationRespons
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.user import UserResponse
 from app.services import city_service, professional_service
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.city.city import City
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application import job_application_status as model_status
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus

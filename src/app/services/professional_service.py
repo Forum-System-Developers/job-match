@@ -9,7 +9,7 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.professional import ProfessionalCreate, ProfessionalResponse
 from app.schemas.user import UserResponse
-from app.services import address_service
+from app.services import city_service
 from app.sql_app.city.city import City
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
@@ -37,7 +37,7 @@ def create(
     Returns:
         Professional: Professional Pydantic response model.
     """
-    city = address_service.get_by_name(name=professional_create.city, db=db)
+    city = city_service.get_by_name(name=professional_create.city, db=db)
     if city is None:
         logger.error(f"City name {professional_create.city} not found")
         raise ApplicationError(
@@ -94,7 +94,7 @@ def update(
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
 
-    city = address_service.get_by_name(name=professional_update.city, db=db)
+    city = city_service.get_by_name(name=professional_update.city, db=db)
     if professional.city_id != city.id:
         professional.city_id = city.id
         logger.info("professional city updated successfully")
@@ -199,6 +199,6 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
         ProfessionalResponse: The created professional profile response.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    city = address_service.get_by_id(city_id=professional.city_id, db=db)
+    city = city_service.get_by_id(city_id=professional.city_id, db=db)
 
     return ProfessionalResponse.create(professional=professional, city=city.name)
