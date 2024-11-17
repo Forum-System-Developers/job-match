@@ -26,5 +26,5 @@ class FilterParams(BaseModel):
         ```
     """
 
-    limit: int = Field(10, gt=0, le=100)
-    offset: int = Field(0, ge=0)
+    limit: int = Field(default=10, gt=0, le=100)
+    offset: int = Field(default=0, ge=0)

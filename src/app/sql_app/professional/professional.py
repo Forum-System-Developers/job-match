@@ -52,9 +52,9 @@ class Professional(Base):
     password: Mapped[str] = mapped_column(String(64), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    photo: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     status: Mapped[ProfessionalStatus] = mapped_column(
-        Enum(ProfessionalStatus, native_enum=False), nullable=False
+        Enum(ProfessionalStatus, native_enum=True), nullable=False
     )
     active_application_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0

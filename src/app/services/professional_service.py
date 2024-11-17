@@ -2,6 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
+from sqlalchemy import Row
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -138,20 +139,22 @@ def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalRespon
     """
 
     query = (
-        db.query(Professional, City.name)
+        db.query(Professional, City)
         .join(City, Professional.city_id == City.id)
         .filter(Professional.status == ProfessionalStatus.ACTIVE)
     )
 
     logger.info("Retreived all professional profiles that are with status ACTIVE")
 
-    query = query.offset(filter_params.offset).limit(filter_params.limit).all()
+    result: list[Row[tuple[Professional, City]]] = (
+        query.offset(filter_params.offset).limit(filter_params.limit).all()
+    )
 
     logger.info("Limited public topics based on offset and limit")
 
     return [
-        ProfessionalResponse.create(professional=professional, city=city_name)
-        for professional, city_name in query
+        ProfessionalResponse.create(professional=row[0], city=row[1].name)
+        for row in result
     ]
 
 

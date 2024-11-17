@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 class JobApplication(Base):
     """
-    Represents a job application entity in the app.
+    Represents a job application entity in the SQL app.
 
     Attributes:
         id (UUID): The unique identifier of the Job application.
@@ -50,9 +50,9 @@ class JobApplication(Base):
         unique=True,
         nullable=False,
     )
-    min_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
-    max_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
-    status: Mapped[str] = mapped_column(Enum(JobStatus), nullable=False)
+    min_salary: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    max_salary: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    status: Mapped[JobStatus] = mapped_column(Enum(JobStatus), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     professional_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
