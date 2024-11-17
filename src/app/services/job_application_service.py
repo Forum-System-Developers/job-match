@@ -132,52 +132,16 @@ def get_all(filter_params: FilterParams, db: Session, status: JobAdStatus, searc
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
-    pass
-
-
-def get_active(
-    filter_params: FilterParams, db: Session
-) -> list[JobApplicationResponse]:
-    """
-    Retrieve all Job Applications with status Active.
-
-    Args:
-        db (Session): The database session.
-        filer_params (FilterParams): Pydantic schema for filtering params.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
-    """
-
-    result = _get_for_status(
-        filter_params=filter_params, db=db, job_status=JobStatus.ACTIVE
-    )
-
-    return [
-        JobApplicationResponse.create(
-            job_application=row[0],
-            professional=row[1],
-            city=row[2].name,
+    if status == JobAdStatus.ACTIVE:
+        result = _get_for_status(
+            filter_params=filter_params, db=db, status=JobAdStatus.ACTIVE
         )
-        for row in result.all()
-    ]
+    else:
+        result = _get_for_status(
+            filter_params=filter_params, db=db, status=JobStatus.MATCHED
+        )
 
-
-def get_matched(
-    filter_params: FilterParams, db: Session
-) -> list[JobApplicationResponse]:
-    """
-    Retrieve all Job Applications with status Matched.
-
-    Args:
-        db (Session): The database session.
-        filer_params (FilterParams): Pydantic schema for filtering params.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are matched with Job Ads.
-    """
-    result = _get_for_status(
-        filter_params=filter_params, db=db, job_status=JobStatus.MATCHED
-    )
-
+    # TODO
     return [
         JobApplicationResponse.create(
             job_application=row[0],
