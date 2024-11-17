@@ -6,7 +6,7 @@ from sqlalchemy.engine import Result, Row
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.user import UserResponse
@@ -120,7 +120,12 @@ def update(
     )
 
 
-def get_all(filter_params: FilterParams, db: Session, status: JobAdStatus, search: str):
+def get_all(
+    filter_params: FilterParams,
+    db: Session,
+    status: JobAdStatus,
+    search_params: SearchParams,
+):
     """
     Retrieve all Job Applications that match the filtering parameters and keywords.
 
@@ -133,15 +138,25 @@ def get_all(filter_params: FilterParams, db: Session, status: JobAdStatus, searc
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
     if status == JobAdStatus.ACTIVE:
-        result = _get_for_status(
-            filter_params=filter_params, db=db, status=JobAdStatus.ACTIVE
+        query = _get_for_status(
+            filter_params=filter_params, db=db, job_status=JobAdStatus.ACTIVE
         )
     else:
-        result = _get_for_status(
-            filter_params=filter_params, db=db, status=JobStatus.MATCHED
+        query = _get_for_status(
+            filter_params=filter_params, db=db, job_status=JobStatus.MATCHED
         )
 
-    # TODO
+    if search_params.order == "desc":
+        query = query.order_by(getattr(JobApplication, search_params.order_by).desc())
+    else:
+        query = query.order_by(getattr(JobApplication, search_params.order_by).asc())
+
+    logger.info("Order applications based on search params order and order_by")
+
+    result = query.offset(filter_params.offset).limit(filter_params.limit)  # type: ignore
+
+    logger.info("Limited applications based on offset and limit")
+
     return [
         JobApplicationResponse.create(
             job_application=row[0],
@@ -164,24 +179,18 @@ def _get_for_status(
     Returns:
         A RowReturningQuery object that contains a tuple of JobApplication, Professional and City objects.
     """
-    query = (
+    query: Result[tuple[JobApplication, Professional, City]] = (
         db.query(JobApplication, Professional, City)
         .join(Professional, JobApplication.professional_id == Professional.id)
         .join(City, JobApplication.city_id == City.id)
-        .filter(JobApplication.status == job_status)
+        .filter(JobApplication.status == job_status)  # type: ignore
     )
 
     logger.info(
         f"Retreived all Job Applications that are with status {job_status.value}"
     )
 
-    result: Result[tuple[JobApplication, Professional, City]] = query.offset(
-        filter_params.offset
-    ).limit(filter_params.limit)  # type: ignore
-
-    logger.info("Limited applications based on offset and limit")
-
-    return result
+    return query
 
 
 def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
@@ -210,3 +219,7 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
         )
 
     return job_application
+
+
+def _search_by_skills(skills: list, db: Session):
+    pass
