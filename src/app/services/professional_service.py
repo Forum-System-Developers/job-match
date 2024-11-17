@@ -14,13 +14,13 @@ from app.services import address_service
 from app.sql_app.professional.professional import Professional
 from app.sql_app.city.city import City
 from app.sql_app.professional.professional_status import ProfessionalStatus
-from app.sql_app.user.user import User
+from app.schemas.user import UserResponse
 
 logger = logging.getLogger(__name__)
 
 
 def create(
-    user: User,
+    user: UserResponse,
     professional_create: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     db: Session,
@@ -30,7 +30,7 @@ def create(
     Creates an instance of the Professional model.
 
     Args:
-        user (User): Current logged in user.
+        user (UserResponse): Current logged in user.
         professional_create (ProfessionalBase): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
@@ -64,9 +64,7 @@ def create(
     db.refresh(professional)
 
     logger.info(f"Professional with id {professional.id} created")
-    return ProfessionalResponse.create(
-        professional=professional, city=city.name, application_count=0
-    )
+    return ProfessionalResponse.create(professional=professional, city=city.name)
 
 
 def update(
@@ -88,16 +86,15 @@ def update(
 
     Returns:
         Professional: Professional Pydantic response model.
+
+    Raises:
+        ApplicationError: If the professional with the given id is
+            not found in the database.
+        ApplicationError: If the city with the given name is
+            not found in the database.
+
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    if professional is None:
-        logger.error(f"Professional with id {professional_id} not found")
-        raise ApplicationError(
-            detail=f"Professional with ID {professional_id} was not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-
-    logger.info(f"Professional with ID {professional_id} fetched")
 
     city = address_service.get_by_name(name=professional_update.city, db=db)
     if city is None:
@@ -107,12 +104,6 @@ def update(
             status_code=status.HTTP_404_NOT_FOUND,
         )
     logger.info(f"City {city} fetched")
-
-    if not professional:
-        logger.error(f"Professional with id {professional_id} not found")
-        raise ApplicationError(
-            detail="Professional not found", status_code=status.HTTP_404_NOT_FOUND
-        )
 
     if professional.city_id != city.id:
         professional.city_id = city.id
@@ -143,11 +134,7 @@ def update(
     db.refresh(professional)
 
     logger.info(f"Professional with id {professional.id} updated successfully")
-    return ProfessionalResponse.create(
-        professional=professional,
-        city=city.name,
-        application_count=professional.active_application_count,
-    )
+    return ProfessionalResponse.create(professional=professional, city=city.name)
 
 
 def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalResponse]:
@@ -174,11 +161,7 @@ def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalRespon
     logger.info("Limited public topics based on offset and limit")
 
     return [
-        ProfessionalResponse.create(
-            professional=professional,
-            city=city_name,
-            application_count=professional.active_application_count,
-        )
+        ProfessionalResponse.create(professional=professional, city=city_name)
         for professional, city_name in query
     ]
 
@@ -193,16 +176,14 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
 
     Returns:
         Professional: SQLAlchemy model for Professional.
+
+    Raises:
+        ApplicationError: If the professional with the given id is
+            not found in the database.
     """
     professional = (
         db.query(Professional).filter(Professional.id == professional_id).first()
     )
-
-    return professional
-
-
-def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
-    professional = _get_by_id(professional_id=professional_id, db=db)
     if professional is None:
         logger.error(f"Professional with id {professional_id} not found")
         raise ApplicationError(
@@ -210,5 +191,22 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    logger.info(f"Professional with id {professional.id} created")
-    return ProfessionalResponse.model_validate(professional, from_attributes=True)
+    logger.info(f"Professional with id {professional_id} fetched")
+    return professional
+
+
+def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
+    """
+    Retrieve a Professional profile by its ID.
+
+    Args:
+        professional_id (UUID): The identifier of the professional.
+        db (Session): Database session dependency.
+
+    Returns:
+        ProfessionalResponse: The created professional profile response.
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    city = address_service.get_by_id(city_id=professional.city_id, db=db)
+
+    return ProfessionalResponse.create(professional=professional, city=city.name)
