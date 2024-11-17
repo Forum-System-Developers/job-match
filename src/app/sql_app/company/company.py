@@ -2,38 +2,39 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, LargeBinary, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
 
 if TYPE_CHECKING:
-    from app.sql_app.company_address.company_address import CompanyAddress
+    from app.sql_app.city.city import City
     from app.sql_app.job_ad.job_ad import JobAd
 
 
 class Company(Base):
     """
-    Represents a company in the job matching application.
+    Represents a company entity in the database.
 
     Attributes:
-        id (UUID): Unique identifier for the company.
+        id (uuid.UUID): Unique identifier for the company.
+        city_id (uuid.UUID): Foreign key referencing the city where the company is located.
         username (str): Unique username for the company.
-        password (str): Password for the company.
+        password (str): Password for the company's account.
         name (str): Name of the company.
         description (str): Description of the company.
         email (str): Unique email address of the company.
         phone_number (str): Unique phone number of the company.
-        logo (bytes): Logo of the company.
+        logo (bytes): Binary data representing the company's logo.
         active_job_count (int, optional): Number of active job postings by the company.
-        successfull_matches_count (int, optional): Number of successful matches made by the company.
+        successfull_matches_count (int, optional): Number of successful job matches made by the company.
         created_at (datetime): Timestamp when the company record was created.
         updated_at (datetime, optional): Timestamp when the company record was last updated.
 
     Relationships:
-        address (CompanyAddress): Relationship to the company's address.
-        job_ads (list[JobAd]): Relationship to the company's job advertisements.
+        city (City): The city where the company is located.
+        job_ads (list[JobAd]): List of job advertisements posted by the company.
     """
 
     __tablename__ = "company"
@@ -44,6 +45,9 @@ class Company(Base):
         primary_key=True,
         unique=True,
         nullable=False,
+    )
+    city_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -64,9 +68,7 @@ class Company(Base):
         nullable=True,
     )
 
-    address: Mapped[list["CompanyAddress"]] = relationship(
-        "CompanyAddress", back_populates="company", uselist=True, collection_class=list
-    )
+    city: Mapped["City"] = relationship("City", back_populates="companies")
     job_ads: Mapped[list["JobAd"]] = relationship(
         "JobAd", back_populates="company", uselist=True, collection_class=list
     )
