@@ -135,3 +135,36 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
 
     return job_ad
+
+
+def _ensure_valid_location(location: str, db: Session) -> City:
+    city = db.query(City).filter(City.name == location).first()
+    if city is None:
+        logger.error(f"City with name {location} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"City with name {location} not found",
+        )
+    return city
+
+
+def _ensure_valid_job_ad_id(id: UUID, db: Session) -> JobAd:
+    job_ad = _get_by_id(id=id, db=db)
+    if job_ad is None:
+        logger.error(f"Job Ad with id {id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job Ad with id {id} not found",
+        )
+    return job_ad
+
+
+def _ensure_valid_company_id(id: UUID, db: Session) -> Company:
+    company = db.query(Company).filter(Company.id == id).first()
+    if company is None:
+        logger.error(f"Company with id {id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Company with id {id} not found",
+        )
+    return company
