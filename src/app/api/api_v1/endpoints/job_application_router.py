@@ -126,3 +126,29 @@ def get_active(
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not fetch Job Applications",
     )
+
+
+@router.get("/active", description="Get all Active Job applications")
+def get_matched(
+    filter_params: Annotated[FilterParams, Query()] = FilterParams(),
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """
+    Retrieve all Professional profiles with status Matched.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        list[JobApplicationResponse]: A list of Job Applications that are matched with Job Ads.
+    """
+
+    def _get_matched():
+        return job_application_service.get_matched(db=db, filter_params=filter_params)
+
+    return process_request(
+        get_entities_fn=_get_matched,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not fetch Job Applications",
+    )
