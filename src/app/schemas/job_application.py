@@ -1,10 +1,17 @@
 from typing import Optional
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
+
+
+class JobStatus(str, Enum):
+    ACTIVE = "acitve"
+    PRIVATE = "private"
+    HIDDEN = "hidden"
 
 
 class JobAplicationBase(BaseModel):
