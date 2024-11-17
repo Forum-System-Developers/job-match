@@ -30,7 +30,7 @@ class Company(Base):
         updated_at (datetime, optional): Timestamp when the company record was last updated.
 
     Relationships:
-        user (User): The user who owns the company.
+        user (UserResponse): The user who owns the company.
         address (CompanyAddress): The address associated with the company.
         job_ads (JobAd): The job advertisements posted by the company.
     """
