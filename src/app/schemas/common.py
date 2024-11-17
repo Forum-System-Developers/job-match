@@ -1,4 +1,7 @@
+from typing import Literal
 from pydantic import BaseModel, Field
+
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 
 class FilterParams(BaseModel):
@@ -28,3 +31,17 @@ class FilterParams(BaseModel):
 
     limit: int = Field(default=10, gt=0, le=100)
     offset: int = Field(default=0, ge=0)
+
+
+class SearchParams(BaseModel):
+    order: Literal["asc", "desc"] = "desc"
+    order_by: Literal["created_at", "updated_at"] = "created_at"
+    skills: list[str] = Field(
+        examples=[["Python", "Linux", "React"]],
+        default=[],
+        description="List a set of skills to be included in the search",
+    )
+    job_application_status: JobAdStatus = Field(
+        description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application",
+        default=JobAdStatus.ACTIVE,
+    )

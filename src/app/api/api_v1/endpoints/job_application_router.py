@@ -5,9 +5,8 @@ from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobAplicationBase, JobStatus
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.schemas.user import UserResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_user
@@ -78,18 +77,14 @@ def update(
 )
 def get_all(
     filter_params: FilterParams = Depends(),
-    search: str | None = Form(default="", description="Search for..."),
-    job_application_status: JobAdStatus = Form(
-        description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application"
-    ),
+    search_params: SearchParams = Depends(),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
-            search=search,
-            status=job_application_status,
+            search_params=search_params,
             db=db,
         )
 
