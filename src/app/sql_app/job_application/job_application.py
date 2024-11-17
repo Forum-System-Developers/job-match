@@ -9,6 +9,7 @@ from app.sql_app.job_application.job_application_status import JobStatus
 
 if TYPE_CHECKING:
     from app.sql_app.category.category import Category
+    from app.sql_app.city.city import City
     from app.sql_app.job_application_skill.job_application_skill import (
         JobApplicationSkill,
     )
@@ -54,7 +55,7 @@ class JobApplication(Base):
     professional_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
-    is_main: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    is_main: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -64,18 +65,15 @@ class JobApplication(Base):
         server_onupdate=func.now(),
         nullable=True,
     )
-    job_ad: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False
-    )
-    category_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
+    city_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
 
     professional: Mapped["Professional"] = relationship(
         "Professional", back_populates="job_applications"
     )
-    category: Mapped["Category"] = relationship(
-        "Category", back_populates="job_applications"
+    categories: Mapped["Category"] = relationship(
+        "CategoryJobApplication", back_populates="job_applications"
     )
     skills: Mapped["JobApplicationSkill"] = relationship(
         "JobApplicationSkill",
@@ -86,3 +84,4 @@ class JobApplication(Base):
     matches: Mapped["Match"] = relationship(
         "Match", back_populates="job_application", uselist=True, collection_class=list
     )
+    city: Mapped["City"] = relationship("City", back_populates="job_applications")

@@ -88,7 +88,7 @@ def create_access_and_refresh_tokens(user: User) -> Token:
     """
     Create access and refresh tokens for a given user.
     Args:
-        user (User): The user for whom the tokens are being created.
+        user (UserResponse): The user for whom the tokens are being created.
     Returns:
         Token: An object containing the access token, refresh token, and token type.
     """

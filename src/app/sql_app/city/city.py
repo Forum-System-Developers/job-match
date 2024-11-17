@@ -9,6 +9,7 @@ from app.sql_app.database import Base
 if TYPE_CHECKING:
     from app.sql_app.company_address.company_address import CompanyAddress
     from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app.job_application.job_application import JobApplication
     from app.sql_app.professional.professional import Professional
 
 
@@ -40,4 +41,7 @@ class City(Base):
     )
     job_ads: Mapped["JobAd"] = relationship(
         "JobAd", back_populates="location", uselist=True, collection_class=list
+    )
+    job_applications: Mapped["JobApplication"] = relationship(
+        "JobApplication", back_populates="city", uselist=True, collection_class=list
     )

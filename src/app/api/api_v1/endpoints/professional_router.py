@@ -6,12 +6,13 @@ from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.professional import FilterParams, ProfessionalBase
+from app.schemas.common import FilterParams
+from app.schemas.professional import ProfessionalCreate
+from app.schemas.user import UserResponse
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
 from app.sql_app.professional.professional_status import ProfessionalStatus
-from app.sql_app.user.user import User
 from app.utils.process_request import process_request
 
 router = APIRouter()
@@ -22,10 +23,10 @@ router = APIRouter()
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalBase,
+    professional: ProfessionalCreate,
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_user),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
@@ -35,7 +36,7 @@ def create(
         professional (ProfessionalBase): The professional's details from the request body.
         status (ProfessionalStatus): Status of the professional - Active/Busy.
         photo (UploadFile | None): The professional's photo (if provided).
-        user (User): The current logged in User.
+        user (UserResponse): The current logged in User.
         db (Session): Database session dependency.
 
     Returns:
@@ -64,10 +65,10 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalBase,
+    professional: ProfessionalCreate,
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_user),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
@@ -78,7 +79,7 @@ def update(
         professional (ProfessionalBase): The professional's details from the request body.
         status (ProfessionalStatus): Status of the professional - Active/Busy.
         photo (UploadFile | None): The professional's photo (if provided).
-        user (User): The current logged in user.
+        user (UserResponse): The current logged in user.
         db (Session): Database session dependency.
 
     Returns:
@@ -107,7 +108,7 @@ def update(
 )
 def get_all(
     filter_params: Annotated[FilterParams, Query()] = FilterParams(),
-    user: User = Depends(get_current_user),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
@@ -115,14 +116,14 @@ def get_all(
 
     Args:
         filer_params (FilterParams): Pydantic schema for filtering params.
-        user (User): The current logged in User.
+        user (UserResponse): The current logged in User.
         db (Session): The database session.
     Returns:
         list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
     """
 
     def _get_all():
-        return professional_service.get_all()
+        return professional_service.get_all(db=db, filter_params=filter_params)
 
     return process_request(
         get_entities_fn=_get_all,
@@ -137,14 +138,14 @@ def get_all(
 )
 def get_by_id(
     professional_id: UUID,
-    user: User = Depends(get_current_user),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
     Retrieve all Professional profiles with status ACTIVE.
 
     Args:
-        user (User): The current logged in User.
+        user (UserResponse): The current logged in User.
         db (Session): The database session.
     Returns:
         ProfessionalResponse: A Professional Profile that matches the given ID.
