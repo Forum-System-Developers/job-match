@@ -2,8 +2,8 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy.orm import Session
 from sqlalchemy import Row
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
@@ -13,9 +13,9 @@ from app.schemas.user import UserResponse
 from app.services import address_service, professional_service
 from app.sql_app.city.city import City
 from app.sql_app.job_application import job_application_status as model_status
-from app.sql_app.professional.professional import Professional
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.professional.professional import Professional
 
 logger = logging.getLogger(__name__)
 

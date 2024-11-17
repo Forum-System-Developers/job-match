@@ -6,8 +6,8 @@ from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.job_application import JobAplicationBase, JobStatus
 from app.schemas.common import FilterParams
+from app.schemas.job_application import JobAplicationBase, JobStatus
 from app.schemas.user import UserResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_user
