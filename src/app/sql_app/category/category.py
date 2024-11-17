@@ -42,9 +42,9 @@ class Category(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description = mapped_column(String, nullable=False)
 
-    job_ads: Mapped["JobAd"] = relationship(
+    job_ads: Mapped[list["JobAd"]] = relationship(
         "JobAd", back_populates="category", uselist=True, collection_class=list
     )
-    category_job_applications: Mapped["CategoryJobApplication"] = relationship(
+    category_job_applications: Mapped[list["CategoryJobApplication"]] = relationship(
         "JobApplication", back_populates="category", uselist=True, collection_class=list
     )

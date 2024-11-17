@@ -63,7 +63,7 @@ class Professional(Base):
     last_name: Mapped[str] = mapped_column(String, nullable=False)
 
     city: Mapped["City"] = relationship("City", back_populates="professionals")
-    job_applications: Mapped["JobApplication"] = relationship(
+    job_applications: Mapped[list["JobApplication"]] = relationship(
         "JobApplication",
         back_populates="professional",
         uselist=True,

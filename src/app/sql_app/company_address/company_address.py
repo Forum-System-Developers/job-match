@@ -34,7 +34,6 @@ class CompanyAddress(Base):
         primary_key=True,
         unique=True,
         nullable=False,
-        uselist=True,
         collection_class=list,
     )
     city_id: Mapped[uuid.UUID] = mapped_column(
