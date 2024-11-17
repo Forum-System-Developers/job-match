@@ -5,7 +5,7 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.company import CompanyCreate, CompanyResponse
+from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.sql_app.company.company import Company
 
 logger = logging.getLogger(__name__)
@@ -68,6 +68,28 @@ def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
     return CompanyResponse.model_validate(company)
 
 
+def update(id: UUID, company_data: CompanyUpdate, db: Session) -> CompanyResponse:
+    """
+    Update an existing company in the database.
+
+    Args:
+        id (UUID): The unique identifier of the company to update.
+        company_data (CompanyCreate): The data to update the company with.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        CompanyResponse: The response object containing the updated company's details.
+    """
+    company = _ensure_company_exists(id=id, db=db)
+    company = _update_company(company=company, company_data=company_data, db=db)
+
+    db.commit()
+    db.refresh(company)
+    logger.info(f"Updated company with id {company.id}")
+
+    return CompanyResponse.model_validate(company)
+
+
 def _get_by_id(id: UUID, db: Session) -> Company | None:
     """
     Retrieve a company by its ID from the database.
@@ -122,6 +144,51 @@ def _get_by_phone_number(phone_number: str, db: Session) -> Company | None:
         Company: The company object if found, otherwise None.
     """
     return db.query(Company).filter(Company.phone_number == phone_number).first()
+
+
+def _update_company(
+    company: Company, company_data: CompanyUpdate, db: Session
+) -> Company:
+    """
+    Updates the company object with the provided company data.
+
+    Args:
+        company (Company): The company object to be updated.
+        company_data (CompanyUpdate): The data to update the company with.
+        db (Session): The database session to use for ensuring unique constraints.
+
+    Returns:
+        Company: The updated company object.
+    """
+    if company_data.name is not None:
+        company.name = company_data.name
+        logger.info(f"Updated company (id: {company.id}) name to {company_data.name}")
+
+    if company_data.description is not None:
+        company.description = company_data.description
+        logger.info(
+            f"Updated company (id: {company.id}) description to {company_data.description}"
+        )
+
+    # TODO: Update company address
+
+    if company_data.email is not None:
+        _ensure_unique_email(email=company_data.email, db=db)
+        company.email = company_data.email
+        logger.info(f"Updated company (id: {company.id}) email to {company_data.email}")
+
+    if company_data.phone_number is not None:
+        _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)
+        company.phone_number = company_data.phone_number
+        logger.info(
+            f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
+        )
+
+    if company_data.logo is not None:
+        company.logo = company_data.logo
+        logger.info(f"Updated company (id: {company.id}) logo")
+
+    return company
 
 
 def _ensure_unique_email(email: str, db: Session) -> None:

@@ -2,10 +2,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, PositiveInt
 
+from app.schemas.address import Address
+
 
 class CompanyBase(BaseModel):
     id: UUID
     name: str
+    address: Address
     description: str
     email: EmailStr
     phone_number: str
@@ -20,10 +23,20 @@ class CompanyCreate(BaseModel):
     username: str
     password: str
     name: str
+    address: Address
     description: str
     email: EmailStr
     phone_number: str
     logo: bytes
+
+
+class CompanyUpdate(BaseModel):
+    name: str | None
+    address: Address | None
+    description: str | None
+    email: EmailStr | None
+    phone_number: str | None
+    logo: bytes | None
 
 
 class CompanyResponse(CompanyBase):

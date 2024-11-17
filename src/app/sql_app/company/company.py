@@ -64,7 +64,7 @@ class Company(Base):
     )
 
     address: Mapped["CompanyAddress"] = relationship(
-        "CompanyAddress", back_populates="company"
+        "CompanyAddress", back_populates="company", uselist=True, collection_class=list
     )
     job_ads: Mapped["JobAd"] = relationship(
         "JobAd", back_populates="company", uselist=True, collection_class=list
