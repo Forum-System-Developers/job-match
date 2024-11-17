@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -49,10 +49,12 @@ def get_company_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
     description="Create a new company.",
 )
 def create_company(
-    company_data: CompanyCreate, db: Session = Depends(get_db)
+    company_data: CompanyCreate,
+    logo: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_company():
-        return company_service.create(company_data=company_data, db=db)
+        return company_service.create(company_data=company_data, db=db, logo=logo)
 
     return process_request(
         get_entities_fn=_create_company,

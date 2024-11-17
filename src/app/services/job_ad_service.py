@@ -1,15 +1,17 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from app.sql_app.city.city import City
-from app.sql_app.company.company import Company
+from app.services.utils.validators import (
+    ensure_valid_company_id,
+    ensure_valid_job_ad_id,
+    ensure_valid_location,
+)
 from app.sql_app.job_ad.job_ad import JobAd
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +45,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     Returns:
         Optional[JobAdResponse]: The job advertisement if found, otherwise None.
     """
-    job_ad = db.query(JobAd).filter(JobAd.id == id).first()
-    if job_ad is None:
-        logger.error(f"Job Ad with id {id} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job Ad with id {id} not found",
-        )
+    job_ad = ensure_valid_job_ad_id(id=id, db=db)
     logger.info(f"Retrieved job ad with id {id}")
 
     return JobAdResponse.model_validate(job_ad)
@@ -69,23 +65,8 @@ def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
     Raises:
         ApplicationError: If the company or city is not found.
     """
-    company = db.query(Company).filter(Company.id == job_ad_data.company_id).first()
-    if company is None:
-        logger.error(f"Company with id {job_ad_data.company_id} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company with id {job_ad_data.company_id} not found",
-        )
-
-    location = db.query(City).filter(City.name == job_ad_data.location).first()
-    if location is None:
-        logger.error(f"City with name {job_ad_data.location} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"City with name {job_ad_data.location} not found",
-        )
-
-    job_ad = JobAd(**job_ad_data.model_dump())
+    ensure_valid_company_id(id=job_ad_data.company_id, db=db)
+    job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
     db.add(job_ad)
     db.commit()
@@ -110,16 +91,33 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
     Raises:
         ApplicationError: If the job advertisement, city, or company is not found.
     """
-    job_ad = get_by_id(id=id, db=db)
+    job_ad = ensure_valid_job_ad_id(id=id, db=db)
+    job_ad = _update_job_ad(job_ad_data=job_ad_data, job_ad=job_ad, db=db)
+
+    if any(value is None for value in vars(job_ad_data).values()):
+        job_ad.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(job_ad)
+        logger.info(f"Job ad with id: {id} updated.")
+
+    return JobAdResponse.model_validate(job_ad)
+
+
+def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
+    """
+    Updates the fields of a job advertisement based on the provided job_ad_data.
+
+    Args:
+        job_ad_data (JobAdUpdate): An object containing the updated data for the job advertisement.
+        job_ad (JobAd): The job advertisement object to be updated.
+        db (Session): The database session used for validating the location.
+
+    Returns:
+        JobAd: The updated job advertisement object.
+    """
     if job_ad_data.location is not None:
-        location = db.query(City).filter(City.name == job_ad_data.location).first()
-        if location is None:
-            logger.error(f"City with name {job_ad_data.location} not found")
-            raise ApplicationError(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"City with name {job_ad_data.location} not found",
-            )
-        job_ad.location = job_ad_data.location
+        ensure_valid_location(location=job_ad_data.location, db=db)
         logger.info(f"Updated job ad (id: {id}) location to {job_ad_data.location}")
 
     if job_ad_data.title is not None:
@@ -144,12 +142,4 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
         job_ad.status = job_ad_data.status
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
 
-    if any(value is None for value in vars(job_ad_data).values()):
-        job_ad.updated_at = datetime.now()
-        logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
-
-        db.commit()
-        db.refresh(job_ad)
-        logger.info(f"Job ad with id: {id} updated.")
-
-    return JobAdResponse.model_validate(job_ad)
+    return job_ad
