@@ -11,7 +11,7 @@ from app.schemas.user import UserResponse
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
-from app.sql_app.job_application.job_application_status import JobStatus
+from app.schemas.job_application import JobStatus
 from app.utils.process_request import process_request
 
 router = APIRouter()

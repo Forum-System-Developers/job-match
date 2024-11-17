@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey
@@ -26,10 +27,10 @@ class CategoryJobApplication(Base):
 
     __tablename__ = "job_application"
 
-    category_id: Mapped[UUID] = mapped_column(
+    category_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
     )
-    job_application_id: Mapped[UUID] = mapped_column(
+    job_application_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("job_application.id"), nullable=False
     )
 

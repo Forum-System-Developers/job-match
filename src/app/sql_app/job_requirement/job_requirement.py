@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, String, func
@@ -28,7 +30,7 @@ class JobRequirement(Base):
 
     __tablename__ = "job_requirement"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
@@ -37,10 +39,10 @@ class JobRequirement(Base):
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
     skill_level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
