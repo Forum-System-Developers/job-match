@@ -1,13 +1,13 @@
-from uuid import UUID
 import logging
+from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
 
+from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
 from app.schemas.user import UserResponse
 from app.services import address_service, professional_service
-from app.exceptions.custom_exceptions import ApplicationError
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 
