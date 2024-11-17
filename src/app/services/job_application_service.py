@@ -26,7 +26,7 @@ def create(
         user (UserResponse): Current logged in user.
         application (ProfessionalBase): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN, PRIVATE or MATCHED.
+        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
 
     Returns:
@@ -47,3 +47,7 @@ def create(
     return JobApplicationResponse.create(
         professional=professional, job_application=job_application, city=city.name
     )
+
+
+def get_active():
+    pass
