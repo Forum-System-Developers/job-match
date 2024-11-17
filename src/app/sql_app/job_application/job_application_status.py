@@ -3,7 +3,7 @@ from enum import Enum
 
 class JobStatus(Enum):
     """
-    Enum representing different statuses applying to Job Ad or Job Application.
+    Enum representing different statuses applying to Job Application.
 
     Attributes:
         ACTIVE (str): The Job application or Ad is visible in searches by the Company.
