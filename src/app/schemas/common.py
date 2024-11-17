@@ -1,8 +1,5 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.job_application import JobStatus
-from app.sql_app.professional.professional_status import ProfessionalStatus
-
 
 class FilterParams(BaseModel):
     """
@@ -31,13 +28,3 @@ class FilterParams(BaseModel):
 
     limit: int = Field(default=10, gt=0, le=100)
     offset: int = Field(default=0, ge=0)
-
-
-class SearchParamsJobs(BaseModel):
-    search: str | None = Field(default=None, description="Search for...")
-    status: JobStatus
-
-
-class SearchParamsProfessionals(BaseModel):
-    search: str | None = Field(default=None, description="Search for...")
-    status: ProfessionalStatus
