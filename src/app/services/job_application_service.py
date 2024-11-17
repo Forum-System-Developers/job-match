@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy import Row
+from sqlalchemy.engine import Result, Row
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -11,6 +11,7 @@ from app.schemas.job_application import JobAplicationBase, JobApplicationRespons
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.user import UserResponse
 from app.services import address_service, professional_service
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.city.city import City
 from app.sql_app.job_application import job_application_status as model_status
 from app.sql_app.job_application.job_application import JobApplication
@@ -119,6 +120,70 @@ def update(
     )
 
 
+def get_all(filter_params: FilterParams, db: Session, status: JobAdStatus, search: str):
+    """
+    Retrieve all Job Applications that match the filtering parameters and keywords.
+
+    Args:
+        filer_params (FilterParams): Pydantic schema for filtering params.
+        status (JobAdStatus): Can be ACTIVE or ARCHIVED.
+        search (str): Search keyword.
+        db (Session): The database session.
+    Returns:
+        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
+    """
+    if status == JobAdStatus.ACTIVE:
+        result = _get_for_status(
+            filter_params=filter_params, db=db, status=JobAdStatus.ACTIVE
+        )
+    else:
+        result = _get_for_status(
+            filter_params=filter_params, db=db, status=JobStatus.MATCHED
+        )
+
+    # TODO
+    return [
+        JobApplicationResponse.create(
+            job_application=row[0],
+            professional=row[1],
+            city=row[2].name,
+        )
+        for row in result.all()
+    ]
+
+
+def _get_for_status(
+    filter_params: FilterParams, db: Session, job_status: JobStatus
+) -> Result:
+    """
+    Retrieve all Job Applications with indicated status.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        A RowReturningQuery object that contains a tuple of JobApplication, Professional and City objects.
+    """
+    query = (
+        db.query(JobApplication, Professional, City)
+        .join(Professional, JobApplication.professional_id == Professional.id)
+        .join(City, JobApplication.city_id == City.id)
+        .filter(JobApplication.status == job_status)
+    )
+
+    logger.info(
+        f"Retreived all Job Applications that are with status {job_status.value}"
+    )
+
+    result: Result[tuple[JobApplication, Professional, City]] = query.offset(
+        filter_params.offset
+    ).limit(filter_params.limit)  # type: ignore
+
+    logger.info("Limited applications based on offset and limit")
+
+    return result
+
+
 def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
     """
     Fetches a Job Application by its ID.
@@ -145,40 +210,3 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
         )
 
     return job_application
-
-
-def get_active(
-    filter_params: FilterParams, db: Session
-) -> list[JobApplicationResponse]:
-    """
-    Retrieve all Professional profiles with status Active.
-
-    Args:
-        db (Session): The database session.
-        filer_params (FilterParams): Pydantic schema for filtering params.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
-    """
-    query = (
-        db.query(JobApplication, Professional, City)
-        .join(Professional, JobApplication.professional_id == Professional.id)
-        .join(City, JobApplication.city_id == City.id)
-        .filter(JobApplication.status == JobStatus.ACTIVE)
-    )
-
-    logger.info("Retreived all Job Applications that are with status ACTIVE")
-
-    result: list[Row[tuple[JobApplication, Professional, City]]] = (
-        query.offset(filter_params.offset).limit(filter_params.limit).all()
-    )
-
-    logger.info("Limited applications based on offset and limit")
-
-    return [
-        JobApplicationResponse.create(
-            job_application=row[0],
-            professional=row[1],
-            city=row[2].name,
-        )
-        for row in result
-    ]
