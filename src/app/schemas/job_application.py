@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.professional.professional import Professional
+from app.schemas.professional import ProfessionalResponse
 
 
 class JobStatus(str, Enum):
@@ -28,20 +28,24 @@ class JobAplicationBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
-    min_salary: float | None = Field(ge=0, description="Minimum salary (>= 0)")
-    max_salary: float | None = Field(ge=0, description="Maximum salary (>= 0)")
+    min_salary: float | None = Field(
+        ge=0, description="Minimum salary (>= 0)", default=None
+    )
+    max_salary: float | None = Field(
+        ge=0, description="Maximum salary (>= 0)", default=None
+    )
 
     description: str = Field(
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
     skills: list[str] = Field(examples=[["Python", "Linux", "React"]])
-    city: str | None = Field(examples=["Sofia"])
+    city: str | None = Field(examples=["Sofia"], default=None)
 
     @model_validator(mode="before")
     def validate_salary_range(cls, values):
         min_salary = values.get("min_salary")
         max_salary = values.get("max_salary")
-        if min_salary > max_salary:
+        if (min_salary and max_salary) and min_salary > max_salary:
             raise ValueError("min_salary must be less than or equal to max_salary")
         return values
 
@@ -72,11 +76,14 @@ class JobApplicationResponse(JobAplicationBase):
     last_name: str
     email: EmailStr
     photo: Optional[bytes] = None
-    status: JobStatus
+    status: str
 
     @classmethod
     def create(
-        cls, professional: Professional, job_application: JobApplication, city: str
+        cls,
+        professional: ProfessionalResponse,
+        job_application: JobApplication,
+        city: str,
     ) -> "JobApplicationResponse":
         return cls(
             id=professional.id,
