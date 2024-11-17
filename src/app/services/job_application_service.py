@@ -3,12 +3,17 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
+from sqlalchemy import Row
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import FilterParams
 from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
+from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.user import UserResponse
 from app.services import address_service, professional_service
+from app.sql_app.city.city import City
 from app.sql_app.job_application import job_application_status as model_status
+from app.sql_app.professional.professional import Professional
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 
@@ -19,7 +24,7 @@ def create(
     user: UserResponse,
     application: JobAplicationBase,
     is_main: bool,
-    application_status: JobStatus,
+    application_status: JobStatusInput,
     db: Session,
 ) -> JobApplicationResponse:
     """
@@ -60,7 +65,7 @@ def update(
     user: UserResponse,
     application: JobAplicationBase,
     is_main: bool,
-    application_status: JobStatus,
+    application_status: JobStatusInput,
     db: Session,
 ) -> JobApplicationResponse:
     """
@@ -99,12 +104,13 @@ def update(
     if job_application.is_main != is_main:
         job_application.is_main = is_main
         logger.info("Job Application isMain status updated")
-    if job_application.status != application_status:
-        job_application.status = application_status.value
+    if job_application.status.value != application_status.value:
+        job_application.status = model_status.JobStatus(application_status.value)
         logger.info("Job Application status updated")
 
+    # TODO
     if any(skill not in job_application.skills for skill in application.skills):
-        pass  # TODO
+        pass
 
     logger.info(f"Job Application {job_application} updated")
 
@@ -141,5 +147,38 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
     return job_application
 
 
-def get_active():
-    pass
+def get_active(
+    filter_params: FilterParams, db: Session
+) -> list[JobApplicationResponse]:
+    """
+    Retrieve all Professional profiles with status Active.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
+    """
+    query = (
+        db.query(JobApplication, Professional, City)
+        .join(Professional, JobApplication.professional_id == Professional.id)
+        .join(City, JobApplication.city_id == City.id)
+        .filter(JobApplication.status == JobStatus.ACTIVE)
+    )
+
+    logger.info("Retreived all Job Applications that are with status ACTIVE")
+
+    result: list[Row[tuple[JobApplication, Professional, City]]] = (
+        query.offset(filter_params.offset).limit(filter_params.limit).all()
+    )
+
+    logger.info("Limited applications based on offset and limit")
+
+    return [
+        JobApplicationResponse.create(
+            job_application=row[0],
+            professional=row[1],
+            city=row[2].name,
+        )
+        for row in result
+    ]
