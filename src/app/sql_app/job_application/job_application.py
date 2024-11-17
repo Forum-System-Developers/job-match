@@ -9,11 +9,11 @@ from app.sql_app.job_application.job_application_status import JobStatus
 
 if TYPE_CHECKING:
     from app.sql_app.category.category import Category
+    from app.sql_app.city.city import City
     from app.sql_app.job_application_skill.job_application_skill import (
         JobApplicationSkill,
     )
     from app.sql_app.match.match import Match
-    from app.sql_app.city.city import City
     from app.sql_app.professional.professional import Professional
 
 

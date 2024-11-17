@@ -1,9 +1,9 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator, EmailStr
+from pydantic import BaseModel, EmailStr, Field, model_validator
+
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.professional.professional import Professional
 
 
@@ -21,8 +21,8 @@ class JobAplicationBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
-    min_salary: int | None = Field(ge=0, description="Minimum salary (>= 0)")
-    max_salary: int | None = Field(ge=0, description="Maximum salary (>= 0)")
+    min_salary: float | None = Field(ge=0, description="Minimum salary (>= 0)")
+    max_salary: float | None = Field(ge=0, description="Maximum salary (>= 0)")
 
     description: str = Field(
         examples=["A seasoned web developer with expertise in FastAPI"]
@@ -65,7 +65,7 @@ class JobApplicationResponse(JobAplicationBase):
     last_name: str
     email: EmailStr
     photo: Optional[bytes] = None
-    status: JobStatus
+    status: str
 
     @classmethod
     def create(
@@ -82,5 +82,5 @@ class JobApplicationResponse(JobAplicationBase):
             max_salary=job_application.max_salary,
             description=job_application.description,
             city=city,
-            skills=job_application.skills,
+            skills=job_application.skills,  # TODO
         )

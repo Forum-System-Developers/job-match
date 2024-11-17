@@ -1,11 +1,11 @@
 import re
 from typing import Optional
 
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.schemas.custom_types import Username, Password
-from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.schemas.custom_types import Password, Username
 from app.sql_app.professional.professional import Professional
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
 class ProfessionalBase(BaseModel):
@@ -27,10 +27,9 @@ class ProfessionalCreate(ProfessionalBase):
     should be passed as a JSON object in the request body.
 
     Attributes:
-        first_name (str): First name of the professional.
-        last_name (str): Last name of the professional.
-        description (str): Description of the professional.
-        city (str): The city the professional is located in.
+        username (Username): Username of the professional.
+        password (Password): Password for the professional profile..
+        email (EmailStr): Email of the professional.
     """
 
     username: Username = Field(examples=["username"])  # type: ignore
@@ -61,6 +60,8 @@ class ProfessionalResponse(ProfessionalBase):
         description (str): Description of the professional.
         photo bytes | None: Photo of the professional.
         active_application_count (int): Number of active applications.
+        city (str): The city the professional is located in.
+
     """
 
     photo: Optional[bytes] = None
@@ -76,4 +77,5 @@ class ProfessionalResponse(ProfessionalBase):
             photo=professional.photo,
             status=professional.status,
             active_application_count=professional.active_application_count,
+            city=city,
         )

@@ -2,11 +2,11 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
+from app.schemas.user import UserResponse
+from app.services import address_service, professional_service
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
-from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
-from app.services import address_service, professional_service
-from app.schemas.user import UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def create(
     city = address_service.get_by_name(name=application.city, db=db)
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
     job_application = JobApplication(
-        **application.model_dump(exclude="city"),
+        **application.model_dump(exclude={"city"}),
         is_main=is_main,
         status=application_status,
         city_id=city.id,

@@ -5,16 +5,13 @@ from fastapi import UploadFile, status
 from sqlalchemy.orm import Session, aliased
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.professional import (
-    ProfessionalCreate,
-    ProfessionalResponse,
-)
 from app.schemas.common import FilterParams
-from app.services import address_service
-from app.sql_app.professional.professional import Professional
-from app.sql_app.city.city import City
-from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.schemas.professional import ProfessionalCreate, ProfessionalResponse
 from app.schemas.user import UserResponse
+from app.services import address_service
+from app.sql_app.city.city import City
+from app.sql_app.professional.professional import Professional
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +156,7 @@ def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalRespon
     ]
 
 
-def _get_by_id(professional_id: UUID, db: Session) -> Professional | None:
+def _get_by_id(professional_id: UUID, db: Session) -> Professional:
     """
     Retrieves an instance of the Professional model or None.
 

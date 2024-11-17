@@ -7,13 +7,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.job_application import JobAplicationBase
+from app.schemas.user import UserResponse
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
-from app.schemas.user import UserResponse
-from app.utils.process_request import process_request
 from app.sql_app.job_application.job_application_status import JobStatus
-
+from app.utils.process_request import process_request
 
 router = APIRouter()
 

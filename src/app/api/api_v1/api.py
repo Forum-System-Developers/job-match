@@ -5,8 +5,8 @@ from fastapi import APIRouter
 from app.api.api_v1.endpoints import (
     company_router,
     job_ad_router,
-    professional_router,
     job_application_router,
+    professional_router,
 )
 
 api_router = APIRouter()

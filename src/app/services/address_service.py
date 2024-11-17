@@ -1,7 +1,8 @@
 import logging
+from uuid import UUID
 
-from sqlalchemy.orm import Session
 from fastapi import status
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
@@ -30,15 +31,15 @@ def get_by_name(name: str, db: Session) -> CityResponse:
         )
     logger.info(f"City {city} fetched")
 
-    return city
+    return CityResponse(id=city.id, name=city.name)
 
 
-def get_by_id(city_id: int, db: Session) -> CityResponse:
+def get_by_id(city_id: UUID, db: Session) -> CityResponse:
     """
     Retrieves an instance of the City model.
 
     Args:
-        city_id (int): The identifier of the city.
+        city_id (UUID): The identifier of the city.
         db (Session): The database dependency.
 
     Returns:
@@ -53,4 +54,4 @@ def get_by_id(city_id: int, db: Session) -> CityResponse:
         )
     logger.info(f"City {city} fetched")
 
-    return city
+    return CityResponse(id=city.id, name=city.name)
