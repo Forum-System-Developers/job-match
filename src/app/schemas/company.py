@@ -27,7 +27,6 @@ class CompanyCreate(BaseModel):
     description: str
     email: EmailStr
     phone_number: str
-    logo: bytes
 
 
 class CompanyUpdate(BaseModel):
@@ -36,7 +35,6 @@ class CompanyUpdate(BaseModel):
     description: str | None
     email: EmailStr | None
     phone_number: str | None
-    logo: bytes | None
 
 
 class CompanyResponse(CompanyBase):
