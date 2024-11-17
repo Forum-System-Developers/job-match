@@ -55,7 +55,7 @@ class JobApplication(Base):
     professional_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
-    is_main: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    is_main: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
