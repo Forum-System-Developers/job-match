@@ -1,7 +1,6 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Query
+from fastapi import APIRouter, Depends, Form
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -29,20 +28,6 @@ def create(
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """
-    Creates a Job Application.
-
-    Args:
-        application (JobAplicationBase): The Job Application details from the request body.
-        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatus): Status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
-        user (UserResponse): The current logged in User.
-        db (Session): Database session dependency.
-
-    Returns:
-        JSONResponse: The created Job Application response.
-    """
-
     def _create():
         return job_application_service.create(
             user=user,
@@ -71,21 +56,6 @@ def update(
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """
-    Updates a Job Application.
-
-    Args:
-        job_application_id (UUID): The identifier of the Job Application.
-        application (JobAplicationBase): The Job Application details from the request body.
-        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatus): Status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
-        user (UserResponse): The current logged in User.
-        db (Session): Database session dependency.
-
-    Returns:
-        JSONResponse: The created Job Application response.
-    """
-
     def _update():
         return job_application_service.update(
             job_application_id=job_application_id,
@@ -107,7 +77,7 @@ def update(
     "/", description="Get all Job applications (filtered by indicated parameters)"
 )
 def get_all(
-    filter_params: Annotated[FilterParams, Query()] = FilterParams(),
+    filter_params: FilterParams = Depends(),
     search: str | None = Form(default="", description="Search for..."),
     job_application_status: JobAdStatus = Form(
         description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application"
@@ -115,16 +85,6 @@ def get_all(
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """
-    Retrieve all Job Applications with status Active.
-
-    Args:
-        db (Session): The database session.
-        filer_params (FilterParams): Pydantic schema for filtering params.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
-    """
-
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
