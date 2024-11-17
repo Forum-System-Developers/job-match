@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 from typing import TYPE_CHECKING
 
@@ -57,10 +58,10 @@ class JobApplication(Base):
         UUID(as_uuid=True), ForeignKey("professional.id"), nullable=False
     )
     is_main: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         server_onupdate=func.now(),

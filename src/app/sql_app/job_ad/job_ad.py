@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 from typing import TYPE_CHECKING
 
@@ -64,10 +65,10 @@ class JobAd(Base):
     min_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     max_salary: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     status: Mapped[JobAdStatus] = mapped_column(Enum(JobAdStatus), nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 

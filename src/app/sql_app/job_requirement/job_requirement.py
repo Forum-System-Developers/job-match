@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 from typing import TYPE_CHECKING
 
@@ -38,10 +39,10 @@ class JobRequirement(Base):
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
     skill_level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
