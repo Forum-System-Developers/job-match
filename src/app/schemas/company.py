@@ -31,7 +31,8 @@ class CompanyCreate(BaseModel):
 
 class CompanyUpdate(BaseModel):
     name: str | None
-    address: Address | None
+    address_line: str | None
+    city: str | None
     description: str | None
     email: EmailStr | None
     phone_number: str | None
