@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Query
@@ -85,7 +86,7 @@ def update(
     """
 
     def _update():
-        return professional_service.update(
+        return job_application_service.update(
             job_application_id=job_application_id,
             user=user,
             application=application,
