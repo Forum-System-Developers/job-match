@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.professional import ProfessionalResponse
 from app.sql_app.job_application.job_application import JobApplication
+from app.sql_app.professional.professional import Professional
 
 
 class JobStatus(str, Enum):
@@ -71,7 +72,8 @@ class JobApplicationResponse(JobAplicationBase):
         photo bytes | None: Photo of the professional.
     """
 
-    id: UUID
+    application_id: UUID
+    professional_id: UUID
     first_name: str
     last_name: str
     email: EmailStr
@@ -81,17 +83,18 @@ class JobApplicationResponse(JobAplicationBase):
     @classmethod
     def create(
         cls,
-        professional: ProfessionalResponse,
+        professional: ProfessionalResponse | Professional,
         job_application: JobApplication,
         city: str,
     ) -> "JobApplicationResponse":
         return cls(
-            id=professional.id,
+            application_id=job_application.id,
+            profesisonal_id=professional.id,
             photo=professional.photo,
             first_name=professional.first_name,
             last_name=professional.last_name,
             email=professional.email,
-            status=job_application.status,
+            status=job_application.status.value,
             min_salary=job_application.min_salary,
             max_salary=job_application.max_salary,
             description=job_application.description,
