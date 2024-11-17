@@ -10,7 +10,7 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.user import UserResponse
-from app.services import address_service, professional_service
+from app.services import city_service, professional_service
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.city.city import City
 from app.sql_app.job_application import job_application_status as model_status
@@ -45,7 +45,7 @@ def create(
         JobApplicationResponse: JobApplication Pydantic response model.
     """
     if application.city is not None:
-        city = address_service.get_by_name(name=application.city, db=db)
+        city = city_service.get_by_name(name=application.city, db=db)
 
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
     job_application = JobApplication(
@@ -88,7 +88,7 @@ def update(
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
 
     if application_update.city is not None:
-        city = address_service.get_by_name(name=application_update.city, db=db)
+        city = city_service.get_by_name(name=application_update.city, db=db)
 
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
 
@@ -129,19 +129,13 @@ def get_all(
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
     if status == JobAdStatus.ACTIVE:
-        query = _get_for_status(
-            filter_params=filter_params, db=db, job_status=JobAdStatus.ACTIVE
-        )
+        query = _get_for_status(db=db, job_status=JobAdStatus.ACTIVE)
     else:
-        query = _get_for_status(
-            filter_params=filter_params, db=db, job_status=JobStatus.MATCHED
-        )
+        query = _get_for_status(db=db, job_status=JobStatus.MATCHED)
 
     if search_params.skills:
-        query = (
-            query.join(JobApplicationSkill)
-            .join(Skill)
-            .filter(Skill.skill.in_(search_params.skills))
+        query.join(JobApplicationSkill).join(Skill).filter(
+            Skill.skill.in_(search_params.skills)
         )
         logger.info(f"Filtered applications by skills: {search_params.skills}")
 
@@ -149,7 +143,6 @@ def get_all(
         query.order_by(getattr(JobApplication, search_params.order_by).desc())
     else:
         query.order_by(getattr(JobApplication, search_params.order_by).asc())
-
     logger.info(
         f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
     )
@@ -168,9 +161,7 @@ def get_all(
     ]
 
 
-def _get_for_status(
-    filter_params: FilterParams, db: Session, job_status: JobStatus
-) -> RowReturningQuery:
+def _get_for_status(db: Session, job_status: JobStatus) -> RowReturningQuery:
     """
     Retrieve all Job Applications with indicated status.
 
@@ -212,7 +203,6 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
     job_application = (
         db.query(JobApplication).filter(JobApplication.id == job_application_id).first()
     )
-
     if job_application is None:
         raise ApplicationError(
             detail=f"Job Aplication with id {job_application_id} not found.",
