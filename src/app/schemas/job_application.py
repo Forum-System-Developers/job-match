@@ -1,7 +1,10 @@
 from typing import Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, EmailStr
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.professional.professional import Professional
 
 
 class JobAplicationBase(BaseModel):
@@ -44,16 +47,40 @@ class JobApplicationResponse(JobAplicationBase):
     Pydantic schema representing the FastAPI response for Job Application.
 
     Attributes:
+        min_salary (int): The lower boundary for the salary range.
+        max_salary (int): The upper boundary for the salary range.
+        description (str): Description of the professional.
+        skills (list[str]): List of Professional Skills.
+        city (str): The city the professional is located in.
+        id (UUID): The identifier of the professional.
         first_name (str): First name of the professional.
         last_name (str): Last name of the professional.
+        email (EmailStr): Email of the professional.
         description (str): Description of the professional.
         photo bytes | None: Photo of the professional.
-        active_application_count (int): Number of active applications.
     """
 
+    id: UUID
+    first_name: str
+    last_name: str
+    email: EmailStr
     photo: Optional[bytes] = None
     status: JobStatus
-    active_application_count: int
 
-    class Config:
-        from_attributes = True
+    @classmethod
+    def create(
+        cls, professional: Professional, job_application: JobApplication, city: str
+    ) -> "JobApplicationResponse":
+        return cls(
+            id=professional.id,
+            photo=professional.photo,
+            first_name=professional.first_name,
+            last_name=professional.last_name,
+            email=professional.email,
+            status=job_application.status,
+            min_salary=job_application.min_salary,
+            max_salary=job_application.max_salary,
+            description=job_application.description,
+            city=city,
+            skills=job_application.skills,
+        )
