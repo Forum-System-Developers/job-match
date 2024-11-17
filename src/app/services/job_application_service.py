@@ -10,6 +10,7 @@ from app.schemas.user import UserResponse
 from app.services import address_service, professional_service
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_application import job_application_status as model_status
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,20 @@ def create(
         user (UserResponse): Current logged in user.
         application (ProfessionalBase): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN, PRIVATE or MATCHED.
+        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
 
     Returns:
         JobApplicationResponse: JobApplication Pydantic response model.
     """
-    city = address_service.get_by_name(name=application.city, db=db)
+    if application.city is not None:
+        city = address_service.get_by_name(name=application.city, db=db)
+
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
     job_application = JobApplication(
         **application.model_dump(exclude={"city"}),
         is_main=is_main,
-        status=application_status,
+        status=model_status.JobStatus(application_status.value),
         city_id=city.id,
         professional_id=user.id,
     )
@@ -63,10 +66,11 @@ def update(
     Updates an instance of the Job Application model.
 
     Args:
+        job_application_id (UUID): The identifier of the Job Application.
         user (UserResponse): Current logged in user.
         application (ProfessionalBase): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN, PRIVATE or MATCHED.
+        application_status (JobStatus): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
 
     Returns:
@@ -74,7 +78,11 @@ def update(
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
 
-    city = address_service.get_by_name(name=application.city, db=db)
+    if application.city is not None:
+        city = address_service.get_by_name(name=application.city, db=db)
+    if city.id != job_application.city_id:
+        job_application.city_id = city.id
+        logger.info("Job Application city updated")
 
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
 
@@ -87,14 +95,11 @@ def update(
     if job_application.description != application.description:
         job_application.description = application.description
         logger.info("Job Application description updated")
-    if job_application.city_id != city.id:
-        job_application.city_id = city.id
-        logger.info("Job Application city updated")
     if job_application.is_main != is_main:
         job_application.is_main = is_main
         logger.info("Job Application isMain status updated")
     if job_application.status != application_status:
-        job_application.status = application_status
+        job_application.status = application_status.value
         logger.info("Job Application status updated")
 
     if any(skill not in job_application.skills for skill in application.skills):
