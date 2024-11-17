@@ -10,7 +10,7 @@ from app.schemas.job_application import JobAplicationBase
 from app.services import professional_service
 from app.services.auth_service import get_current_user
 from app.sql_app.database import get_db
-from app.sql_app.user.user import User
+from app.schemas.user import UserResponse
 from app.utils.process_request import process_request
 from app.sql_app.job_application.job_application_status import JobStatus
 
@@ -26,21 +26,21 @@ def create(
     application: JobAplicationBase,
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
-    user: User = Depends(get_current_user),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
-    Creates a professional profile.
+    Creates a Job Application.
 
     Args:
-        professional (ProfessionalBase): The professional's details from the request body.
-        status (ProfessionalStatus): Status of the professional - Active/Busy.
-        photo (UploadFile | None): The professional's photo (if provided).
-        user (UserResponse): The current logged in User.
+        application (JobAplicationBase): The Job Application details from the request body.
+        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
+        application_status (JobStatus): Status of the Job Application - can be ACTIVE, HIDDEN, PRIVATE or MATCHED.
+        user (User): The current logged in User.
         db (Session): Database session dependency.
 
     Returns:
-        JSONResponse: The created professional profile response.
+        JobApplicationResponse | JSONResponse: The created Job Application response.
     """
 
     def _create():
