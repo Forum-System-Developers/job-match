@@ -13,16 +13,17 @@ if TYPE_CHECKING:
 
 class CompanyAddress(Base):
     """
-    Represents a company address model.
+    Represents a company address in the database.
 
     Attributes:
-        id (UUID): Unique identifier for the company address.
-        city_id (UUID): Foreign key referencing the city.
-        company_id (UUID): Foreign key referencing the company.
+        id (UUID): The unique identifier for the company address.
+        city_id (UUID): The foreign key referencing the city.
+        company_id (UUID): The foreign key referencing the company.
         address (str): The address of the company.
+
     Relationships:
-        city (relationship): Relationship to the City model.
-        company_address (relationship): Relationship to the Company model.
+        city (City): The relationship to the City model.
+        company (Company): The relationship to the Company model.
     """
 
     __tablename__ = "company_address"
@@ -44,6 +45,4 @@ class CompanyAddress(Base):
     address: Mapped[str] = mapped_column(String, nullable=False)
 
     city: Mapped["City"] = relationship("City", back_populates="company_addresses")
-    company_address: Mapped["Company"] = relationship(
-        "Company", back_populates="company_addresses"
-    )
+    company: Mapped["Company"] = relationship("Company", back_populates="addresses")
