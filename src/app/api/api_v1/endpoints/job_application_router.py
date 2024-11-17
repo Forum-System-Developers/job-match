@@ -98,7 +98,7 @@ def update(
     return process_request(
         get_entities_fn=_update,
         status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Job application could not be created",
+        not_found_err_msg="Job application could not be updated",
     )
 
 
@@ -109,14 +109,13 @@ def get_active(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
-    Retrieve all active Job Applications.
+    Retrieve all Professional profiles with status Active.
 
     Args:
-        filer_params (FilterParams): Pydantic schema for filtering params.
-        user (UserResponse): The current logged in User.
         db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
     Returns:
-        JSONResponse: A list of Job Applications that are visible for Companies.
+        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
 
     def _get_active():
@@ -125,5 +124,5 @@ def get_active(
     return process_request(
         get_entities_fn=_get_active,
         status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not fetch Professionals",
+        not_found_err_msg="Could not fetch Job Applications",
     )
