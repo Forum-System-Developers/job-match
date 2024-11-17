@@ -92,7 +92,7 @@ def update(
 
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
 
-    job_application = _update(
+    job_application = _update_attributes(
         application_update=application_update,
         job_application=job_application,
         is_main=is_main,
@@ -222,7 +222,7 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
     return job_application
 
 
-def _update(
+def _update_attributes(
     application_update: JobAplicationBase,
     job_application: JobApplication,
     is_main: bool,
@@ -232,18 +232,23 @@ def _update(
     if job_application.min_salary != application_update.min_salary:
         job_application.min_salary = application_update.min_salary
         logger.info("Job Application min_salary updated")
+
     if job_application.max_salary != application_update.max_salary:
         job_application.max_salary = application_update.max_salary
         logger.info("Job Application max_salary updated")
+
     if job_application.description != application_update.description:
         job_application.description = application_update.description
         logger.info("Job Application description updated")
+
     if job_application.is_main != is_main:
         job_application.is_main = is_main
         logger.info("Job Application isMain status updated")
+
     if job_application.status.value != application_status.value:
         job_application.status = model_status.JobStatus(application_status.value)
         logger.info("Job Application status updated")
+
     if city.id != job_application.city_id:
         job_application.city_id = city.id
         logger.info("Job Application city updated")
