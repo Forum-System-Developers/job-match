@@ -182,3 +182,40 @@ def get_active(
         )
         for row in result
     ]
+
+
+def get_matched(
+    filter_params: FilterParams, db: Session
+) -> list[JobApplicationResponse]:
+    """
+    Retrieve all Professional profiles with status Matched.
+
+    Args:
+        db (Session): The database session.
+        filer_params (FilterParams): Pydantic schema for filtering params.
+    Returns:
+        list[JobApplicationResponse]: A list of Job Applications that are matched with Job Ads.
+    """
+    query = (
+        db.query(JobApplication, Professional, City)
+        .join(Professional, JobApplication.professional_id == Professional.id)
+        .join(City, JobApplication.city_id == City.id)
+        .filter(JobApplication.status == JobStatus.MATCHED)
+    )
+
+    logger.info("Retreived all Job Applications that are with status MATCHED")
+
+    result: list[Row[tuple[JobApplication, Professional, City]]] = (
+        query.offset(filter_params.offset).limit(filter_params.limit).all()
+    )
+
+    logger.info("Limited applications based on offset and limit")
+
+    return [
+        JobApplicationResponse.create(
+            job_application=row[0],
+            professional=row[1],
+            city=row[2].name,
+        )
+        for row in result
+    ]
