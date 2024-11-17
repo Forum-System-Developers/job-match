@@ -159,20 +159,10 @@ def get_active(
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
-    query = (
-        db.query(JobApplication, Professional, City)
-        .join(Professional, JobApplication.professional_id == Professional.id)
-        .join(City, JobApplication.city_id == City.id)
-        .filter(JobApplication.status == JobStatus.ACTIVE)
+
+    result = _get_for_status(
+        filter_params=filter_params, db=db, job_status=JobStatus.ACTIVE
     )
-
-    logger.info("Retreived all Job Applications that are with status ACTIVE")
-
-    result: list[Row[tuple[JobApplication, Professional, City]]] = (
-        query.offset(filter_params.offset).limit(filter_params.limit).all()
-    )
-
-    logger.info("Limited applications based on offset and limit")
 
     return [
         JobApplicationResponse.create(
@@ -196,11 +186,28 @@ def get_matched(
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are matched with Job Ads.
     """
+    result = _get_for_status(
+        filter_params=filter_params, db=db, job_status=JobStatus.MATCHED
+    )
+
+    return [
+        JobApplicationResponse.create(
+            job_application=row[0],
+            professional=row[1],
+            city=row[2].name,
+        )
+        for row in result
+    ]
+
+
+def _get_for_status(
+    filter_params: FilterParams, db: Session, job_status: JobStatus
+) -> list:
     query = (
         db.query(JobApplication, Professional, City)
         .join(Professional, JobApplication.professional_id == Professional.id)
         .join(City, JobApplication.city_id == City.id)
-        .filter(JobApplication.status == JobStatus.MATCHED)
+        .filter(JobApplication.status == job_status)
     )
 
     logger.info("Retreived all Job Applications that are with status MATCHED")
@@ -211,11 +218,4 @@ def get_matched(
 
     logger.info("Limited applications based on offset and limit")
 
-    return [
-        JobApplicationResponse.create(
-            job_application=row[0],
-            professional=row[1],
-            city=row[2].name,
-        )
-        for row in result
-    ]
+    return result
