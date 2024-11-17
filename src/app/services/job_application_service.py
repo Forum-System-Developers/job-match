@@ -151,7 +151,9 @@ def get_all(
     else:
         query = query.order_by(getattr(JobApplication, search_params.order_by).asc())
 
-    logger.info("Order applications based on search params order and order_by")
+    logger.info(
+        f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
+    )
 
     result = query.offset(filter_params.offset).limit(filter_params.limit)  # type: ignore
 

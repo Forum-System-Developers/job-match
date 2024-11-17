@@ -34,15 +34,15 @@ class City(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    professionals: Mapped["Professional"] = relationship(
+    professionals: Mapped[list["Professional"]] = relationship(
         "Professional", back_populates="city", uselist=True, collection_class=list
     )
-    company_addresses: Mapped["CompanyAddress"] = relationship(
+    company_addresses: Mapped[list["CompanyAddress"]] = relationship(
         "CompanyAddress", back_populates="city", uselist=True, collection_class=list
     )
-    job_ads: Mapped["JobAd"] = relationship(
+    job_ads: Mapped[list["JobAd"]] = relationship(
         "JobAd", back_populates="location", uselist=True, collection_class=list
     )
-    job_applications: Mapped["JobApplication"] = relationship(
+    job_applications: Mapped[list["JobApplication"]] = relationship(
         "JobApplication", back_populates="city", uselist=True, collection_class=list
     )

@@ -77,13 +77,13 @@ class JobApplication(Base):
     categories: Mapped["Category"] = relationship(
         "CategoryJobApplication", back_populates="job_applications"
     )
-    skills: Mapped["JobApplicationSkill"] = relationship(
+    skills: Mapped[list["JobApplicationSkill"]] = relationship(
         "JobApplicationSkill",
         back_populates="skill",
         uselist=True,
         collection_class=list,
     )
-    matches: Mapped["Match"] = relationship(
+    matches: Mapped[list["Match"]] = relationship(
         "Match", back_populates="job_application", uselist=True, collection_class=list
     )
     city: Mapped["City"] = relationship("City", back_populates="job_applications")
