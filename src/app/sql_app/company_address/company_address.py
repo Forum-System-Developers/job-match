@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String
@@ -28,7 +29,7 @@ class CompanyAddress(Base):
 
     __tablename__ = "company_address"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         unique=True,
@@ -36,10 +37,10 @@ class CompanyAddress(Base):
         uselist=True,
         collection_class=list,
     )
-    city_id: Mapped[UUID] = mapped_column(
+    city_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
-    company_id: Mapped[UUID] = mapped_column(
+    company_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("company.id"), nullable=False
     )
     address: Mapped[str] = mapped_column(String, nullable=False)

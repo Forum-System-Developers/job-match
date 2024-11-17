@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, String
@@ -28,7 +29,7 @@ class City(Base):
 
     __tablename__ = "city"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, unique=True, nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)

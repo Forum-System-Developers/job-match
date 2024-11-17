@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
@@ -42,20 +43,20 @@ class JobAd(Base):
 
     __tablename__ = "job_ad"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    company_id: Mapped[UUID] = mapped_column(
+    company_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("company.id"), nullable=False
     )
-    category_id: Mapped[UUID] = mapped_column(
+    category_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
     )
-    location_id: Mapped[UUID] = mapped_column(
+    location_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
     title: Mapped[str] = mapped_column(String, nullable=False)

@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, ForeignKey, Integer, LargeBinary, String
@@ -37,14 +38,14 @@ class Professional(Base):
 
     __tablename__ = "professional"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    city_id: Mapped[UUID] = mapped_column(
+    city_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)

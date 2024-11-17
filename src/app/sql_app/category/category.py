@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import String, func
@@ -31,7 +32,7 @@ class Category(Base):
 
     __tablename__ = "category"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,

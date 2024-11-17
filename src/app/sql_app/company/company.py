@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Integer, LargeBinary, String, func
@@ -37,7 +38,7 @@ class Company(Base):
 
     __tablename__ = "company"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         server_default=func.uuid_generate_v4(),
         primary_key=True,
