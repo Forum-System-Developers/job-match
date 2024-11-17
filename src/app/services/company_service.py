@@ -1,7 +1,8 @@
 import logging
+from datetime import datetime
 from uuid import UUID
 
-from fastapi import status
+from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -46,20 +47,26 @@ def get_by_id(id: UUID, db: Session) -> CompanyResponse:
     return CompanyResponse.model_validate(company)
 
 
-def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
+def create(
+    company_data: CompanyCreate, db: Session, logo: UploadFile | None = None
+) -> CompanyResponse:
     """
-    Create a new company in the database.
+    Create a new company record in the database.
 
     Args:
         company_data (CompanyCreate): The data required to create a new company.
         db (Session): The database session to use for the operation.
+        logo (UploadFile | None, optional): An optional logo file for the company. Defaults to None.
 
     Returns:
-        CompanyResponse: The response object containing the created company's details.
+        CompanyResponse: The response object containing the created company details.
     """
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
 
-    company = Company(**company_data.model_dump())
+    if logo is not None:
+        upload_logo = logo.file.read()
+
+    company = Company(**company_data.model_dump(), logo=upload_logo)
     db.add(company)
     db.commit()
     db.refresh(company)
@@ -68,7 +75,9 @@ def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
     return CompanyResponse.model_validate(company)
 
 
-def update(id: UUID, company_data: CompanyUpdate, db: Session) -> CompanyResponse:
+def update(
+    id: UUID, company_data: CompanyUpdate, db: Session, logo: UploadFile | None = None
+) -> CompanyResponse:
     """
     Update an existing company in the database.
 
@@ -81,7 +90,9 @@ def update(id: UUID, company_data: CompanyUpdate, db: Session) -> CompanyRespons
         CompanyResponse: The response object containing the updated company's details.
     """
     company = _ensure_company_exists(id=id, db=db)
-    company = _update_company(company=company, company_data=company_data, db=db)
+    company = _update_company(
+        company=company, company_data=company_data, logo=logo, db=db
+    )
 
     db.commit()
     db.refresh(company)
@@ -147,18 +158,20 @@ def _get_by_phone_number(phone_number: str, db: Session) -> Company | None:
 
 
 def _update_company(
-    company: Company, company_data: CompanyUpdate, db: Session
+    company: Company,
+    company_data: CompanyUpdate,
+    db: Session,
+    logo: UploadFile | None = None,
 ) -> Company:
     """
-    Updates the company object with the provided company data.
-
+    Updates the details of a company with the provided data.
     Args:
-        company (Company): The company object to be updated.
+        company (Company): The company instance to be updated.
         company_data (CompanyUpdate): The data to update the company with.
-        db (Session): The database session to use for ensuring unique constraints.
-
+        db (Session): The database session to use for any database operations.
+        logo (UploadFile | None, optional): The new logo file to update, if any. Defaults to None.
     Returns:
-        Company: The updated company object.
+        Company: The updated company instance.
     """
     if company_data.name is not None:
         company.name = company_data.name
@@ -184,9 +197,14 @@ def _update_company(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
         )
 
-    if company_data.logo is not None:
-        company.logo = company_data.logo
+    if logo is not None:
+        upload_logo = logo.file.read()
+        company.logo = upload_logo
         logger.info(f"Updated company (id: {company.id}) logo")
+
+    if any(value is None for value in vars(company_data).values()) or logo is not None:
+        company.updated_at = datetime.now()
+        logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
 
     return company
 
