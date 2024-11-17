@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
 from app.schemas.job_application import JobAplicationBase, JobStatus
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.schemas.user import UserResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_user
@@ -22,7 +23,7 @@ router = APIRouter()
     description="Create a Job Application.",
 )
 def create(
-    application: JobAplicationBase,
+    application: JobAplicationBase = Form(description="Job Application update form"),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
     user: UserResponse = Depends(get_current_user),
@@ -64,7 +65,7 @@ def create(
 )
 def update(
     job_application_id: UUID,
-    application: JobAplicationBase,
+    application: JobAplicationBase = Form(description="Job Application update form"),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
     user: UserResponse = Depends(get_current_user),
@@ -102,14 +103,20 @@ def update(
     )
 
 
-@router.get("/active", description="Get all Active Job applications")
-def get_active(
+@router.get(
+    "/", description="Get all Job applications (filtered by indicated parameters)"
+)
+def get_all(
     filter_params: Annotated[FilterParams, Query()] = FilterParams(),
+    search: str | None = Form(default="", description="Search for..."),
+    job_application_status: JobAdStatus = Form(
+        description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application"
+    ),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
-    Retrieve all Professional profiles with status Active.
+    Retrieve all Job Applications with status Active.
 
     Args:
         db (Session): The database session.
@@ -118,37 +125,16 @@ def get_active(
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
 
-    def _get_active():
-        return job_application_service.get_active(db=db, filter_params=filter_params)
+    def _get_all():
+        return job_application_service.get_all(
+            filter_params=filter_params,
+            search=search,
+            status=job_application_status,
+            db=db,
+        )
 
     return process_request(
-        get_entities_fn=_get_active,
-        status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not fetch Job Applications",
-    )
-
-
-@router.get("/active", description="Get all Active Job applications")
-def get_matched(
-    filter_params: Annotated[FilterParams, Query()] = FilterParams(),
-    user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    """
-    Retrieve all Professional profiles with status Matched.
-
-    Args:
-        db (Session): The database session.
-        filer_params (FilterParams): Pydantic schema for filtering params.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are matched with Job Ads.
-    """
-
-    def _get_matched():
-        return job_application_service.get_matched(db=db, filter_params=filter_params)
-
-    return process_request(
-        get_entities_fn=_get_matched,
+        get_entities_fn=_get_all,
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not fetch Job Applications",
     )
