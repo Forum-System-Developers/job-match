@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
+from app.schemas.job_ad import BaseJobAd
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -51,6 +52,15 @@ class ProfessionalCreate(ProfessionalBase):
         from_attributes = True
 
 
+class ProfessionalUpdate(BaseModel):
+    first_name: str | None = Field(examples=["Jane"], default=None)
+    last_name: str | None = Field(examples=["Doe"], default=None)
+    description: str | None = Field(
+        examples=["A seasoned web developer with expertise in FastAPI"], default=None
+    )
+    city: str | None = Field(examples=["Sofia"], default=None)
+
+
 class ProfessionalResponse(ProfessionalBase):
     """
     Pydantic schema representing the FastAPI response for Professional.
@@ -70,17 +80,23 @@ class ProfessionalResponse(ProfessionalBase):
     photo: bytes | None = None
     status: ProfessionalStatus
     active_application_count: int
+    matched_ads: list[BaseJobAd] | None
 
     @classmethod
-    def create(cls, professional: Professional, city: str) -> "ProfessionalResponse":
+    def create(
+        cls,
+        professional: Professional,
+        matched_ads: list[BaseJobAd] | None = None,
+    ) -> "ProfessionalResponse":
         return cls(
             id=professional.id,
             first_name=professional.first_name,
             last_name=professional.last_name,
             email=professional.email,
+            city=professional.city.name,
             description=professional.description,
             photo=professional.photo,
             status=professional.status,
             active_application_count=professional.active_application_count,
-            city=city,
+            matched_ads=matched_ads,
         )
