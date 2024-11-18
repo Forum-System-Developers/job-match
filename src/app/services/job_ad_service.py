@@ -126,6 +126,21 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
 def add_requirement(
     job_ad_id: UUID, requirement_id: UUID, company_id: UUID, db: Session
 ) -> MessageResponse:
+    """
+    Adds a requirement to a job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        requirement_id (UUID): The unique identifier of the requirement to be added.
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session.
+
+    Returns:
+        MessageResponse: A response message indicating the result of the operation.
+
+    Raises:
+        ApplicationError: If the requirement is already added to the job advertisement.
+    """
     job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
     job_requirement = ensure_valid_requirement_id(
         requirement_id=requirement_id, company_id=company_id, db=db
