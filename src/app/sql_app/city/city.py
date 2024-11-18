@@ -5,10 +5,10 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.sql_app.company.company import Company
 from app.sql_app.database import Base
 
 if TYPE_CHECKING:
-    from app.sql_app.company_address.company_address import CompanyAddress
     from app.sql_app.job_ad.job_ad import JobAd
     from app.sql_app.job_application.job_application import JobApplication
     from app.sql_app.professional.professional import Professional
@@ -16,15 +16,15 @@ if TYPE_CHECKING:
 
 class City(Base):
     """
-    Represents a city model.
+    City model representing a city in the database.
 
     Attributes:
-        id (UUID): Unique identifier for the city.
+        id (uuid.UUID): Unique identifier for the city.
         name (str): Name of the city.
-
-    Reletionships:
-        professionals (relationship): Relationship to the Professional model.
-        company_addresses (relationship): Relationship to the CompanyAddress model.
+        professionals (list[Professional]): List of professionals associated with the city.
+        companies (list[Company]): List of companies associated with the city.
+        job_ads (list[JobAd]): List of job advertisements associated with the city.
+        job_applications (list[JobApplication]): List of job applications associated with the city.
     """
 
     __tablename__ = "city"
@@ -37,8 +37,8 @@ class City(Base):
     professionals: Mapped[list["Professional"]] = relationship(
         "Professional", back_populates="city", uselist=True, collection_class=list
     )
-    company_addresses: Mapped[list["CompanyAddress"]] = relationship(
-        "CompanyAddress", back_populates="city", uselist=True, collection_class=list
+    companies: Mapped[list["Company"]] = relationship(
+        "Company", back_populates="city", uselist=True, collection_class=list
     )
     job_ads: Mapped[list["JobAd"]] = relationship(
         "JobAd", back_populates="location", uselist=True, collection_class=list
