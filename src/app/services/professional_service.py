@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
@@ -14,6 +14,7 @@ from app.schemas.professional import (
 )
 from app.schemas.user import UserResponse
 from app.services import city_service
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
@@ -112,7 +113,7 @@ def update(
         logger.info("Professional photo updated successfully")
 
     matched_ads = (
-        get_matches(professional=professional, db=db)
+        get_matches(professional_id=professional_id, db=db)
         if not professional.has_private_matches
         else None
     )
@@ -141,7 +142,7 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
     professional = _get_by_id(professional_id=professional_id, db=db)
 
     matched_ads = (
-        get_matches(professional=professional, db=db)
+        get_matches(professional_id=professional_id, db=db)
         if not professional.has_private_matches
         else None
     )
@@ -209,7 +210,7 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
     return professional
 
 
-def get_matches(professional: Professional, db: Session) -> list[BaseJobAd]:
+def get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
     """
     Fetches Matched Job Ads for the given Professional.
 
@@ -221,6 +222,15 @@ def get_matches(professional: Professional, db: Session) -> list[BaseJobAd]:
     Returns:
         list[BaseJobAd]: List of Pydantic models containing basic information about the matched Job Ad.
     """
+    professional = (
+        db.query(Professional)
+        .options(
+            joinedload(Professional.job_applications).joinedload(JobApplication.matches)
+        )
+        .filter(Professional.id == professional_id)
+        .first()
+    )
+
     ads = [
         match.job_ad
         for job_application in professional.job_applications

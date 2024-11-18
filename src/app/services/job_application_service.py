@@ -65,6 +65,8 @@ def create(
         professional_schema=professional,
     )
 
+    professional.active_application_count += 1
+
     job_application: JobApplication = JobApplication(
         **application_create.model_dump(exclude={"city"}),
         is_main=is_main,
