@@ -3,10 +3,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
+from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
-from app.schemas.professional import ProfessionalCreate
+from app.schemas.professional import ProfessionalCreate, ProfessionalUpdate
 from app.schemas.user import UserResponse
 from app.services import professional_service
 from app.services.auth_service import get_current_user
@@ -50,8 +51,11 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalCreate,
+    professional: ProfessionalUpdate,
     professional_status: ProfessionalStatus = Form(),
+    private_matches: bool = Field(
+        ..., description="Set Matches as Private or Public", default=False
+    ),
     photo: UploadFile | None = File(None),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -61,6 +65,7 @@ def update(
             professional_id=professional_id,
             professional=professional,
             professional_status=professional_status,
+            private_matches=private_matches,
             db=db,
             photo=photo,
         )
