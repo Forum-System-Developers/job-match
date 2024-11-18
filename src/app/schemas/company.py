@@ -21,8 +21,8 @@ class CompanyBase(BaseModel):
 
 
 class CompanyCreate(BaseModel):
-    username: Username
-    password: Password
+    username: Username  # type: ignore
+    password: Password  # type: ignore
     name: str
     address_line: str
     city: str
