@@ -186,7 +186,7 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd
 
     if search_params.max_salary:
         job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
-        logger.info(f"Searching for job ads with max_salary: {search_params.max}")
+        logger.info(f"Searching for job ads with max_salary: {search_params.max_salary}")
 
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
