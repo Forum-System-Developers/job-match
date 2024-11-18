@@ -37,9 +37,10 @@ class ProfessionalCreate(ProfessionalBase):
     email: EmailStr = Field(examples=["email"])
 
     @field_validator("password")
-    def _validate_password(cls, value) -> str:
+    def _validate_password(cls, value: str) -> str:
         if not re.match(
-            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\\|;:\'",.<>/?])$'
+            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\\|;:\'",.<>/?])$',
+            value,
         ):
             raise ValueError(
                 "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one digit, and one special character."

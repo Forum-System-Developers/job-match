@@ -17,7 +17,13 @@ from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
 from app.schemas.user import UserResponse
-from app.services import city_service, professional_service, skill_service
+from app.services import (
+    city_service,
+    job_ad_service,
+    match_service,
+    professional_service,
+    skill_service,
+)
 from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
@@ -226,6 +232,7 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
         db.query(JobApplication).filter(JobApplication.id == job_application_id).first()
     )
     if job_application is None:
+        logger.error(f"Job application with id {job_application_id} not found")
         raise ApplicationError(
             detail=f"Job Aplication with id {job_application_id} not found.",
             status_code=status.HTTP_404_NOT_FOUND,
@@ -286,7 +293,8 @@ def _update_attributes(
         logger.info(f"Job Application id {job_application_model.id} city updated")
 
     if any(
-        skill not in job_application_model.skills for skill in application_update.skills
+        (skill not in job_application_model.skills)
+        for skill in application_update.skills
     ):
         new_skills: set[SkillBase] = {
             s
@@ -353,3 +361,54 @@ def _fetch_city(
     else:
         city = city_service.get_by_name(city_name=professional_schema.city, db=db)
     return city
+
+
+def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
+    """
+    Verifies Job Application and Job Ad and initiates a Match request for a Job Ad.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        job_ad_id (UUID): The identifier of the Job Ad.
+        db (Session): Database dependency.
+
+    Returns:
+        dict: A dictionary containing a success message if the match request is created successfully.
+
+    """
+    job_application = _get_by_id(job_application_id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
+
+    return match_service.create_if_not_exists(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
+    )
+
+
+def handle_match_response(
+    job_application_id: UUID,
+    job_ad_id: UUID,
+    accept_request: bool,
+    db: Session,
+):
+    """
+    Verifies Job Application and Job Ad and accepts or rejects a Match request from a Company.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        job_ad_id (UUID): The identifier of the Job Ad.
+        accept_request (bool): Accept or reject Match request.
+        db (Session): Database dependency.
+
+    Returns:
+        dict: A dictionary containing a success message if the match request is created successfully.
+
+    """
+    job_application = _get_by_id(job_application_id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
+
+    return match_service.process_request_from_company(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        accept_request=accept_request,
+        db=db,
+    )
