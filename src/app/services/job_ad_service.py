@@ -166,13 +166,12 @@ def match_request(
     """
     job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
     job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
-
-    job_ad.status = JobAdStatus.ARCHIVED
-    job_application.status = JobStatus.MATCHED
-
     match = ensure_valid_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
     )
+
+    job_ad.status = JobAdStatus.ARCHIVED
+    job_application.status = JobStatus.MATCHED
     match.status = MatchStatus.ACCEPTED
 
     db.add(match)
