@@ -69,6 +69,3 @@ omit = [
   "**/src/config.py",
   "**/src/profiler_utils.py",
 ]
-
-[tool.mypy]
-plugins = ["sqlalchemy.ext.mypy.plugin"]
