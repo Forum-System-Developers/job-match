@@ -101,3 +101,22 @@ def get_all(
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not fetch Job Applications",
     )
+
+
+@router.post("/{job_application_id}/{job_ad_id}/request-match")
+def request_match(
+    job_application_id: UUID,
+    job_ad_id: UUID,
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _request_match():
+        return job_application_service.request_match(
+            job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_request_match,
+        status_code=status_code.HTTP_201_CREATED,
+        not_found_err_msg="Could not process match request",
+    )

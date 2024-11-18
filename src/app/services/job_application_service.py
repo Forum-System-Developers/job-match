@@ -17,11 +17,18 @@ from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
 from app.schemas.user import UserResponse
-from app.services import city_service, professional_service, skill_service
+from app.services import (
+    city_service,
+    professional_service,
+    skill_service,
+    job_ad_service,
+    match_service,
+)
 from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
+from app.sql_app.match.match import MatchStatus
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
@@ -353,3 +360,24 @@ def _fetch_city(
     else:
         city = city_service.get_by_name(city_name=professional_schema.city, db=db)
     return city
+
+
+def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session):
+    job_application = _get_by_id(job_application_id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
+
+    request_status = match_service.create_if_not_exists(
+        job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+    )
+
+    match request_status:
+        case MatchStatus.REQUESTED:
+            return {"msg": "Match Request successfully sent"}
+        case MatchStatus.ACCEPTED:
+            raise ApplicationError(detail="Match Request already accepted")
+        case MatchStatus.REJECTED:
+            raise ApplicationError(
+                detail="Match Request was rejested, cannot create a new Match request"
+            )
+        case _:
+            raise ApplicationError(detail="Unexpected error occurred")
