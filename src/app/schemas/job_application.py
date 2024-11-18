@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -34,6 +33,11 @@ class JobSearchStatus(str, Enum):
 
     ACTIVE = "acitve"
     MATCHED = "matched"
+
+
+class MatchResponseRequest(Enum):
+    accept = True
+    reject = False
 
 
 class JobAplicationBase(BaseModel):
@@ -98,7 +102,7 @@ class JobApplicationResponse(JobAplicationBase):
     first_name: str
     last_name: str
     email: EmailStr
-    photo: Optional[bytes] = None
+    photo: bytes | None = None
     status: str
 
     @classmethod

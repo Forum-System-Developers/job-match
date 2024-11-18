@@ -5,7 +5,7 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.job_ad import JobAdResponse
+from app.schemas.job_ad import BaseJobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
@@ -97,7 +97,7 @@ def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match 
 
 def process_request_from_company(
     job_application_id: UUID, job_ad_id: UUID, accept_request: bool, db: Session
-):
+) -> dict:
     """
     Accepts or Rejects a Match request for a Job Application from a Company.
 
@@ -146,7 +146,7 @@ def process_request_from_company(
 
 def get_match_requests_for_job_application(
     job_application_id: UUID, db: Session
-) -> list[JobAdResponse]:
+) -> list[BaseJobAd]:
     requests = (
         db.query(Match)
         .filter(
@@ -159,5 +159,12 @@ def get_match_requests_for_job_application(
     job_ads = [request.job_ad for request in requests]
 
     return [
-        JobAdResponse.model_validate(job_ad, from_attributes=True) for job_ad in job_ads
+        BaseJobAd(
+            title=job_ad.title,
+            description=job_ad.description,
+            location=job_ad.location.name,
+            min_salary=job_ad.min_salary,
+            max_salary=job_ad.max_salary,
+        )
+        for job_ad in job_ads
     ]
