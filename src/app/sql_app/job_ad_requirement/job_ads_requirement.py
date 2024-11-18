@@ -15,17 +15,17 @@ if TYPE_CHECKING:
 
 class JobAdsRequirement(Base):
     """
-    Represents the requirements for a job advertisement.
+    JobAdsRequirement is a SQLAlchemy model representing the relationship between job advertisements and job requirements.
 
     Attributes:
-        job_ad_id (uuid.UUID): The unique identifier of the job advertisement.
-        job_application_id (uuid.UUID): The unique identifier of the job application.
-        created_at (datetime): The timestamp when the requirement was created.
-        updated_at (datetime): The timestamp when the requirement was last updated.
+        job_ad_id (uuid.UUID): The unique identifier of the job advertisement. It is a foreign key referencing the 'user.id' column.
+        job_requirement_id (uuid.UUID): The unique identifier of the job requirement. It is a foreign key referencing the 'job_requirement.id' column.
+        created_at (datetime): The timestamp when the record was created. It defaults to the current time.
+        updated_at (datetime): The timestamp when the record was last updated. It defaults to the current time.
 
     Relationships:
-        job_ad (JobAd): The relationship to the JobAd model.
-        job_requirement (JobRequirement): The relationship to the JobRequirement model.
+        job_ad (JobAd): The relationship to the JobAd model, back_populated by 'job_ads_requirements'.
+        job_requirement (JobRequirement): The relationship to the JobRequirement model, back_populated by 'job_ads_requirements'.
     """
 
     __tablename__ = "job_ads_requirement"
@@ -33,8 +33,11 @@ class JobAdsRequirement(Base):
     job_ad_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user.id"), nullable=False, primary_key=True
     )
-    job_application_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id"), nullable=False, primary_key=True
+    job_requirement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_requirement.id"),
+        nullable=False,
+        primary_key=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
