@@ -20,7 +20,7 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no sph1nx@${{ secrets.SSH_HOST }} << 'EOF'
           cd /home/sph1nx/project/job-match
           git pull origin main
           sudo systemctl restart job_match.service
