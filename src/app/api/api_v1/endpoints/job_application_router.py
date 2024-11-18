@@ -108,6 +108,20 @@ def get_all(
     )
 
 
+@router.get("/{job_application_id}", description="Fetch a Job Application by its ID")
+def get_by_id(job_application_id: UUID, db: Session):
+    def _get_by_id():
+        return job_application_service.get_by_id(
+            job_application_id=job_application_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_get_by_id,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not fetch Job Application",
+    )
+
+
 @router.post(
     "/{job_application_id}/{job_ad_id}/request-match", description="Send match request"
 )
