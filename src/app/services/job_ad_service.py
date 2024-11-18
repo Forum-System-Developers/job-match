@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
+from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
@@ -112,6 +113,25 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
     return JobAdResponse.model_validate(job_ad)
 
 
+def get_matches(id: UUID, db: Session) -> list[MatchResponse]:
+    """
+    Retrieve all matches for a job advertisement.
+
+    Args:
+        id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session used to query the job advertisements.
+
+    Returns:
+        list[JobAdResponse]: The list of job advertisements that match the job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(id=id, db=db)
+    matches = job_ad.matches
+
+    logger.info(f"Retrieved {len(matches)} matches for job ad with id {id}")
+
+    return [MatchResponse.model_validate(match) for match in matches]
+
+
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
     """
     Updates the fields of a job advertisement based on the provided job_ad_data.
@@ -186,7 +206,9 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd
 
     if search_params.max_salary:
         job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
-        logger.info(f"Searching for job ads with max_salary: {search_params.max_salary}")
+        logger.info(
+            f"Searching for job ads with max_salary: {search_params.max_salary}"
+        )
 
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
