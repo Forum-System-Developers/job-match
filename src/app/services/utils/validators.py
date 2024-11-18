@@ -10,6 +10,7 @@ from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
+from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 
@@ -182,3 +183,37 @@ def ensure_valid_match_request(
         )
 
     return match
+
+
+def ensure_valid_requirement_id(
+    requirement_id: UUID, company_id: UUID, db: Session
+) -> JobRequirement:
+    """
+    Ensures that a requirement with the given ID exists in the database.
+
+    Args:
+        requirement_id (UUID): The unique identifier of the requirement.
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session used to query the requirement.
+
+    Returns:
+        JobRequirement: The JobRequirement object if found.
+
+    Raises:
+        ApplicationError: If no requirement with the given ID is found, raises an error with a 404 status code.
+    """
+    requirement = (
+        db.query(JobRequirement)
+        .filter(
+            JobRequirement.id == requirement_id, JobRequirement.company_id == company_id
+        )
+        .first()
+    )
+    if requirement is None:
+        logger.error(f"Requirement with id {requirement_id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Requirement with id {requirement_id} not found",
+        )
+
+    return requirement

@@ -6,8 +6,8 @@ from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
-from app.schemas.match import RequestMatchResponse
 from app.services import city_service
 from app.services.utils.validators import (
     ensure_no_match_request,
@@ -113,7 +113,7 @@ def update(
 
 def send_match_request(
     job_ad_id: UUID, job_application_id: UUID, db: Session
-) -> RequestMatchResponse:
+) -> MessageResponse:
     """
     Send a match request from a company to a job application.
 
@@ -141,7 +141,7 @@ def send_match_request(
         f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
-    return RequestMatchResponse()
+    return MessageResponse(message="Match request sent")
 
 
 def _get_by_id(id: UUID, db: Session) -> Company | None:

@@ -112,3 +112,14 @@ class JobAdSearchParams(BaseModel):
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,
     )
+
+
+class MessageResponse(BaseModel):
+    """
+    Message schema for returning messages in responses.
+
+    Attributes:
+        message (str): The message to return.
+    """
+
+    message: str = Field(description="The message to return")

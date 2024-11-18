@@ -20,26 +20,3 @@ class MatchResponse(BaseModel):
         description="The ID of the job application that was matched."
     )
     status: JobAdStatus = Field(description="The status of the match response.")
-
-
-class AcceptRequestMatchResponse(BaseModel):
-    """
-    AcceptRequestMatchResponse is a Pydantic model representing the response
-    message for a successful match request acceptance.
-
-    Attributes:
-        message (str): A default message indicating the match request was accepted successfully.
-    """
-
-    message: str = "Match request accepted successfully."
-
-
-class RequestMatchResponse(BaseModel):
-    """
-    RequestMatchResponse is a Pydantic model representing the response for a match request.
-
-    Attributes:
-        message (str): A message indicating the status of the match request. Defaults to "Match request sent successfully."
-    """
-
-    message: str = "Match request sent successfully."

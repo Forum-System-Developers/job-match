@@ -2,22 +2,27 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
+from fastapi import status
 from sqlalchemy import and_, asc, desc
 from sqlalchemy.orm import Session, joinedload
 
-from app.schemas.common import FilterParams, JobAdSearchParams
+from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from app.schemas.match import AcceptRequestMatchResponse, MatchResponse
+from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
     ensure_valid_location,
     ensure_valid_match_request,
+    ensure_valid_requirement_id,
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 
@@ -45,7 +50,7 @@ def get_all(
 
     logger.info(f"Retrieved {len(job_ads)} job ads")
 
-    return [JobAdResponse.model_validate(job_ad) for job_ad in job_ads]
+    return [JobAdResponse.create(job_ad) for job_ad in job_ads]
 
 
 def get_by_id(id: UUID, db: Session) -> JobAdResponse:
@@ -62,7 +67,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     job_ad = ensure_valid_job_ad_id(id=id, db=db)
     logger.info(f"Retrieved job ad with id {id}")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
 
 
 def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
@@ -87,7 +92,7 @@ def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
     db.refresh(job_ad)
     logger.info(f"Created job ad with id {job_ad.id}")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
 
 
 def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
@@ -115,7 +120,55 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
         db.refresh(job_ad)
         logger.info(f"Job ad with id: {id} updated.")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
+
+
+def add_requirement(
+    job_ad_id: UUID, requirement_id: UUID, company_id: UUID, db: Session
+) -> MessageResponse:
+    """
+    Adds a requirement to a job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        requirement_id (UUID): The unique identifier of the requirement to be added.
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session.
+
+    Returns:
+        MessageResponse: A response message indicating the result of the operation.
+
+    Raises:
+        ApplicationError: If the requirement is already added to the job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    job_requirement = ensure_valid_requirement_id(
+        requirement_id=requirement_id, company_id=company_id, db=db
+    )
+
+    if job_requirement in job_ad.job_ads_requirements:
+        logger.error(
+            f"Requirement with id {requirement_id} already added to job ad with id {job_ad_id}"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Requirement with id {requirement_id} already added to job ad with id {job_ad_id}",
+        )
+
+    job_ad_requirement = JobAdsRequirement(
+        job_ad_id=job_ad_id,
+        job_requirement_id=requirement_id,
+    )
+    job_ad.job_ads_requirements.append(job_ad_requirement)
+
+    db.add(job_ad_requirement)
+    db.commit()
+    db.refresh(job_ad_requirement)
+    logger.info(
+        f"Added requirement with id {requirement_id} to job ad with id {job_ad_id}"
+    )
+
+    return MessageResponse(message="Requirement added to job ad")
 
 
 def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
@@ -144,7 +197,7 @@ def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
 
 def accept_match_request(
     job_ad_id: UUID, job_application_id: UUID, db: Session
-) -> AcceptRequestMatchResponse:
+) -> MessageResponse:
     """
     Accepts a match request between a job advertisement and a job application.
 
@@ -178,7 +231,7 @@ def accept_match_request(
         f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
-    return AcceptRequestMatchResponse()
+    return MessageResponse(message="Match request accepted")
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
