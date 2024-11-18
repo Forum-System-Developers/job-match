@@ -22,6 +22,10 @@ class SkillBase(BaseModel):
         use_enum_values = True
 
 
+class Requirement(SkillBase):
+    pass
+
+
 class RequirementCreate(SkillBase):
     pass
 

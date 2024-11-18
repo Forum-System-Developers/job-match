@@ -50,7 +50,7 @@ def get_all(
 
     logger.info(f"Retrieved {len(job_ads)} job ads")
 
-    return [JobAdResponse.model_validate(job_ad) for job_ad in job_ads]
+    return [JobAdResponse.create(job_ad) for job_ad in job_ads]
 
 
 def get_by_id(id: UUID, db: Session) -> JobAdResponse:
@@ -67,7 +67,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     job_ad = ensure_valid_job_ad_id(id=id, db=db)
     logger.info(f"Retrieved job ad with id {id}")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
 
 
 def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
@@ -92,7 +92,7 @@ def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
     db.refresh(job_ad)
     logger.info(f"Created job ad with id {job_ad.id}")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
 
 
 def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
@@ -120,7 +120,7 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
         db.refresh(job_ad)
         logger.info(f"Job ad with id: {id} updated.")
 
-    return JobAdResponse.model_validate(job_ad)
+    return JobAdResponse.create(job_ad)
 
 
 def add_requirement(
