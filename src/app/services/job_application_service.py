@@ -362,20 +362,14 @@ def _fetch_city(
     return city
 
 
-def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session):
+def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
     """
-    Initiates a match request for a Job Application.
+    Verifies Job Application and Job Ad and initiates a match request for a Job Application.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
         db (Session): Database dependency.
-
-    Returns:
-
-
-    Raises:
-        ApplicationError: If there is an existing Match already
 
     Returns:
         dict: A dictionary containing a success message if the match request is created successfully.
@@ -385,5 +379,25 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session):
     job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
 
     return match_service.create_if_not_exists(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
+    )
+
+
+def accept_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
+    """
+    Verifies Job Application and Job Ad and accepts a request for a Job Application.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        job_ad_id (UUID): The identifier of the Job Ad.
+        db (Session): Database dependency.
+
+    Returns:
+        dict: A dictionary containing a success message if the match request is created successfully.
+
+    """
+    job_application = _get_by_id(job_application_id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
+    return match_service.accept_request_from_company(
         job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
     )

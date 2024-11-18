@@ -120,3 +120,22 @@ def request_match(
         status_code=status_code.HTTP_201_CREATED,
         not_found_err_msg="Could not process match request",
     )
+
+
+@router.put("/{job_application_id}/{job_ad_id}/accept-match")
+def accept_match(
+    job_application_id: UUID,
+    job_ad_id: UUID,
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _accept_match():
+        return job_application_service.accept_match(
+            job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_accept_match,
+        status_code=status_code.HTTP_201_CREATED,
+        not_found_err_msg="Could not accept match request",
+    )
