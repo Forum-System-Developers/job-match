@@ -5,9 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.professional import ProfessionalResponse
+from app.schemas.skill import SkillBase
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
-from app.schemas.skill import SkillBase
 
 
 class JobStatus(str, Enum):

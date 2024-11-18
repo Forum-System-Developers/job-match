@@ -6,18 +6,21 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import RowReturningQuery
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams, SearchParams
-from app.schemas.professional import ProfessionalResponse
-from app.schemas.job_application import JobAplicationBase, JobApplicationResponse
-from app.schemas.job_application import JobStatus as JobStatusInput, JobSearchStatus
-from app.schemas.skill import SkillBase
 from app.schemas.address import CityResponse
+from app.schemas.common import FilterParams, SearchParams
+from app.schemas.job_application import (
+    JobAplicationBase,
+    JobApplicationResponse,
+    JobSearchStatus,
+)
+from app.schemas.job_application import JobStatus as JobStatusInput
+from app.schemas.professional import ProfessionalResponse
+from app.schemas.skill import SkillBase
 from app.schemas.user import UserResponse
-from app.services import city_service, professional_service
+from app.services import city_service, professional_service, skill_service
 from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
-from app.services import skill_service
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill

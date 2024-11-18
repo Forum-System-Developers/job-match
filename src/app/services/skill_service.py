@@ -1,14 +1,14 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy.orm import Session
 from fastapi import status
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillBase
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.skill.skill import Skill
 from app.sql_app.job_requirement.skill_level import SkillLevel
+from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 

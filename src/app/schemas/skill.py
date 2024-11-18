@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+
 from app.sql_app.job_requirement.skill_level import SkillLevel
 
 
