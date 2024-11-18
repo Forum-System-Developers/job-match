@@ -115,7 +115,7 @@ class JobApplicationResponse(JobAplicationBase):
 
         return cls(
             application_id=job_application.id,
-            profesisonal_id=professional.id,
+            professional_id=professional.id,
             photo=professional.photo,
             first_name=professional.first_name,
             last_name=professional.last_name,

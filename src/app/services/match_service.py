@@ -5,10 +5,11 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.job_application import JobStatus
+from app.schemas.job_ad import JobAdResponse
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
+from app.sql_app.job_application.job_application_status import JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -141,3 +142,22 @@ def process_request_from_company(
         f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
     )
     return {"msg": "Match Request rejected"}
+
+
+def get_match_requests_for_job_application(
+    job_application_id: UUID, db: Session
+) -> list[JobAdResponse]:
+    requests = (
+        db.query(Match)
+        .filter(
+            Match.job_application_id == job_application_id,
+            Match.status == MatchStatus.REQUESTED,
+        )
+        .all()
+    )
+
+    job_ads = [request.job_ad for request in requests]
+
+    return [
+        JobAdResponse.model_validate(job_ad, from_attributes=True) for job_ad in job_ads
+    ]

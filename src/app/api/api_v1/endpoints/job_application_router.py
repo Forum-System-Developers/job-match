@@ -1,9 +1,9 @@
-from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Query
+from fastapi import APIRouter, Depends, Form
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
+from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
@@ -127,7 +127,7 @@ def request_match(
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
-    accept_request: bool = Query(..., description="Accept or Reject Match request"),
+    accept_request: bool = Field(..., description="Accept or Reject Match request"),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -141,6 +141,25 @@ def handle_match_response(
 
     return process_request(
         get_entities_fn=_handle_match_response,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not accept match request",
+    )
+
+
+@router.get("/{job_application_id}/match-requests", description="View Match requests.")
+def view_match_requests(
+    job_application_id: UUID,
+    user: UserResponse = Depends(),
+    db: Session = Depends(),
+) -> JSONResponse:
+    def _view_match_requests():
+        return job_application_service.view_match_requests(
+            job_application_id=job_application_id,
+            db=db,
+        )
+
+    return process_request(
+        get_entities_fn=_view_match_requests,
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not accept match request",
     )
