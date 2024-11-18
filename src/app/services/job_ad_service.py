@@ -2,8 +2,10 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
+from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.services.utils.validators import (
     ensure_valid_company_id,
@@ -16,7 +18,9 @@ from app.sql_app.job_ad.job_ad_status import JobAdStatus
 logger = logging.getLogger(__name__)
 
 
-def get_all(db: Session, skip: int = 0, limit: int = 50) -> list[JobAdResponse]:
+def get_all(
+    filter_params: FilterParams, search_params: JobAdSearchParams, db: Session
+) -> list[JobAdResponse]:
     """
     Retrieve all job advertisements.
 
@@ -28,7 +32,11 @@ def get_all(db: Session, skip: int = 0, limit: int = 50) -> list[JobAdResponse]:
     Returns:
         list[JobAdResponse]: The list of job advertisements.
     """
-    job_ads = db.query(JobAd).offset(skip).limit(limit).all()
+    job_ads = _search_job_ads(search_params=search_params, db=db)
+    job_ads = (
+        db.query(JobAd).offset(filter_params.offset).limit(filter_params.limit).all()
+    )
+
     logger.info(f"Retrieved {len(job_ads)} job ads")
 
     return [JobAdResponse.model_validate(job_ad) for job_ad in job_ads]
@@ -143,3 +151,63 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
 
     return job_ad
+
+
+def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd]:
+    """
+    Searches for job advertisements based on the provided search parameters.
+    Args:
+        search_params (JobAdSearchParams): The parameters to filter job advertisements.
+        db (Session): The database session to use for querying.
+    Returns:
+        list[JobAd]: A list of job advertisements that match the search criteria.
+    """
+    job_ads = db.query(JobAd)
+
+    if search_params.company_id:
+        job_ads = job_ads.filter(JobAd.company_id == search_params.company_id)
+        logger.info(
+            f"Searching for job ads with company_id: {search_params.company_id}"
+        )
+
+    if search_params.job_ad_status:
+        job_ads = job_ads.filter(JobAd.status == search_params.job_ad_status)
+        logger.info(f"Searching for job ads with status: {search_params.job_ad_status}")
+
+    if search_params.title:
+        job_ads = job_ads.filter(JobAd.title.ilike(f"%{search_params.title}%"))
+        logger.info(f"Searching for job ads with title: {search_params.title}")
+
+    if search_params.min_salary:
+        job_ads = job_ads.filter(JobAd.min_salary >= search_params.min_salary)
+        logger.info(
+            f"Searching for job ads with min_salary: {search_params.min_salary}"
+        )
+
+    if search_params.max_salary:
+        job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
+        logger.info(f"Searching for job ads with max_salary: {search_params.max}")
+
+    if search_params.location_id:
+        job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
+        logger.info(
+            f"Searching for job ads with location_id: {search_params.location_id}"
+        )
+
+    # TODO: Add search by skills
+
+    order_by_column = getattr(JobAd, search_params.order_by, None)
+
+    if order_by_column is not None:
+        if search_params.order == "asc":
+            job_ads = job_ads.order_by(asc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in ascending order"
+            )
+        else:
+            job_ads = job_ads.order_by(desc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in descending order"
+            )
+
+    return job_ads.all()
