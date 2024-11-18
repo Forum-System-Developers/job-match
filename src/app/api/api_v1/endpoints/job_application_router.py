@@ -161,5 +161,5 @@ def view_match_requests(
     return process_request(
         get_entities_fn=_view_match_requests,
         status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not accept match request",
+        not_found_err_msg="Could not fetch match requests",
     )
