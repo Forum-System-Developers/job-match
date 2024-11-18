@@ -20,3 +20,7 @@ class MatchResponse(BaseModel):
         description="The ID of the job application that was matched."
     )
     status: JobAdStatus = Field(description="The status of the match response.")
+
+
+class AcceptRequestMatchResponse(BaseModel):
+    message: str = "Match request accepted successfully."
