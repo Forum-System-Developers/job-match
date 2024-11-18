@@ -293,7 +293,8 @@ def _update_attributes(
         logger.info(f"Job Application id {job_application_model.id} city updated")
 
     if any(
-        skill not in job_application_model.skills for skill in application_update.skills
+        (skill not in job_application_model.skills)
+        for skill in application_update.skills
     ):
         new_skills: set[SkillBase] = {
             s
