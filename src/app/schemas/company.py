@@ -2,13 +2,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, PositiveInt
 
-from app.schemas.address import Address
+from app.schemas.custom_types import Password, Username
 
 
 class CompanyBase(BaseModel):
     id: UUID
     name: str
-    address: Address
+    address_line: str
+    city: str
     description: str
     email: EmailStr
     phone_number: str
@@ -20,10 +21,11 @@ class CompanyBase(BaseModel):
 
 
 class CompanyCreate(BaseModel):
-    username: str
-    password: str
+    username: Username
+    password: Password
     name: str
-    address: Address
+    address_line: str
+    city: str
     description: str
     email: EmailStr
     phone_number: str
