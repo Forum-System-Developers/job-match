@@ -35,6 +35,37 @@ class FilterParams(BaseModel):
 
 
 class SearchParams(BaseModel):
+    """
+    Pydantic schema for search parameters.
+
+    This schema is designed to handle search parameters for filtering
+    and ordering results in paginated responses.
+
+    Attributes:
+     order (Literal["asc", "desc"]): The order in which to return results.
+        - Default: "desc"
+        - Constraints: Must be either "asc" or "desc".
+    order_by (Literal["created_at", "updated_at"]): The field to order results by.
+        - Default: "created_at"
+        - Constraints: Must be either "created_at" or "updated_at".
+    skills (list[str]): A list of skills to filter the results by.
+        - Default: []
+        - Constraints: Must be a list of strings.
+    job_application_status (JobAdStatus): The status of the job application.
+        - Default: JobAdStatus.ACTIVE
+        - Constraints: Must be either JobAdStatus.ACTIVE or JobAdStatus.ARCHIVED.
+
+
+    Example:
+        Use this schema in FastAPI endpoints to simplify search queries:
+
+        ```
+        @app.get("/items/")
+        def get_items (search_params: SearchParams = Depends()):
+            ...
+        ```
+    """
+
     order: Literal["asc", "desc"] = "desc"
     order_by: Literal["created_at", "updated_at"] = "created_at"
     skills: list[str] = Field(

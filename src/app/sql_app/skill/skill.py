@@ -35,7 +35,7 @@ class Skill(Base):
         unique=True,
         nullable=False,
     )
-    skill: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
 
     job_applications: Mapped[list["JobApplicationSkill"]] = relationship(

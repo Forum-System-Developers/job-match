@@ -5,19 +5,40 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.professional import ProfessionalResponse
+from app.schemas.skill import SkillBase
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
 
 
 class JobStatus(str, Enum):
+    """
+
+    Attributes:
+        ACTIVE: Appears in Company searches.
+        PRIVATE: Can only be seen by the Creator.
+        HIDDEN: Accessible only by ID.
+    """
+
     ACTIVE = "acitve"
     PRIVATE = "private"
     HIDDEN = "hidden"
 
 
+class JobSearchStatus(str, Enum):
+    """
+
+    Attributes:
+        ACTIVE: Appears in Company searches.
+        MATCHED: Matched with Job Ad.
+    """
+
+    ACTIVE = "acitve"
+    MATCHED = "matched"
+
+
 class JobAplicationBase(BaseModel):
     """
-    Model for creating or updating a professional's job application.
+    Pydantic model for creating or updating a professional's job application.
 
     This model is used to capture the basic information required to reate or update a job application. It includes the required attributes description, application status, and a list of Applicant skills. Optional attributes are minimum and maximum salary range, an city for the application. The data should be passed as a JSON object in the request body.
 
@@ -39,7 +60,7 @@ class JobAplicationBase(BaseModel):
     description: str = Field(
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
-    skills: list[str] = Field(examples=[["Python", "Linux", "React"]])
+    skills: list[SkillBase] = Field(default_factory=list)
     city: str | None = Field(examples=["Sofia"], default=None)
 
     @model_validator(mode="before")
@@ -87,6 +108,11 @@ class JobApplicationResponse(JobAplicationBase):
         job_application: JobApplication,
         city: str,
     ) -> "JobApplicationResponse":
+        skills = [
+            SkillBase(name=skill.skill.name, level=skill.skill.level)
+            for skill in job_application.skills
+        ]
+
         return cls(
             application_id=job_application.id,
             profesisonal_id=professional.id,
@@ -99,5 +125,5 @@ class JobApplicationResponse(JobAplicationBase):
             max_salary=job_application.max_salary,
             description=job_application.description,
             city=city,
-            skills=job_application.skills,  # TODO
+            skills=skills,
         )
