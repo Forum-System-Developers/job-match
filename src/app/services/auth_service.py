@@ -93,7 +93,7 @@ def create_access_and_refresh_tokens(user: User) -> Token:
         Token: An object containing the access token, refresh token, and token type.
     """
 
-    token_data = TokenData(sub=str(user.id))
+    token_data = {"sub": str(user.id)}
     logger.info(f"Created token data for user {user.id}")
     access_token = _create_access_token(token_data)
     logger.info(f"Created access token for user {user.id}")
@@ -136,7 +136,7 @@ def verify_token(token: str, db: Session) -> dict:
     return payload
 
 
-def authenticate_user(username: str, password: str, db: Session) -> User:
+def authenticate_user(username: str, password: str, db: Session) -> UserResponse:
     """
     Authenticate a user by their username and password.
     Args:
@@ -180,7 +180,7 @@ def get_current_user(
     """
 
     token_data = verify_token(token=token, db=db)
-    user_id = token_data.get("sub")
+    user_id = UUID(token_data.get("sub"))
     user = user_service.get_by_id(id=user_id, db=db)
     logger.info(f"Retrieved current user {user_id}")
 
