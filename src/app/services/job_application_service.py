@@ -8,6 +8,7 @@ from sqlalchemy.orm.query import RowReturningQuery
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
 from app.schemas.common import FilterParams, SearchParams
+from app.schemas.job_ad import JobAdResponse
 from app.schemas.job_application import (
     JobAplicationBase,
     JobApplicationResponse,
@@ -411,4 +412,23 @@ def handle_match_response(
         job_ad_id=job_ad.id,
         accept_request=accept_request,
         db=db,
+    )
+
+
+def view_match_requests(job_application_id: UUID, db: Session) -> list[JobAdResponse]:
+    """
+    Verifies Job Application id and fetches all its related Match requests.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        db (Session): Database dependency.
+
+    Returns:
+        list[JobAdResponse]: A list of Pydantic Job Ad response models that correspond to the Job Ads related to the match requests for the given Job Application.
+
+    """
+    job_application = _get_by_id(job_application_id=job_application_id, db=db)
+
+    return match_service.get_match_requests_for_job_application(
+        job_application_id=job_application.id, db=db
     )
