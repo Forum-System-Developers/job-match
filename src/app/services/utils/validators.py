@@ -97,3 +97,36 @@ def ensure_valid_company_id(id: UUID, db: Session) -> Company:
             detail=f"Company with id {id} not found",
         )
     return company
+
+
+def ensure_valid_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> Match:
+    match = (
+        db.query(Match)
+        .filter(
+            and_(
+                Match.job_ad_id == job_ad_id,
+                Match.job_application_id == job_application_id,
+            )
+        )
+        .first()
+    )
+    if match is None:
+        logger.error(
+            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} not found"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Match request not found",
+        )
+    if match.status != MatchStatus.REQUESTED:
+        logger.error(
+            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires REQUESTED status"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Match request is not in REQUESTED status",
+        )
+
+    return match
