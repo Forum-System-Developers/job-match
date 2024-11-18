@@ -72,7 +72,7 @@ class JobAd(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ads_requirements: Mapped["JobAdsRequirement"] = relationship(
+    job_ads_requirements: Mapped[list["JobAdsRequirement"]] = relationship(
         "JobAdsRequirement",
         back_populates="job_ad",
         uselist=True,
