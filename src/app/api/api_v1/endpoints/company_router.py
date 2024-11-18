@@ -78,3 +78,23 @@ def update_company(
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"Company with id {id} not found",
     )
+
+
+# TODO: Add token authentication
+@router.post(
+    "/job-ads/{job_ad_id}/job-applications/{job_application_id}/request_match",
+    description="Send a match request to a job application.",
+)
+def send_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
+    def _send_match_request():
+        return company_service.send_match_request(
+            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_send_match_request,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg="Match request not sent",
+    )
