@@ -84,15 +84,15 @@ def update_job_ad(
 
 
 @router.get(
-    "/{id}/matches",
-    description="Retrieve all matches for a job advertisement.",
+    "/{id}/requests",
+    description="Retrieve all match requests for a job advertisement.",
 )
-def get_job_ad_matches(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
-    def _get_job_ad_matches():
-        return job_ad_service.get_matches(id=id, db=db)
+def get_job_ad_match_requests(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+    def _get_job_ad_requests():
+        return job_ad_service.get_match_requests(id=id, db=db)
 
     return process_request(
-        get_entities_fn=_get_job_ad_matches,
+        get_entities_fn=_get_job_ad_requests,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"No matches found for job ad with id {id}",
+        not_found_err_msg=f"No requests found for job ad with id {id}",
     )

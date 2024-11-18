@@ -2,8 +2,8 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, asc, desc
+from sqlalchemy.orm import Session, joinedload
 
 from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
@@ -15,6 +15,8 @@ from app.services.utils.validators import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.match.match import Match
+from app.sql_app.match.match_status import MatchStatus
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +115,9 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
     return JobAdResponse.model_validate(job_ad)
 
 
-def get_matches(id: UUID, db: Session) -> list[MatchResponse]:
+def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
     """
-    Retrieve all matches for a job advertisement.
+    Retrieve all requests for a job advertisement.
 
     Args:
         id (UUID): The unique identifier of the job advertisement.
@@ -125,11 +127,16 @@ def get_matches(id: UUID, db: Session) -> list[MatchResponse]:
         list[JobAdResponse]: The list of job advertisements that match the job advertisement.
     """
     job_ad = ensure_valid_job_ad_id(id=id, db=db)
-    matches = job_ad.matches
+    requests = (
+        db.query(JobAd)
+        .options(joinedload(JobAd.matches))
+        .filter(and_(JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED))
+        .all()
+    )
 
-    logger.info(f"Retrieved {len(matches)} matches for job ad with id {id}")
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {id}")
 
-    return [MatchResponse.model_validate(match) for match in matches]
+    return [MatchResponse.model_validate(request) for request in requests]
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
