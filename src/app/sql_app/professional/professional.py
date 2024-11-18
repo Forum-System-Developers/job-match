@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, Integer, LargeBinary, String
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -59,6 +59,10 @@ class Professional(Base):
     active_application_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )
+    has_private_matches: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
 
