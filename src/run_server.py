@@ -29,7 +29,7 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     reload_dirs = config.reload.split(",") if config.reload else []
-    reload_enabled = bool(reload_dirs)
+    # reload_enabled = bool(reload_dirs)
 
     uvicorn.run(
         "app.main:app",
