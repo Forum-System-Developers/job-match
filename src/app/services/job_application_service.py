@@ -233,6 +233,7 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
         db.query(JobApplication).filter(JobApplication.id == job_application_id).first()
     )
     if job_application is None:
+        logger.error(f"Job application with id {job_application_id} not found")
         raise ApplicationError(
             detail=f"Job Aplication with id {job_application_id} not found.",
             status_code=status.HTTP_404_NOT_FOUND,
@@ -364,7 +365,7 @@ def _fetch_city(
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
     """
-    Verifies Job Application and Job Ad and initiates a match request for a Job Application.
+    Verifies Job Application and Job Ad and initiates a Match request for a Job Ad.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
@@ -383,13 +384,19 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
     )
 
 
-def accept_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
+def handle_match_response(
+    job_application_id: UUID,
+    job_ad_id: UUID,
+    accept_request: bool,
+    db: Session,
+):
     """
-    Verifies Job Application and Job Ad and accepts a request for a Job Application.
+    Verifies Job Application and Job Ad and accepts or rejects a Match request from a Company.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
+        accept_request (bool): Accept or reject Match request.
         db (Session): Database dependency.
 
     Returns:
@@ -397,7 +404,11 @@ def accept_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
-    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
-    return match_service.accept_request_from_company(
-        job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
+    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
+
+    return match_service.process_request_from_company(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        accept_request=accept_request,
+        db=db,
     )

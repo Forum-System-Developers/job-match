@@ -1,6 +1,7 @@
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Query
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -122,20 +123,24 @@ def request_match(
     )
 
 
-@router.put("/{job_application_id}/{job_ad_id}/accept-match")
-def accept_match(
+@router.put("/{job_application_id}/{job_ad_id}/match-response")
+def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
+    accept_request: bool = Query(..., description="Accept or Reject Match request"),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    def _accept_match():
-        return job_application_service.accept_match(
-            job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+    def _handle_match_response():
+        return job_application_service.handle_match_response(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+            accept_request=accept_request,
+            db=db,
         )
 
     return process_request(
-        get_entities_fn=_accept_match,
-        status_code=status_code.HTTP_201_CREATED,
+        get_entities_fn=_handle_match_response,
+        status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not accept match request",
     )
