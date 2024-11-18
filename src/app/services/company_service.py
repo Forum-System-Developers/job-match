@@ -7,9 +7,17 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.schemas.match import RequestMatchResponse
 from app.services import city_service
+from app.services.utils.validators import (
+    ensure_no_match_request,
+    ensure_valid_job_ad_id,
+    ensure_valid_job_application_id,
+)
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
+from app.sql_app.match.match import Match
+from app.sql_app.match.match_status import MatchStatus
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +240,7 @@ def _ensure_valid_city(city_name: str, db: Session) -> City:
         City: A City object containing the ID and name of the validated city.
 
     """
-    city = city_service.get_by_name(name=city_name, db=db)
+    city = city_service.get_by_name(city_name=city_name, db=db)
     return City(**city.model_dump())
 
 
