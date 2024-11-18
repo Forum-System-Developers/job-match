@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from app.schemas.match import MatchResponse
+from app.schemas.match import AcceptRequestMatchResponse, MatchResponse
 from app.services.utils.validators import (
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
@@ -142,15 +142,16 @@ def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
     return [MatchResponse.model_validate(request) for request in requests]
 
 
-def match_request(
+def accept_match_request(
     job_ad_id: UUID, job_application_id: UUID, db: Session
-) -> MatchResponse:
+) -> AcceptRequestMatchResponse:
     """
-    Matches a job advertisement with a job application.
+    Accepts a match request between a job advertisement and a job application.
 
     This function ensures that the provided job advertisement ID and job application ID
-    are valid, updates their statuses, validates the match request, creates a match record,
-    and commits the changes to the database.
+    are valid, and that there is a valid match request between them. It then updates the
+    statuses of the job advertisement, job application, and match request accordingly,
+    commits the changes to the database, and logs the operation.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
@@ -158,11 +159,7 @@ def match_request(
         db (Session): The database session to use for the operation.
 
     Returns:
-        MatchResponse: The response model containing the details of the match.
-
-    Raises:
-        ValueError: If the job advertisement ID or job application ID is invalid.
-        ValidationError: If the match request is invalid.
+        AcceptRequestMatchResponse: The response indicating successful match acceptance.
     """
     job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
     job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
@@ -181,7 +178,7 @@ def match_request(
         f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
-    return MatchResponse.model_validate(match)
+    return AcceptRequestMatchResponse()
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
