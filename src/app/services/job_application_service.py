@@ -59,10 +59,8 @@ def create(
         professional_id=user.id, db=db
     )
 
-    city: CityResponse = _fetch_city(
-        application_schema=application_create,
-        db=db,
-        professional_schema=professional,
+    city: CityResponse = city_service.get_by_name(
+        city_name=application_create.city, db=db
     )
 
     professional.active_application_count += 1
@@ -89,7 +87,7 @@ def create(
         logger.info(f"Job Application id {job_application.id} skillset created")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application, city=city.name
+        professional=professional, job_application=job_application
     )
 
 
@@ -122,25 +120,19 @@ def update(
         professional_id=user.id, db=db
     )
 
-    city: CityResponse = _fetch_city(
-        application_schema=application_update,
-        db=db,
-        professional_schema=professional,
-    )
-
     job_application = _update_attributes(
         application_update=application_update,
         job_application_model=job_application,
         is_main=is_main,
         application_status=application_status,
-        city=city,
+        professional=professional,
         db=db,
     )
 
     logger.info(f"Job Application with id {job_application.id} updated")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application, city=city.name
+        professional=professional, job_application=job_application
     )
 
 
@@ -190,10 +182,30 @@ def get_all(
         JobApplicationResponse.create(
             job_application=row[0],
             professional=row[1],
-            city=row[2].name,
         )
         for row in result.all()
     ]
+
+
+def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
+    """
+    Fetches a Job Application by its ID.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job application.
+        db (Session): Database dependency.
+
+    Returns:
+        JobApplicationResponse: JobApplication reponse model.
+    """
+
+    job_application: JobApplication = _get_by_id(
+        job_application_id=job_application_id, db=db
+    )
+
+    return JobApplicationResponse.create(
+        professional=job_application.professional, job_application=job_application
+    )
 
 
 def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQuery:
@@ -204,12 +216,11 @@ def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQue
         db (Session): The database session.
         job_status (JobSearchStatus): Status of the Job Application; can be ACTIVE or MATCHED.
     Returns:
-        A RowReturningQuery object that contains a tuple of JobApplication, Professional and City objects.
+        RowReturningQuery: Object containinig a tuple of JobApplication and Professional objects.
     """
     query: RowReturningQuery = (
-        db.query(JobApplication, Professional, City)
+        db.query(JobApplication, Professional)
         .join(Professional, JobApplication.professional_id == Professional.id)
-        .join(City, JobApplication.city_id == City.id)
         .filter(JobApplication.status == job_status)
     )
 
@@ -253,7 +264,7 @@ def _update_attributes(
     job_application_model: JobApplication,
     is_main: bool,
     application_status: JobStatusInput,
-    city: CityResponse,
+    professional: ProfessionalResponse,
     db: Session,
 ) -> JobApplication:
     """
@@ -295,7 +306,11 @@ def _update_attributes(
         job_application_model.status = JobStatus(application_status.value)
         logger.info(f"Job Application id {job_application_model.id} status updated")
 
-    if city.id != job_application_model.city_id:
+    if application_update.city != job_application_model.city.name:
+        city: CityResponse = city_service.get_by_name(
+            city_name=application_update.city, db=db
+        )
+
         job_application_model.city_id = city.id
         logger.info(f"Job Application id {job_application_model.id} city updated")
 
@@ -343,31 +358,6 @@ def _update_skillset(
         )
 
     logger.info(f"Job Application id {job_application_model.id} skillset updated")
-
-
-def _fetch_city(
-    application_schema: JobAplicationBase,
-    db: Session,
-    professional_schema: ProfessionalResponse,
-) -> CityResponse:
-    """
-    Updates the skillset for a Job Application.
-
-    Args:
-
-        application_schema (JobAplicationBase): Pydantic model representing the Job Application.
-        db (Session): Database dependency.
-        professional_schema (ProfessionalResponse): The Pydantic schema representing a Professional.
-
-    Returns:
-        CityResponse: Pydantic schema for a City instance.
-    """
-    city: CityResponse | None = None
-    if application_schema.city is not None:
-        city = city_service.get_by_name(city_name=application_schema.city, db=db)
-    else:
-        city = city_service.get_by_name(city_name=professional_schema.city, db=db)
-    return city
 
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:

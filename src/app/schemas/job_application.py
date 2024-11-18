@@ -110,12 +110,16 @@ class JobApplicationResponse(JobAplicationBase):
         cls,
         professional: ProfessionalResponse | Professional,
         job_application: JobApplication,
-        city: str,
     ) -> "JobApplicationResponse":
         skills = [
             SkillBase(name=skill.skill.name, level=skill.skill.level)
             for skill in job_application.skills
         ]
+        city = (
+            professional.city.name
+            if isinstance(professional, Professional)
+            else professional.city
+        )
 
         return cls(
             application_id=job_application.id,
