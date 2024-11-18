@@ -1,4 +1,5 @@
 import re
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -7,6 +8,11 @@ from app.schemas.custom_types import Password, Username
 from app.schemas.job_ad import BaseJobAd
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
+
+
+class PrivateMatches(Enum):
+    accept = True
+    reject = False
 
 
 class ProfessionalBase(BaseModel):
@@ -80,7 +86,7 @@ class ProfessionalResponse(ProfessionalBase):
     photo: bytes | None = None
     status: ProfessionalStatus
     active_application_count: int
-    matched_ads: list[BaseJobAd] | None
+    matched_ads: list[BaseJobAd] | None = None
 
     @classmethod
     def create(

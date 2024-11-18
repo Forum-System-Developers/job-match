@@ -3,11 +3,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Form
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
-from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_application import JobAplicationBase, JobSearchStatus, JobStatus
+from app.schemas.job_application import (
+    JobAplicationBase,
+    JobSearchStatus,
+    JobStatus,
+    MatchResponseRequest,
+)
 from app.schemas.user import UserResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_user
@@ -104,7 +108,9 @@ def get_all(
     )
 
 
-@router.post("/{job_application_id}/{job_ad_id}/request-match")
+@router.post(
+    "/{job_application_id}/{job_ad_id}/request-match", description="Send match request"
+)
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
@@ -123,11 +129,14 @@ def request_match(
     )
 
 
-@router.put("/{job_application_id}/{job_ad_id}/match-response")
+@router.put(
+    "/{job_application_id}/{job_ad_id}/match-response",
+    description="Accept or reject a Match request",
+)
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
-    accept_request: bool = Field(..., description="Accept or Reject Match request"),
+    accept_request: MatchResponseRequest = Form(),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -149,8 +158,8 @@ def handle_match_response(
 @router.get("/{job_application_id}/match-requests", description="View Match requests.")
 def view_match_requests(
     job_application_id: UUID,
-    user: UserResponse = Depends(),
-    db: Session = Depends(),
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():
         return job_application_service.view_match_requests(

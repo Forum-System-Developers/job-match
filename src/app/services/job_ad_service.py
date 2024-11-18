@@ -62,7 +62,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
         db (Session): The database session used to query the job advertisement.
 
     Returns:
-        Optional[JobAdResponse]: The job advertisement if found, otherwise None.
+        JobAdResponse: The job advertisement if found, otherwise None.
     """
     job_ad = ensure_valid_job_ad_id(id=id, db=db)
     logger.info(f"Retrieved job ad with id {id}")
