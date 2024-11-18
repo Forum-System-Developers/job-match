@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.services import city_service
+from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 
 logger = logging.getLogger(__name__)
@@ -183,7 +185,16 @@ def _update_company(
             f"Updated company (id: {company.id}) description to {company_data.description}"
         )
 
-    # TODO: Update company address
+    if company_data.address_line is not None:
+        company.address_line = company_data.address_line
+        logger.info(
+            f"Updated company (id: {company.id}) address_line to {company_data.address_line}"
+        )
+
+    if company_data.city is not None:
+        city = _ensure_valid_city(city_name=company_data.city, db=db)
+        company.city = city
+        logger.info(f"Updated company (id: {company.id}) city to {city.name}")
 
     if company_data.email is not None:
         _ensure_unique_email(email=company_data.email, db=db)
@@ -207,6 +218,22 @@ def _update_company(
         logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
 
     return company
+
+
+def _ensure_valid_city(city_name: str, db: Session) -> City:
+    """
+    Ensures that the given city name is valid by retrieving it from the database.
+
+    Args:
+        city_name (str): The name of the city to validate.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        City: A City object containing the ID and name of the validated city.
+
+    """
+    city = city_service.get_by_name(name=city_name, db=db)
+    return City(**city.model_dump())
 
 
 def _ensure_unique_email(email: str, db: Session) -> None:

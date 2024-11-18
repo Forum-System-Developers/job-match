@@ -21,14 +21,15 @@ class Company(Base):
         id (uuid.UUID): Unique identifier for the company.
         city_id (uuid.UUID): Foreign key referencing the city where the company is located.
         username (str): Unique username for the company.
-        password (str): Password for the company's account.
+        password (str): Password for the company.
         name (str): Name of the company.
         description (str): Description of the company.
+        address_line (str): Address of the company.
         email (str): Unique email address of the company.
         phone_number (str): Unique phone number of the company.
-        logo (bytes): Binary data representing the company's logo.
+        logo (bytes): Logo of the company.
         active_job_count (int, optional): Number of active job postings by the company.
-        successfull_matches_count (int, optional): Number of successful job matches made by the company.
+        successfull_matches_count (int, optional): Number of successful matches made by the company.
         created_at (datetime): Timestamp when the company record was created.
         updated_at (datetime, optional): Timestamp when the company record was last updated.
 
@@ -53,6 +54,7 @@ class Company(Base):
     password: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
+    address_line: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone_number: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
     logo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)

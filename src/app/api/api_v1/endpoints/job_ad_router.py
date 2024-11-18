@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services import job_ad_service
 from app.sql_app.database import get_db
@@ -17,10 +18,14 @@ router = APIRouter()
     description="Retrieve all job advertisements.",
 )
 def get_all_job_ads(
-    skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+    filter_params: FilterParams = Depends(),
+    search_params: SearchParams = Depends(),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all_job_ads():
-        return job_ad_service.get_all(db=db, skip=skip, limit=limit)
+        return job_ad_service.get_all(
+            filter_params=filter_params, search_params=search_params, db=db
+        )
 
     return process_request(
         get_entities_fn=_get_all_job_ads,
