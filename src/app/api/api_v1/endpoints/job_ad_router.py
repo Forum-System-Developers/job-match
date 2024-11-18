@@ -83,6 +83,26 @@ def update_job_ad(
     )
 
 
+@router.post(
+    "/{id}/requirements/{requirement_id}",
+    description="Add new job requirements to a job advertisement.",
+)
+def add_job_ad_requirement(
+    id: UUID, requirement_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
+    def _add_job_ad_requirements():
+        # TODO Add Company ID when authentication is implemented
+        return job_ad_service.add_requirement(
+            job_ad_id=id, requirement_id=requirement_id, company_id=None, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_add_job_ad_requirements,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg=f"Job Ad with id {id} not found",
+    )
+
+
 @router.get(
     "/{id}/requests",
     description="Retrieve all match requests for a job advertisement.",
