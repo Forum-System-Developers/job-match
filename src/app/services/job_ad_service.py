@@ -11,10 +11,13 @@ from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
+    ensure_valid_job_application_id,
     ensure_valid_location,
+    ensure_valid_match_request,
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 
@@ -137,6 +140,49 @@ def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
     logger.info(f"Retrieved {len(requests)} requests for job ad with id {id}")
 
     return [MatchResponse.model_validate(request) for request in requests]
+
+
+def match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> MatchResponse:
+    """
+    Matches a job advertisement with a job application.
+
+    This function ensures that the provided job advertisement ID and job application ID
+    are valid, updates their statuses, validates the match request, creates a match record,
+    and commits the changes to the database.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        MatchResponse: The response model containing the details of the match.
+
+    Raises:
+        ValueError: If the job advertisement ID or job application ID is invalid.
+        ValidationError: If the match request is invalid.
+    """
+    job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
+
+    job_ad.status = JobAdStatus.ARCHIVED
+    job_application.status = JobStatus.MATCHED
+
+    match = ensure_valid_match_request(
+        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+    )
+    match.status = MatchStatus.ACCEPTED
+
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    logger.info(
+        f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return MatchResponse.model_validate(match)
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
