@@ -96,3 +96,22 @@ def get_job_ad_match_requests(id: UUID, db: Session = Depends(get_db)) -> JSONRe
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"No requests found for job ad with id {id}",
     )
+
+
+@router.patch(
+    "/{id}/requests",
+    description="Accept a match request for a job advertisement.",
+)
+def accept_job_ad_match_request(
+    id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
+    def _accept_job_ad_request():
+        return job_ad_service.accept_match_request(
+            job_ad_id=id, job_application_id=job_application_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_accept_job_ad_request,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg=f"Match request not found for job ad with id {id}",
+    )
