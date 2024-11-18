@@ -74,6 +74,10 @@ def create(
     )
     logger.info(f"Job Application with id {job_application.id} created")
 
+    db.add(job_application)
+    db.commit()
+    db.refresh(job_application)
+
     if application_create.skills:
         _update_skillset(
             db=db,

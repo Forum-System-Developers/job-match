@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_ad import JobAdResponse
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
-from app.sql_app.job_application.job_application_status import JobStatus
 
 logger = logging.getLogger(__name__)
 
