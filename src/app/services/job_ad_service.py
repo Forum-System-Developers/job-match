@@ -2,18 +2,24 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, asc, desc
+from sqlalchemy.orm import Session, joinedload
 
 from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
+from app.schemas.match import AcceptRequestMatchResponse, MatchResponse
 from app.services.utils.validators import (
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
+    ensure_valid_job_application_id,
     ensure_valid_location,
+    ensure_valid_match_request,
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.match.match import Match
+from app.sql_app.match.match_status import MatchStatus
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +118,69 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
     return JobAdResponse.model_validate(job_ad)
 
 
+def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
+    """
+    Retrieve all requests for a job advertisement.
+
+    Args:
+        id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session used to query the job advertisements.
+
+    Returns:
+        list[JobAdResponse]: The list of job advertisements that match the job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(id=id, db=db)
+    requests = (
+        db.query(JobAd)
+        .options(joinedload(JobAd.matches))
+        .filter(and_(JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED))
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {id}")
+
+    return [MatchResponse.model_validate(request) for request in requests]
+
+
+def accept_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> AcceptRequestMatchResponse:
+    """
+    Accepts a match request between a job advertisement and a job application.
+
+    This function ensures that the provided job advertisement ID and job application ID
+    are valid, and that there is a valid match request between them. It then updates the
+    statuses of the job advertisement, job application, and match request accordingly,
+    commits the changes to the database, and logs the operation.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        AcceptRequestMatchResponse: The response indicating successful match acceptance.
+    """
+    job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
+    match = ensure_valid_match_request(
+        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+    )
+
+    job_ad.status = JobAdStatus.ARCHIVED
+    job_application.status = JobStatus.MATCHED
+    match.status = MatchStatus.ACCEPTED
+
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    logger.info(
+        f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return AcceptRequestMatchResponse()
+
+
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
     """
     Updates the fields of a job advertisement based on the provided job_ad_data.
@@ -186,7 +255,9 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd
 
     if search_params.max_salary:
         job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
-        logger.info(f"Searching for job ads with max_salary: {search_params.max}")
+        logger.info(
+            f"Searching for job ads with max_salary: {search_params.max_salary}"
+        )
 
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
