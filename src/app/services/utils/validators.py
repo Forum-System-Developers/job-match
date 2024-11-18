@@ -2,12 +2,16 @@ import logging
 from uuid import UUID
 
 from fastapi import status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
+from app.sql_app.job_application.job_application import JobApplication
+from app.sql_app.match.match import Match
+from app.sql_app.match.match_status import MatchStatus
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +62,17 @@ def ensure_valid_job_ad_id(id: UUID, db: Session) -> JobAd:
             detail=f"Job Ad with id {id} not found",
         )
     return job_ad
+
+
+def ensure_valid_job_application_id(id: UUID, db: Session) -> JobApplication:
+    job_application = db.query(JobApplication).filter(JobApplication.id == id).first()
+    if job_application is None:
+        logger.error(f"Job Application with id {id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job Application with id {id} not found",
+        )
+    return job_application
 
 
 def ensure_valid_company_id(id: UUID, db: Session) -> Company:
