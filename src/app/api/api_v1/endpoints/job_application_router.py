@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_application import JobAplicationBase, JobStatus
+from app.schemas.job_application import JobAplicationBase, JobSearchStatus, JobStatus
 from app.schemas.user import UserResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_user
@@ -21,7 +21,9 @@ router = APIRouter()
     description="Create a Job Application.",
 )
 def create(
-    application: JobAplicationBase = Form(description="Job Application update form"),
+    application_create: JobAplicationBase = Form(
+        description="Job Application creation form"
+    ),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
     user: UserResponse = Depends(get_current_user),
@@ -30,7 +32,7 @@ def create(
     def _create():
         return job_application_service.create(
             user=user,
-            application=application,
+            application_create=application_create,
             is_main=is_main,
             application_status=application_status,
             db=db,
@@ -49,7 +51,9 @@ def create(
 )
 def update(
     job_application_id: UUID,
-    application: JobAplicationBase = Form(description="Job Application update form"),
+    application_update: JobAplicationBase = Form(
+        description="Job Application update form"
+    ),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
     user: UserResponse = Depends(get_current_user),
@@ -59,7 +63,7 @@ def update(
         return job_application_service.update(
             job_application_id=job_application_id,
             user=user,
-            application=application,
+            application_update=application_update,
             is_main=is_main,
             application_status=application_status,
             db=db,
@@ -78,14 +82,18 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
+    application_status: JobSearchStatus = Form(
+        description="Status of the Job Application"
+    ),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
-            search_params=search_params,
             db=db,
+            status=application_status,
+            search_params=search_params,
         )
 
     return process_request(
