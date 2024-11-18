@@ -28,7 +28,6 @@ from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.match.match import MatchStatus
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
