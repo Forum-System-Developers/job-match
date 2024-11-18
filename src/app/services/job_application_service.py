@@ -19,10 +19,10 @@ from app.schemas.skill import SkillBase
 from app.schemas.user import UserResponse
 from app.services import (
     city_service,
-    professional_service,
-    skill_service,
     job_ad_service,
     match_service,
+    professional_service,
+    skill_service,
 )
 from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
