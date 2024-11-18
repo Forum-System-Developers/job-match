@@ -111,6 +111,39 @@ def update(
     return CompanyResponse.model_validate(company)
 
 
+def send_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> RequestMatchResponse:
+    """
+    Send a match request from a company to a job application.
+
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session to use for the operation.
+    """
+    ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    ensure_valid_job_application_id(id=job_application_id, db=db)
+    match = ensure_no_match_request(
+        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+    )
+
+    if match is None:
+        match = Match(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+        )
+    match.status = MatchStatus.REQUESTED
+
+    db.add(match)
+    db.commit()
+    logger.info(
+        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return RequestMatchResponse()
+
+
 def _get_by_id(id: UUID, db: Session) -> Company | None:
     """
     Retrieve a company by its ID from the database.
