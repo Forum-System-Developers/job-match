@@ -363,21 +363,27 @@ def _fetch_city(
 
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session):
+    """
+    Initiates a match request for a Job Application.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        job_ad_id (UUID): The identifier of the Job Ad.
+        db (Session): Database dependency.
+
+    Returns:
+
+
+    Raises:
+        ApplicationError: If there is an existing Match already
+
+    Returns:
+        dict: A dictionary containing a success message if the match request is created successfully.
+
+    """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
     job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
 
-    request_status = match_service.create_if_not_exists(
-        job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+    return match_service.create_if_not_exists(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
     )
-
-    match request_status:
-        case MatchStatus.REQUESTED:
-            return {"msg": "Match Request successfully sent"}
-        case MatchStatus.ACCEPTED:
-            raise ApplicationError(detail="Match Request already accepted")
-        case MatchStatus.REJECTED:
-            raise ApplicationError(
-                detail="Match Request was rejested, cannot create a new Match request"
-            )
-        case _:
-            raise ApplicationError(detail="Unexpected error occurred")

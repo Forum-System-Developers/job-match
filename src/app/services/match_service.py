@@ -40,7 +40,15 @@ def create_if_not_exists(
         job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
     )
     if existing_match is not None:
-        return existing_match.status
+        match existing_match.status:
+            case MatchStatus.REQUESTED:
+                raise ApplicationError(detail="Match Request already sent")
+            case MatchStatus.ACCEPTED:
+                raise ApplicationError(detail="Match Request already accepted")
+            case MatchStatus.REJECTED:
+                raise ApplicationError(
+                    detail="Match Request was rejested, cannot create a new Match request"
+                )
 
     match_request = Match(
         job_ad_id=job_ad_id,
@@ -48,7 +56,7 @@ def create_if_not_exists(
         status=MatchStatus.REQUESTED,
     )
     logger.info(
-        f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id}"
+        f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED}"
     )
     db.add(match_request)
     db.commit()
@@ -58,7 +66,7 @@ def create_if_not_exists(
         f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
     )
 
-    return match_request.status
+    return {"msg": "Match Request successfully sent"}
 
 
 def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match:
