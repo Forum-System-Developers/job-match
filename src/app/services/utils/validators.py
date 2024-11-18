@@ -99,9 +99,61 @@ def ensure_valid_company_id(id: UUID, db: Session) -> Company:
     return company
 
 
+def ensure_no_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> Match | None:
+    """
+    Ensures that there is no existing match request between a job advertisement and a job application.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session used to query the Match table.
+
+    Returns:
+        Match: The existing match if found, otherwise None.
+
+    Raises:
+        ApplicationError: If a match request already exists between the job advertisement and the job application.
+    """
+    match = (
+        db.query(Match)
+        .filter(
+            and_(
+                Match.job_ad_id == job_ad_id,
+                Match.job_application_id == job_application_id,
+            )
+        )
+        .first()
+    )
+    if match is not None and match.status == MatchStatus.REQUESTED:
+        logger.error(
+            f"Match request already exists between job ad {job_ad_id} and job application {job_application_id}"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Match request already exists",
+        )
+    return match
+
+
 def ensure_valid_match_request(
     job_ad_id: UUID, job_application_id: UUID, db: Session
 ) -> Match:
+    """
+    Ensures that a match request exists and is in the REQUESTED status.
+
+    Args:
+        job_ad_id (UUID): The ID of the job advertisement.
+        job_application_id (UUID): The ID of the job application.
+        db (Session): The database session.
+
+    Returns:
+        Match: The match object if it exists and is in the REQUESTED status.
+
+    Raises:
+        ApplicationError: If the match request is not found or is not in the REQUESTED status.
+    """
     match = (
         db.query(Match)
         .filter(
