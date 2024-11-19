@@ -2,32 +2,34 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
-from app.schemas.job_application import JobApplicationResponse
+from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
     ProfessionalResponse,
     ProfessionalUpdate,
 )
-from app.schemas.user import User, UserResponse
+from app.schemas.user import User
 from app.services import city_service
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 
 
 def create(
-    user: UserResponse,
+    user: User,
     professional_create: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     db: Session,
@@ -37,7 +39,7 @@ def create(
     Creates an instance of the Professional model.
 
     Args:
-        user (UserResponse): Current logged in user.
+        user (User): Current logged in user.
         professional_create (ProfessionalCreate): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
@@ -156,22 +158,43 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
     )
 
 
-def get_all(db: Session, filter_params: FilterParams) -> list[ProfessionalResponse]:
+def get_all(
+    db: Session, filter_params: FilterParams, search_params: SearchParams
+) -> list[ProfessionalResponse]:
     """
     Retrieve all Professional profiles.
 
     Args:
         db (Session): The database session.
         filer_params (FilterParams): Pydantic schema for filtering params.
+        search_params (SearchParams): Search parameter for limiting search results.
     Returns:
         list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
     """
 
-    query = db.query(Professional).filter(
-        Professional.status == ProfessionalStatus.ACTIVE
+    query = (
+        db.query(Professional)
+        .options(
+            joinedload(Professional.job_applications)
+            .joinedload(JobApplication.skills)
+            .joinedload(JobApplicationSkill.skill)
+        )
+        .filter(Professional.status == ProfessionalStatus.ACTIVE)
     )
 
     logger.info("Retreived all professional profiles that are with status ACTIVE")
+
+    if search_params.skills:
+        query = query.filter(Skill.name.in_(search_params.skills))
+        logger.info(f"Filtered Professionals by skills: {search_params.skills}")
+
+    if search_params.order == "desc":
+        query.order_by(getattr(Professional, search_params.order_by).desc())
+    else:
+        query.order_by(getattr(Professional, search_params.order_by).asc())
+    logger.info(
+        f"Order Professionals based on search params order {search_params.order} and order_by {search_params.order_by}"
+    )
 
     result: list[Professional] = (
         query.offset(filter_params.offset).limit(filter_params.limit).all()
@@ -329,7 +352,10 @@ def get_by_username(username: str, db: Session) -> User:
 
 
 def get_applications(
-    professional_id: UUID, db: Session
+    professional_id: UUID,
+    db: Session,
+    application_status: JobSearchStatus,
+    filter_params: FilterParams,
 ) -> list[JobApplicationResponse]:
     """
     Get a list of all JobApplications for a Professional with the given ID.
@@ -345,7 +371,12 @@ def get_applications(
 
     applications = (
         db.query(JobApplication)
-        .filter(JobApplication.professional_id == professional_id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == application_status.value,
+        )
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
         .all()
     )
 

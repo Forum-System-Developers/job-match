@@ -5,15 +5,16 @@ from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, SearchParams
+from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
     ProfessionalUpdate,
 )
-from app.schemas.user import UserResponse
+from app.schemas.user import User
 from app.services import professional_service
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.utils.process_request import process_request
@@ -29,7 +30,7 @@ def create(
     professional: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     photo: UploadFile | None = File(None),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
@@ -58,7 +59,7 @@ def update(
     private_matches: PrivateMatches = Form(),
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
@@ -84,11 +85,14 @@ def update(
 )
 def get_all(
     filter_params: FilterParams = Depends(),
-    user: UserResponse = Depends(get_current_user),
+    seacrh_params: SearchParams = Depends(),
+    user: User = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
-        return professional_service.get_all(db=db, filter_params=filter_params)
+        return professional_service.get_all(
+            db=db, filter_params=filter_params, seacrh_params=seacrh_params
+        )
 
     return process_request(
         get_entities_fn=_get_all,
@@ -103,7 +107,7 @@ def get_all(
 )
 def get_by_id(
     professional_id: UUID,
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
@@ -122,12 +126,19 @@ def get_by_id(
 )
 def get_applications(
     professional_id: UUID,
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
+    application_status: JobSearchStatus = Form(
+        description="Status of the Job Application"
+    ),
+    filter_params: FilterParams = Depends(),
     db: Session = Depends(get_db),
 ):
     def _get_applications():
         return professional_service.get_applications(
-            professional_id=professional_id, db=db
+            professional_id=professional_id,
+            application_status=application_status,
+            filter_params=filter_params,
+            db=db,
         )
 
     return process_request(

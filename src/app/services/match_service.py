@@ -5,6 +5,7 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import MatchResponseRequest
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
@@ -173,14 +174,28 @@ def accept_match_request(match: Match, db: Session):
 
 
 def get_match_requests_for_job_application(
-    job_application_id: UUID, db: Session
+    job_application_id: UUID, db: Session, filter_params: FilterParams
 ) -> list[BaseJobAd]:
+    """
+    Fetch match requests for the given Job Application.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job Application.
+        db (Session): Database dependency.
+        filter_params (FilterParams): Filtering options for pagination.
+
+    Returns:
+        list[BaseJobAd]: Response models containing basic information for the Job Ads that sent the match request.
+    """
+
     requests = (
         db.query(Match)
         .filter(
             Match.job_application_id == job_application_id,
             Match.status == MatchStatus.REQUESTED,
         )
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
         .all()
     )
 

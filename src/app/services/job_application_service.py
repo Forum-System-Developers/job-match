@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.query import RowReturningQuery
+from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
@@ -19,7 +19,7 @@ from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
-from app.schemas.user import UserResponse
+from app.schemas.user import User
 from app.services import (
     city_service,
     job_ad_service,
@@ -30,14 +30,13 @@ from app.services import (
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 
 
 def create(
-    user: UserResponse,
+    user: User,
     application_create: JobApplicationCreate,
     is_main: bool,
     application_status: JobStatusInput,
@@ -47,7 +46,7 @@ def create(
     Creates an instance of the Job Application model.
 
     Args:
-        user (UserResponse): Current logged in user.
+        user (User): Current logged in user.
         application_create (JobApplicationCreate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
@@ -94,7 +93,7 @@ def create(
 
 def update(
     job_application_id: UUID,
-    user: UserResponse,
+    user: User,
     application_update: JobApplicationUpdate,
     is_main: bool,
     application_status: JobStatusInput,
@@ -105,7 +104,7 @@ def update(
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
-        user (UserResponse): Current logged in user.
+        user (User): Current logged in user.
         application_update (JobApplicationUpdate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
@@ -140,7 +139,6 @@ def update(
 def get_all(
     filter_params: FilterParams,
     db: Session,
-    status: JobSearchStatus,
     search_params: SearchParams,
 ) -> list[JobApplicationResponse]:
     """
@@ -154,10 +152,9 @@ def get_all(
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
-    if status == JobSearchStatus.ACTIVE:
-        query = _get_for_status(db=db, job_status=JobSearchStatus.ACTIVE)
-    else:
-        query = _get_for_status(db=db, job_status=JobSearchStatus.MATCHED)
+    query: Query = db.query(JobApplication).filter(
+        JobApplication.status == JobSearchStatus.ACTIVE
+    )
 
     if search_params.skills:
         query.join(JobApplicationSkill).join(Skill).filter(
@@ -173,9 +170,7 @@ def get_all(
         f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
     )
 
-    result: RowReturningQuery = query.offset(filter_params.offset).limit(
-        filter_params.limit
-    )
+    result: Query = query.offset(filter_params.offset).limit(filter_params.limit)
 
     logger.info("Limited applications based on offset and limit")
 
@@ -207,29 +202,6 @@ def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
     return JobApplicationResponse.create(
         professional=job_application.professional, job_application=job_application
     )
-
-
-def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQuery:
-    """
-    Retrieve all Job Applications with indicated status.
-
-    Args:
-        db (Session): The database session.
-        job_status (JobSearchStatus): Status of the Job Application; can be ACTIVE or MATCHED.
-    Returns:
-        RowReturningQuery: Object containinig a tuple of JobApplication and Professional objects.
-    """
-    query: RowReturningQuery = (
-        db.query(JobApplication, Professional)
-        .join(Professional, JobApplication.professional_id == Professional.id)
-        .filter(JobApplication.status == job_status)
-    )
-
-    logger.info(
-        f"Retreived all Job Applications that are with status {job_status.value}"
-    )
-
-    return query
 
 
 def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
@@ -415,12 +387,15 @@ def handle_match_response(
     )
 
 
-def view_match_requests(job_application_id: UUID, db: Session) -> list[BaseJobAd]:
+def view_match_requests(
+    job_application_id: UUID, db: Session, filter_params: FilterParams
+) -> list[BaseJobAd]:
     """
     Verifies Job Application id and fetches all its related Match requests.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
+        filter_params (FilterParams): Pagination for the results.
         db (Session): Database dependency.
 
     Returns:
@@ -430,5 +405,5 @@ def view_match_requests(job_application_id: UUID, db: Session) -> list[BaseJobAd
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
 
     return match_service.get_match_requests_for_job_application(
-        job_application_id=job_application.id, db=db
+        job_application_id=job_application.id, filter_params=filter_params, db=db
     )
