@@ -39,8 +39,8 @@ class Skill(Base):
     level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
 
     job_applications: Mapped[list["JobApplicationSkill"]] = relationship(
-        "JobApplicationSkills",
-        back_populates="job_application",
+        "JobApplicationSkill",
+        back_populates="skill",
         uselist=True,
         collection_class=list,
     )
