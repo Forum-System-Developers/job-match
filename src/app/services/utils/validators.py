@@ -232,3 +232,17 @@ def unique_username(username: str, db: Session) -> bool:
         return False
 
     return True
+
+
+def unique_email(email: str, db: Session) -> bool:
+    professional = (
+        db.query(Professional.email).filter(Professional.email == email).first()
+    )
+    if professional is not None:
+        return False
+
+    company = db.query(Company.email).filter(Company.email == email).first()
+    if company is not None:
+        return False
+
+    return True

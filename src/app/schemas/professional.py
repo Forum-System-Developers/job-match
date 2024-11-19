@@ -5,9 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
-from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.schemas.job_ad import BaseJobAd
 from app.sql_app.professional.professional import Professional
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
 class PrivateMatches(Enum):
@@ -110,4 +110,10 @@ class ProfessionalResponse(ProfessionalBase):
 
 class ProfessionalRequestBody(BaseModel):
     professional: ProfessionalCreate
+    status: ProfessionalStatus
+
+
+class ProfessionalUpdateRequestBody(BaseModel):
+    professional: ProfessionalUpdate
+    private_matches: PrivateMatches
     status: ProfessionalStatus

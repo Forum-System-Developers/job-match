@@ -38,8 +38,6 @@ logger = logging.getLogger(__name__)
 def create(
     user: User,
     application_create: JobApplicationCreate,
-    is_main: bool,
-    application_status: JobStatusInput,
     db: Session,
 ) -> JobApplicationResponse:
     """
@@ -48,8 +46,6 @@ def create(
     Args:
         user (User): Current logged in user.
         application_create (JobApplicationCreate): Pydantic schema for collecting data.
-        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
 
     Returns:
@@ -67,8 +63,8 @@ def create(
 
     job_application: JobApplication = JobApplication(
         **application_create.model_dump(exclude={"city"}),
-        is_main=is_main,
-        status=JobStatus(application_status.value),
+        is_main=application_create.is_main,
+        status=JobStatus(application_create.application_status.value),
         city_id=city.id,
         professional_id=professional.id,
     )
@@ -95,8 +91,6 @@ def update(
     job_application_id: UUID,
     user: User,
     application_update: JobApplicationUpdate,
-    is_main: bool,
-    application_status: JobStatusInput,
     db: Session,
 ) -> JobApplicationResponse:
     """
@@ -106,8 +100,6 @@ def update(
         job_application_id (UUID): The identifier of the Job Application.
         user (User): Current logged in user.
         application_update (JobApplicationUpdate): Pydantic schema for collecting data.
-        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
 
     Returns:
@@ -123,9 +115,6 @@ def update(
     job_application = _update_attributes(
         application_update=application_update,
         job_application_model=job_application,
-        is_main=is_main,
-        application_status=application_status,
-        professional=professional,
         db=db,
     )
 
@@ -235,9 +224,6 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
 def _update_attributes(
     application_update: JobApplicationUpdate,
     job_application_model: JobApplication,
-    is_main: bool,
-    application_status: JobStatusInput,
-    professional: ProfessionalResponse,
     db: Session,
 ) -> JobApplication:
     """
@@ -247,13 +233,13 @@ def _update_attributes(
 
         application_update (JobAplicationUpdate): Pydantic schema for collecting data.
         job_application_model (JobApplication): The Job Application to be updated.
-        is_main (bool): Statement representing is the User wants to set this Application as their Main application.
-        application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         city (CityResponse): The city the professional is located in.
 
     Returns:
         JobApplication: Updated Job Application ORM model.
     """
+    is_main = application_update.is_main
+    application_status = application_update.application_status
 
     if job_application_model.min_salary != application_update.min_salary:
         job_application_model.min_salary = application_update.min_salary
@@ -310,7 +296,7 @@ def _update_skillset(
     db: Session,
     job_application_model: JobApplication,
     skills: set[SkillBase],
-):
+) -> None:
     """
     Updates the skillset for a Job Application.
 

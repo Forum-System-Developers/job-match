@@ -80,10 +80,14 @@ class JobAplicationBase(BaseModel):
 
 class JobApplicationCreate(JobAplicationBase):
     city: str = Field(examples=["Sofia"])
+    is_main: bool
+    application_status: JobStatus
 
 
 class JobApplicationUpdate(JobAplicationBase):
     city: str | None = Field(examples=["Sofia"], default=None)
+    is_main: bool
+    application_status: JobStatus
 
 
 class JobApplicationResponse(JobAplicationBase):
