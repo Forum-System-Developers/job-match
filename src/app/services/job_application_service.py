@@ -389,12 +389,15 @@ def handle_match_response(
     )
 
 
-def view_match_requests(job_application_id: UUID, db: Session) -> list[BaseJobAd]:
+def view_match_requests(
+    job_application_id: UUID, db: Session, filter_params: FilterParams
+) -> list[BaseJobAd]:
     """
     Verifies Job Application id and fetches all its related Match requests.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
+        filter_params (FilterParams): Pagination for the results.
         db (Session): Database dependency.
 
     Returns:
@@ -404,5 +407,5 @@ def view_match_requests(job_application_id: UUID, db: Session) -> list[BaseJobAd
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
 
     return match_service.get_match_requests_for_job_application(
-        job_application_id=job_application.id, db=db
+        job_application_id=job_application.id, filter_params=filter_params, db=db
     )

@@ -170,6 +170,7 @@ def handle_match_response(
 
 @router.get("/{job_application_id}/match-requests", description="View Match requests.")
 def view_match_requests(
+    filter_params: FilterParams,
     job_application_id: UUID,
     user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
@@ -177,6 +178,7 @@ def view_match_requests(
     def _view_match_requests():
         return job_application_service.view_match_requests(
             job_application_id=job_application_id,
+            filter_params=filter_params,
             db=db,
         )
 
