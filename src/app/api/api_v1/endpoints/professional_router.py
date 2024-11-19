@@ -27,7 +27,7 @@ router = APIRouter()
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalRequestBody = Body(media_type="application/json"),
+    professional: ProfessionalRequestBody = Body(),
     # photo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -51,10 +51,9 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalUpdate,
+    professional: ProfessionalRequestBody = Body(),
     private_matches: PrivateMatches = Form(),
-    professional_status: ProfessionalStatus = Form(),
-    photo: UploadFile | None = File(None),
+    # photo: UploadFile | None = File(None),
     user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -62,10 +61,9 @@ def update(
         return professional_service.update(
             professional_id=professional_id,
             professional=professional,
-            professional_status=professional_status,
             private_matches=private_matches,
             db=db,
-            photo=photo,
+            # photo=photo,
         )
 
     return process_request(

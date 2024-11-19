@@ -13,7 +13,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.api_v1.api import api_router
 from app.core.config import get_settings
 
-from app.sql_app.database import initialize_database
+# from app.sql_app.database import initialize_database
 
 
 def _setup_cors(p_app: FastAPI) -> None:
@@ -64,4 +64,4 @@ app = _create_app()
 _setup_cors(app)
 _setup_logger()
 
-initialize_database()
+# initialize_database()

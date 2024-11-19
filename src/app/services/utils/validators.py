@@ -13,6 +13,7 @@ from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
+from app.sql_app.professional.professional import Professional
 
 logger = logging.getLogger(__name__)
 
@@ -215,3 +216,19 @@ def ensure_valid_requirement_id(
         )
 
     return requirement
+
+
+def unique_username(username: str, db: Session) -> bool:
+    professional = (
+        db.query(Professional.username)
+        .filter(Professional.username == username)
+        .first()
+    )
+    if professional is not None:
+        return False
+
+    company = db.query(Company.username).filter(Company.username == username).first()
+    if company is not None:
+        return False
+
+    return True

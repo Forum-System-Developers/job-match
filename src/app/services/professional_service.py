@@ -17,6 +17,8 @@ from app.schemas.professional import (
 )
 from app.schemas.user import User
 from app.services import city_service
+from app.services.utils.validators import unique_username
+from app.utils.password_utils import hash_password
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
@@ -60,10 +62,56 @@ def create(
     # if photo is not None:
     #     upload_photo = photo.file.read()
 
-    professional = Professional(
-        **professional_create.model_dump(exclude={"city"}),
-        # photo=upload_photo,
+    professional = _register_professional(
+        professional_create=professional_create,
+        professional_status=professional_status,
         city_id=city.id,
+        db=db,
+    )
+
+    logger.info(f"Professional with id {professional.id} created")
+    return ProfessionalResponse.create(professional=professional)
+
+
+def _register_professional(
+    professional_create: ProfessionalCreate,
+    professional_status: ProfessionalStatus,
+    city_id: UUID,
+    db: Session,
+):
+    username = professional_create.username
+    password = professional_create.password
+
+    if not unique_username(username=username, db=db):
+        raise ApplicationError(
+            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
+        )
+
+    hashed_password = hash_password(password=password)
+
+    professional = _create(
+        professional_create=professional_create,
+        city_id=city_id,
+        professional_status=professional_status,
+        hashed_password=hashed_password,
+        db=db,
+    )
+
+    return professional
+
+
+def _create(
+    professional_create: ProfessionalCreate,
+    city_id: UUID,
+    professional_status: ProfessionalStatus,
+    hashed_password: str,
+    db: Session,
+) -> Professional:
+    professional = Professional(
+        **professional_create.model_dump(exclude={"city", "password"}),
+        # photo=upload_photo,
+        city_id=city_id,
+        password=hashed_password,
         status=professional_status,
     )
 
@@ -71,24 +119,22 @@ def create(
     db.commit()
     db.refresh(professional)
 
-    logger.info(f"Professional with id {professional.id} created")
-    return ProfessionalResponse.create(professional=professional)
+    return professional
 
 
 def update(
     professional_id: UUID,
-    professional_update: ProfessionalUpdate,
-    professional_status: ProfessionalStatus,
+    professional_request: ProfessionalRequestBody,
     private_matches: PrivateMatches,
     db: Session,
-    photo: UploadFile | None = None,
+    # photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
     """
     Upates an instance of the Professional model.
 
     Args:
         professional_id (UUID): The identifier of the professional.
-        professional_update (ProfessionalUpdate): Pydantic schema for collecting data.
+        professional_update (ProfessionalRequestBody): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
@@ -105,6 +151,9 @@ def update(
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
 
+    professional_update = professional_request.professional
+    professional_status = professional_request.status
+
     professional = _update_atributes(
         professional_update=professional_update,
         professional=professional,
@@ -113,10 +162,10 @@ def update(
         private_matches=private_matches,
     )
 
-    if photo is not None:
-        upload_photos = photo.file.read()
-        professional.photo = upload_photos
-        logger.info("Professional photo updated successfully")
+    # if photo is not None:
+    #     upload_photos = photo.file.read()
+    #     professional.photo = upload_photos
+    #     logger.info("Professional photo updated successfully")
 
     matched_ads = (
         _get_matches(professional_id=professional_id, db=db)
