@@ -14,9 +14,9 @@ from app.schemas.job_application import (
     JobApplicationResponse,
     JobApplicationUpdate,
     JobSearchStatus,
-    MatchResponseRequest,
 )
 from app.schemas.job_application import JobStatus as JobStatusInput
+from app.schemas.job_application import MatchResponseRequest
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
 from app.schemas.user import UserResponse
