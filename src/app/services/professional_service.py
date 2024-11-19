@@ -13,7 +13,7 @@ from app.schemas.professional import (
     ProfessionalResponse,
     ProfessionalUpdate,
 )
-from app.schemas.user import UserResponse
+from app.schemas.user import UserResponse, User
 from app.services import city_service
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
@@ -293,3 +293,31 @@ def _update_atributes(
     professional.has_private_matches = private_matches.value
 
     return professional
+
+
+def get_by_username(username: str, db: Session) -> User:
+    """
+    Fetch a Professional by their username.
+
+    Args:
+        username (str): The username of the Professional
+        db (Session): Database dependency
+
+    Returns:
+        User: Pydantic DTO containing User information.
+    """
+
+    professional = (
+        db.query(Professional).filter(Professional.username == username).first()
+    )
+    if professional is None:
+        raise ApplicationError(
+            detail=f"User with username {username} does not exist",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    return User(
+        id=professional.id,
+        username=professional.username,
+        password=professional.password,
+    )
