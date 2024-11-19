@@ -80,7 +80,7 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     seacrh_params: SearchParams = Depends(),
-    user: ProfessionalResponse = Depends(get_current_company),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
