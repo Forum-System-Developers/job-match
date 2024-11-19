@@ -20,3 +20,18 @@ class BaseUser(BaseModel):
 
 class UserResponse(BaseUser):
     password: str
+
+
+class User(BaseModel):
+    """
+    Pyantic model representing a User.
+
+    Attributes:
+        id (UUID): The identifier of the User.
+        username (str): The username of the User.
+        password (str): The password of the User.
+    """
+
+    id: UUID
+    username: str
+    password: str

@@ -114,3 +114,24 @@ def get_by_id(
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Could not fetch Professional",
     )
+
+
+@router.get(
+    "/{professional_id}/job-applications",
+    description="View Job Applications by a Professional",
+)
+def get_applications(
+    professional_id: UUID,
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    def _get_applications():
+        return professional_service.get_applications(
+            professional_id=professional_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_get_applications,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg=f"Could not fetch Job Applications for professional with id {professional_id}",
+    )
