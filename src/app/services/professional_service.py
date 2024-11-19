@@ -8,13 +8,17 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.professional import (
+    PrivateMatches,
     ProfessionalCreate,
     ProfessionalResponse,
     ProfessionalUpdate,
 )
 from app.schemas.user import UserResponse
 from app.services import city_service
+from app.sql_app.job_ad.job_ad import JobAd
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -72,7 +76,7 @@ def update(
     professional_id: UUID,
     professional_update: ProfessionalUpdate,
     professional_status: ProfessionalStatus,
-    private_matches: bool,
+    private_matches: PrivateMatches,
     db: Session,
     photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
@@ -112,7 +116,7 @@ def update(
         logger.info("Professional photo updated successfully")
 
     matched_ads = (
-        get_matches(professional=professional, db=db)
+        _get_matches(professional_id=professional_id, db=db)
         if not professional.has_private_matches
         else None
     )
@@ -141,7 +145,7 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
     professional = _get_by_id(professional_id=professional_id, db=db)
 
     matched_ads = (
-        get_matches(professional=professional, db=db)
+        _get_matches(professional_id=professional_id, db=db)
         if not professional.has_private_matches
         else None
     )
@@ -209,41 +213,34 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
     return professional
 
 
-def get_matches(professional: Professional, db: Session) -> list[BaseJobAd]:
+def _get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
     """
     Fetches Matched Job Ads for the given Professional.
 
     Args:
-        professional (Professional): The existing professional object to be updated.
-        private_matches (bool): Indicates if the professional has private matches.
-        db (Session): Database dependency.
+        professional (Professional): The existing professional object to be updated.        db (Session): Database dependency.
 
     Returns:
         list[BaseJobAd]: List of Pydantic models containing basic information about the matched Job Ad.
     """
-    ads = [
-        match.job_ad
-        for job_application in professional.job_applications
-        if job_application.status == JobStatus.MATCHED
-        for match in job_application.matches
-    ]
-
-    return [
-        BaseJobAd(
-            title=ad.title,
-            description=ad.description,
-            location=ad.location.name,
-            min_salary=ad.min_salary,
-            max_salary=ad.max_salary,
+    ads: list[JobAd] = (
+        db.query(JobAd)
+        .join(Match, Match.job_ad_id == JobAd.id)
+        .join(JobApplication, Match.job_application_id == JobApplication.id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == JobStatus.MATCHED,
         )
-        for ad in ads
-    ]
+        .all()
+    )
+
+    return [BaseJobAd.model_validate(ad) for ad in ads]
 
 
 def _update_atributes(
     professional_update: ProfessionalUpdate,
     professional: Professional,
-    private_matches: bool,
+    private_matches: PrivateMatches,
     db: Session,
     professional_status: ProfessionalStatus,
 ) -> Professional:
@@ -253,7 +250,7 @@ def _update_atributes(
     Args:
         professional_update (ProfessionalUpdate): The updated information for the professional.
         professional (Professional): The existing professional object to be updated.
-        private_matches (bool): Indicates if the professional has private matches.
+        private_matches (PrivateMatches): Indicates if the professional has private matches.
         db (Session): The database session used for querying or interacting with the database.
         professional_status (ProfessionalStatus): The new professional status to be applied if different.
 
@@ -293,6 +290,6 @@ def _update_atributes(
         professional.last_name = professional_update.last_name
         logger.info("Professional last name updated successfully")
 
-    professional.has_private_matches = private_matches
+    professional.has_private_matches = private_matches.value
 
     return professional

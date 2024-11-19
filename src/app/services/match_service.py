@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_application import MatchResponseRequest
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
@@ -82,7 +83,7 @@ def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match 
         db (Session): Database dependency.
 
     Returns:
-        Match | None: An existing entity or None.
+        Optional[Match]: An existing entity or None.
 
     """
     match = (
@@ -96,7 +97,10 @@ def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match 
 
 
 def process_request_from_company(
-    job_application_id: UUID, job_ad_id: UUID, accept_request: bool, db: Session
+    job_application_id: UUID,
+    job_ad_id: UUID,
+    accept_request: MatchResponseRequest,
+    db: Session,
 ) -> dict:
     """
     Accepts or Rejects a Match request for a Job Application from a Company.
@@ -104,7 +108,7 @@ def process_request_from_company(
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
-        accept_request (bool): Accept or reject a Match request.
+        accept_request (MatchResponseRequest): Accept or reject a Match request.
         db (Session): Database dependency.
 
     Raises:
@@ -126,22 +130,46 @@ def process_request_from_company(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    if accept_request:
-        existing_match.status = MatchStatus.ACCEPTED
-        existing_match.job_application.professional.status = ProfessionalStatus.BUSY
-        existing_match.job_application.status = JobStatus.MATCHED
-        existing_match.job_ad.status = JobAdStatus.ARCHIVED
-
+    if accept_request == MatchResponseRequest.accept:
+        accept_match_request(match=existing_match, db=db)
         logger.info(
             f"Updated statuses for JobAplication with id {job_application_id}, JobAd id {job_ad_id}, Professional with id {existing_match.job_application.professional.id}"
         )
         return {"msg": "Match Request accepted"}
 
-    existing_match.status = MatchStatus.REJECTED
-    logger.info(
-        f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
-    )
-    return {"msg": "Match Request rejected"}
+    elif accept_request == MatchResponseRequest.reject:
+        existing_match.status = MatchStatus.REJECTED
+        logger.info(
+            f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
+        )
+        return {"msg": "Match Request rejected"}
+
+
+def accept_match_request(match: Match, db: Session):
+    """
+    Updates .
+
+    Args:
+        match (MATCH): The Match instance.
+        db (Session): Database dependency.
+
+    Returns:
+        None:
+
+    """
+    match_job_application = match.job_application
+    professional = match_job_application.professional
+
+    match.status = MatchStatus.ACCEPTED
+
+    professional.status = ProfessionalStatus.BUSY
+    professional.active_application_count -= 1
+
+    match_job_application.status = JobStatus.MATCHED
+
+    match.job_ad.status = JobAdStatus.ARCHIVED
+
+    db.commit()
 
 
 def get_match_requests_for_job_application(

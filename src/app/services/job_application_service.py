@@ -10,9 +10,11 @@ from app.schemas.address import CityResponse
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import (
-    JobAplicationBase,
+    JobApplicationCreate,
     JobApplicationResponse,
+    JobApplicationUpdate,
     JobSearchStatus,
+    MatchResponseRequest,
 )
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.professional import ProfessionalResponse
@@ -25,7 +27,6 @@ from app.services import (
     professional_service,
     skill_service,
 )
-from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 def create(
     user: UserResponse,
-    application_create: JobAplicationBase,
+    application_create: JobApplicationCreate,
     is_main: bool,
     application_status: JobStatusInput,
     db: Session,
@@ -47,7 +48,7 @@ def create(
 
     Args:
         user (UserResponse): Current logged in user.
-        application_create (ProfessionalBase): Pydantic schema for collecting data.
+        application_create (JobApplicationCreate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
@@ -59,11 +60,11 @@ def create(
         professional_id=user.id, db=db
     )
 
-    city: CityResponse = _fetch_city(
-        application_schema=application_create,
-        db=db,
-        professional_schema=professional,
+    city: CityResponse = city_service.get_by_name(
+        city_name=application_create.city, db=db
     )
+
+    professional.active_application_count += 1
 
     job_application: JobApplication = JobApplication(
         **application_create.model_dump(exclude={"city"}),
@@ -87,14 +88,14 @@ def create(
         logger.info(f"Job Application id {job_application.id} skillset created")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application, city=city.name
+        professional=professional, job_application=job_application
     )
 
 
 def update(
     job_application_id: UUID,
     user: UserResponse,
-    application_update: JobAplicationBase,
+    application_update: JobApplicationUpdate,
     is_main: bool,
     application_status: JobStatusInput,
     db: Session,
@@ -105,7 +106,7 @@ def update(
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         user (UserResponse): Current logged in user.
-        application_update (ProfessionalBase): Pydantic schema for collecting data.
+        application_update (JobApplicationUpdate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
@@ -120,25 +121,19 @@ def update(
         professional_id=user.id, db=db
     )
 
-    city: CityResponse = _fetch_city(
-        application_schema=application_update,
-        db=db,
-        professional_schema=professional,
-    )
-
     job_application = _update_attributes(
         application_update=application_update,
         job_application_model=job_application,
         is_main=is_main,
         application_status=application_status,
-        city=city,
+        professional=professional,
         db=db,
     )
 
     logger.info(f"Job Application with id {job_application.id} updated")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application, city=city.name
+        professional=professional, job_application=job_application
     )
 
 
@@ -188,10 +183,30 @@ def get_all(
         JobApplicationResponse.create(
             job_application=row[0],
             professional=row[1],
-            city=row[2].name,
         )
         for row in result.all()
     ]
+
+
+def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
+    """
+    Fetches a Job Application by its ID.
+
+    Args:
+        job_application_id (UUID): The identifier of the Job application.
+        db (Session): Database dependency.
+
+    Returns:
+        JobApplicationResponse: JobApplication reponse model.
+    """
+
+    job_application: JobApplication = _get_by_id(
+        job_application_id=job_application_id, db=db
+    )
+
+    return JobApplicationResponse.create(
+        professional=job_application.professional, job_application=job_application
+    )
 
 
 def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQuery:
@@ -202,12 +217,11 @@ def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQue
         db (Session): The database session.
         job_status (JobSearchStatus): Status of the Job Application; can be ACTIVE or MATCHED.
     Returns:
-        A RowReturningQuery object that contains a tuple of JobApplication, Professional and City objects.
+        RowReturningQuery: Object containinig a tuple of JobApplication and Professional objects.
     """
     query: RowReturningQuery = (
-        db.query(JobApplication, Professional, City)
+        db.query(JobApplication, Professional)
         .join(Professional, JobApplication.professional_id == Professional.id)
-        .join(City, JobApplication.city_id == City.id)
         .filter(JobApplication.status == job_status)
     )
 
@@ -247,11 +261,11 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
 
 
 def _update_attributes(
-    application_update: JobAplicationBase,
+    application_update: JobApplicationUpdate,
     job_application_model: JobApplication,
     is_main: bool,
     application_status: JobStatusInput,
-    city: CityResponse,
+    professional: ProfessionalResponse,
     db: Session,
 ) -> JobApplication:
     """
@@ -259,7 +273,7 @@ def _update_attributes(
 
     Args:
 
-        application_update (JobAplicationBase): Pydantic schema for collecting data.
+        application_update (JobAplicationUpdate): Pydantic schema for collecting data.
         job_application_model (JobApplication): The Job Application to be updated.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
@@ -293,7 +307,14 @@ def _update_attributes(
         job_application_model.status = JobStatus(application_status.value)
         logger.info(f"Job Application id {job_application_model.id} status updated")
 
-    if city.id != job_application_model.city_id:
+    if (
+        application_update.city is not None
+        and application_update.city != job_application_model.city.name
+    ):
+        city: CityResponse = city_service.get_by_name(
+            city_name=application_update.city, db=db
+        )
+
         job_application_model.city_id = city.id
         logger.info(f"Job Application id {job_application_model.id} city updated")
 
@@ -343,31 +364,6 @@ def _update_skillset(
     logger.info(f"Job Application id {job_application_model.id} skillset updated")
 
 
-def _fetch_city(
-    application_schema: JobAplicationBase,
-    db: Session,
-    professional_schema: ProfessionalResponse,
-) -> CityResponse:
-    """
-    Updates the skillset for a Job Application.
-
-    Args:
-
-        application_schema (JobAplicationBase): Pydantic model representing the Job Application.
-        db (Session): Database dependency.
-        professional_schema (ProfessionalResponse): The Pydantic schema representing a Professional.
-
-    Returns:
-        CityResponse: Pydantic schema for a City instance.
-    """
-    city: CityResponse | None = None
-    if application_schema.city is not None:
-        city = city_service.get_by_name(city_name=application_schema.city, db=db)
-    else:
-        city = city_service.get_by_name(city_name=professional_schema.city, db=db)
-    return city
-
-
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
     """
     Verifies Job Application and Job Ad and initiates a Match request for a Job Ad.
@@ -392,7 +388,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
-    accept_request: bool,
+    accept_request: MatchResponseRequest,
     db: Session,
 ):
     """
@@ -401,7 +397,7 @@ def handle_match_response(
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
-        accept_request (bool): Accept or reject Match request.
+        accept_request (MatchResponseRequest): Accept or reject Match request.
         db (Session): Database dependency.
 
     Returns:
