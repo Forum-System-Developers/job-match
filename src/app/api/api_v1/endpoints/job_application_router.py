@@ -110,7 +110,11 @@ def get_all(
 
 
 @router.get("/{job_application_id}", description="Fetch a Job Application by its ID")
-def get_by_id(job_application_id: UUID, db: Session):
+def get_by_id(
+    job_application_id: UUID,
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
     def _get_by_id():
         return job_application_service.get_by_id(
             job_application_id=job_application_id, db=db

@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams

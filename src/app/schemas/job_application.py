@@ -108,6 +108,7 @@ class JobApplicationResponse(JobAplicationBase):
     professional_id: UUID
     first_name: str
     last_name: str
+    city: str
     email: EmailStr
     photo: bytes | None = None
     status: str
