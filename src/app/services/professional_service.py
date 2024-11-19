@@ -11,6 +11,7 @@ from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
+    ProfessionalRequestBody,
     ProfessionalResponse,
     ProfessionalUpdate,
 )
@@ -29,8 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def create(
-    professional_create: ProfessionalCreate,
-    professional_status: ProfessionalStatus,
+    professional_request: ProfessionalRequestBody,
     db: Session,
     photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
@@ -46,6 +46,9 @@ def create(
     Returns:
         Professional: Pydantic response model for Professional.
     """
+    professional_create = professional_request.professional
+    professional_status = professional_request.status
+
     city = city_service.get_by_name(city_name=professional_create.city, db=db)
     if city is None:
         logger.error(f"City name {professional_create.city} not found")

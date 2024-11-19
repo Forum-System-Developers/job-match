@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -9,8 +9,8 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
-    ProfessionalCreate,
     ProfessionalUpdate,
+    ProfessionalRequestBody,
 )
 from app.schemas.user import User
 from app.services import professional_service
@@ -27,17 +27,15 @@ router = APIRouter()
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalCreate,
-    professional_status: ProfessionalStatus,
-    photo: UploadFile | None = File(None),
+    professional: ProfessionalRequestBody = Body(media_type="application/json"),
+    photo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
-            professional=professional,
-            professional_status=professional_status,
-            db=db,
+            professional_request=professional,
             photo=photo,
+            db=db,
         )
 
     return process_request(
