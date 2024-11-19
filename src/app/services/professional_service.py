@@ -38,8 +38,7 @@ def create(
     Creates an instance of the Professional model.
 
     Args:
-        professional_create (ProfessionalCreate): Pydantic schema for collecting data.
-        professional_status (ProfessionalStatus): The status of the Professional.
+        professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
 
