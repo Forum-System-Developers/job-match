@@ -53,7 +53,6 @@ def create_tables():
     from app.sql_app.category.category import Category
     from app.sql_app.city.city import City
     from app.sql_app.company.company import Company
-    from app.sql_app.company_address.company_address import CompanyAddress
     from app.sql_app.job_ad.job_ad import JobAd
     from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
     from app.sql_app.job_application.job_application import JobApplication
