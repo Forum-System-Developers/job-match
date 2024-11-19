@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.query import RowReturningQuery, Query
+from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
@@ -170,9 +170,7 @@ def get_all(
         f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
     )
 
-    result: RowReturningQuery = query.offset(filter_params.offset).limit(
-        filter_params.limit
-    )
+    result: Query = query.offset(filter_params.offset).limit(filter_params.limit)
 
     logger.info("Limited applications based on offset and limit")
 

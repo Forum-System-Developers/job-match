@@ -14,7 +14,7 @@ from app.schemas.professional import (
 )
 from app.schemas.user import User
 from app.services import professional_service
-from app.services.auth_service import get_current_professional, get_current_company
+from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.utils.process_request import process_request
