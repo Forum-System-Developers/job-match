@@ -10,8 +10,7 @@ from app.sql_app.database import Base
 from app.sql_app.match.match_status import MatchStatus
 
 if TYPE_CHECKING:
-    from app.sql_app.job_ad.job_ad import JobAd
-    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app import JobAd, JobApplication
 
 
 class Match(Base):

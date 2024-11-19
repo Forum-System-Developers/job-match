@@ -32,7 +32,7 @@ def get_all(filter_params: FilterParams, db: Session) -> list[CompanyResponse]:
     )
     logger.info(f"Retrieved {len(companies)} companies")
 
-    return [CompanyResponse.model_validate(company) for company in companies]
+    return [CompanyResponse.create(company) for company in companies]
 
 
 def get_by_id(id: UUID, db: Session) -> CompanyResponse:
@@ -49,7 +49,7 @@ def get_by_id(id: UUID, db: Session) -> CompanyResponse:
     company = _ensure_company_exists(id=id, db=db)
     logger.info(f"Retrieved company with id {id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -130,7 +130,7 @@ def update(
     db.refresh(company)
     logger.info(f"Updated company with id {company.id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def _get_by_id(id: UUID, db: Session) -> Company | None:

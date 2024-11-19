@@ -9,9 +9,7 @@ from app.sql_app.company.company import Company
 from app.sql_app.database import Base
 
 if TYPE_CHECKING:
-    from app.sql_app.job_ad.job_ad import JobAd
-    from app.sql_app.job_application.job_application import JobApplication
-    from app.sql_app.professional.professional import Professional
+    from app.sql_app import JobAd, JobApplication, Professional
 
 
 class City(Base):

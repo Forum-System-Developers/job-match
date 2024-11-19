@@ -9,8 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.sql_app.database import Base
 
 if TYPE_CHECKING:
-    from app.sql_app.city.city import City
-    from app.sql_app.job_ad.job_ad import JobAd
+    from app.sql_app import City, JobAd
 
 
 class Company(Base):
