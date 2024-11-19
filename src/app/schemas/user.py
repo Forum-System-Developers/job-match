@@ -4,8 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.sql_app.user.user_type import UserType
-
 
 class UserRole(Enum):
     """
