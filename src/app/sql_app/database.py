@@ -63,7 +63,6 @@ def create_tables():
     from app.sql_app.match.match import Match
     from app.sql_app.professional.professional import Professional
     from app.sql_app.skill.skill import Skill
-    from app.sql_app.user.user import User
 
     Base.metadata.create_all(bind=engine)
 
