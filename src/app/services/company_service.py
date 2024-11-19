@@ -6,18 +6,10 @@ from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services import city_service
-from app.services.utils.validators import (
-    ensure_no_match_request,
-    ensure_valid_job_ad_id,
-    ensure_valid_job_application_id,
-)
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
-from app.sql_app.match.match import Match
-from app.sql_app.match.match_status import MatchStatus
 
 logger = logging.getLogger(__name__)
 
@@ -109,39 +101,6 @@ def update(
     logger.info(f"Updated company with id {company.id}")
 
     return CompanyResponse.model_validate(company)
-
-
-def send_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
-) -> MessageResponse:
-    """
-    Send a match request from a company to a job application.
-
-    Args:
-        company_id (UUID): The unique identifier of the company.
-        job_application_id (UUID): The unique identifier of the job application.
-        db (Session): The database session to use for the operation.
-    """
-    ensure_valid_job_ad_id(id=job_ad_id, db=db)
-    ensure_valid_job_application_id(id=job_application_id, db=db)
-    match = ensure_no_match_request(
-        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
-    )
-
-    if match is None:
-        match = Match(
-            job_ad_id=job_ad_id,
-            job_application_id=job_application_id,
-        )
-    match.status = MatchStatus.REQUESTED
-
-    db.add(match)
-    db.commit()
-    logger.info(
-        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
-    )
-
-    return MessageResponse(message="Match request sent")
 
 
 def _get_by_id(id: UUID, db: Session) -> Company | None:
