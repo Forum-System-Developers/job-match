@@ -11,6 +11,9 @@ class Base(DeclarativeBase):
     pass
 
 
+from app.sql_app import *
+
+
 # Dependency
 def get_db():
     """
@@ -49,20 +52,6 @@ def create_tables():
     in the Base class. It binds the metadata to the specified engine and creates
     the tables if they do not already exist.
     """
-
-    from app.sql_app.category.category import Category
-    from app.sql_app.city.city import City
-    from app.sql_app.company.company import Company
-    from app.sql_app.job_ad.job_ad import JobAd
-    from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
-    from app.sql_app.job_application.job_application import JobApplication
-    from app.sql_app.job_application_skill.job_application_skill import (
-        JobApplicationSkill,
-    )
-    from app.sql_app.match.match import Match
-    from app.sql_app.professional.professional import Professional
-    from app.sql_app.skill.skill import Skill
-
     Base.metadata.create_all(bind=engine)
 
 
