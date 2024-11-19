@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
+    auth_router,
     company_router,
     job_ad_router,
     job_application_router,
@@ -28,3 +29,5 @@ api_router.include_router(
 api_router.include_router(
     job_application_router.router, prefix="/job-applications", tags=["Job Applications"]
 )
+
+api_router.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
