@@ -310,6 +310,11 @@ def get_by_username(username: str, db: Session) -> User:
     professional = (
         db.query(Professional).filter(Professional.username == username).first()
     )
+    if professional is None:
+        raise ApplicationError(
+            detail=f"User with username {username} does not exist",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
 
     return User(
         id=professional.id,
