@@ -11,12 +11,12 @@ from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyResponse
 from app.schemas.professional import ProfessionalResponse
-from app.schemas.user import User, UserLogin
+from app.schemas.user import User, UserLogin, UserRole
 from app.services import company_service, professional_service
 from app.sql_app.database import get_db
 from app.utils.password_utils import verify_password
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
@@ -30,12 +30,12 @@ def login(login_data: UserLogin, db: Session) -> dict:
     Returns:
         dict: A dictionary containing the access and refresh tokens.
     """
-    if login_data.role == "company":
+    if login_data.role == UserRole.COMPANY:
         company = authenticate_user(login_data=login_data, db=db)
         logger.info(f"Authenticated company {company.id}")
         token = create_access_and_refresh_tokens(user=company, login_data=login_data)
         logger.info(f"Created tokens for company {company.id}")
-    elif login_data.role == "professional":
+    elif login_data.role == UserRole.PROFESSIONAL:
         professional = authenticate_user(login_data=login_data, db=db)
         logger.info(f"Authenticated professional {professional.id}")
         token = create_access_and_refresh_tokens(
@@ -195,12 +195,12 @@ def authenticate_user(login_data: UserLogin, db: Session) -> User:
     user: User
     verified_password: bool = False
 
-    if login_data.role == "company":
+    if login_data.role == UserRole.COMPANY:
         user = company_service.get_by_username(username=login_data.username, db=db)
         logger.info(f"Retrieved company {user.id}")
         verified_password = verify_password(login_data.password, user.password)
         logger.info(f"Password verified for company {user.id}")
-    elif login_data.role == "professional":
+    elif login_data.role == UserRole.PROFESSIONAL:
         user = professional_service.get_by_username(username=login_data.username, db=db)
         logger.info(f"Retrieved professional {user.id}")
         verified_password = verify_password(login_data.password, user.password)
