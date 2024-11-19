@@ -31,7 +31,7 @@ class JobAdsRequirement(Base):
     __tablename__ = "job_ads_requirement"
 
     job_ad_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user.id"), nullable=False, primary_key=True
+        UUID(as_uuid=True), ForeignKey("job_ad.id"), nullable=False, primary_key=True
     )
     job_requirement_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
