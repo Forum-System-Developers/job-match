@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.schemas.user import User
 from app.services import city_service
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
@@ -47,6 +48,32 @@ def get_by_id(id: UUID, db: Session) -> CompanyResponse:
     logger.info(f"Retrieved company with id {id}")
 
     return CompanyResponse.model_validate(company)
+
+
+def get_by_username(username: str, db: Session) -> User:
+    """
+    Retrieve a company by its username.
+
+    Args:
+        username (str): The username of the company to retrieve.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        User: A User object representing the retrieved company.
+
+    Raises:
+        ApplicationError: If no company with the given username is found.
+    """
+    company = _get_by_username(username=username, db=db)
+    if company is None:
+        logger.error(f"Company with username {username} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Company with username {username} not found",
+        )
+    logger.info(f"Retrieved company with username {username}")
+
+    return User(id=company.id, username=company.username, password=company.password)
 
 
 def create(
