@@ -14,11 +14,11 @@ from app.schemas.professional import (
     ProfessionalRequestBody,
     ProfessionalResponse,
     ProfessionalUpdate,
+    ProfessionalUpdateRequestBody,
 )
 from app.schemas.user import User
 from app.services import city_service
-from app.services.utils.validators import unique_username, unique_email
-from app.utils.password_utils import hash_password
+from app.services.utils.validators import unique_email, unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
@@ -27,6 +27,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.skill.skill import Skill
+from app.utils.password_utils import hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +158,7 @@ def _create(
 
 def update(
     professional_id: UUID,
-    professional_request: ProfessionalRequestBody,
-    private_matches: PrivateMatches,
+    professional_request: ProfessionalUpdateRequestBody,
     db: Session,
     # photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
@@ -167,8 +167,7 @@ def update(
 
     Args:
         professional_id (UUID): The identifier of the professional.
-        professional_update (ProfessionalRequestBody): Pydantic schema for collecting data.
-        professional_status (ProfessionalStatus): The status of the Professional.
+        professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
 
@@ -184,15 +183,8 @@ def update(
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
 
-    professional_update = professional_request.professional
-    professional_status = professional_request.status
-
     professional = _update_atributes(
-        professional_update=professional_update,
-        professional=professional,
-        db=db,
-        professional_status=professional_status,
-        private_matches=private_matches,
+        professional_request=professional_request, professional=professional, db=db
     )
 
     # if photo is not None:
@@ -344,25 +336,25 @@ def _get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
 
 
 def _update_atributes(
-    professional_update: ProfessionalUpdate,
+    professional_request: ProfessionalUpdateRequestBody,
     professional: Professional,
-    private_matches: PrivateMatches,
     db: Session,
-    professional_status: ProfessionalStatus,
 ) -> Professional:
     """
     Updates the attributes of a professional's profile based on the provided ProfessionalUpdate model.
 
     Args:
-        professional_update (ProfessionalUpdate): The updated information for the professional.
+        professional_request (ProfessionalUpdateRequestBody): The updated information for the professional.
         professional (Professional): The existing professional object to be updated.
-        private_matches (PrivateMatches): Indicates if the professional has private matches.
         db (Session): The database session used for querying or interacting with the database.
-        professional_status (ProfessionalStatus): The new professional status to be applied if different.
 
     Returns:
         Professional (Professional): The updated professional object with modified attributes.
     """
+    professional_update = professional_request.professional
+    professional_status = professional_request.status
+    private_matches = professional_request.private_matches
+
     if professional.status != professional_status:
         professional.status = professional_status
         logger.info("Professional status updated successfully")
