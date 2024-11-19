@@ -46,5 +46,8 @@ class Category(Base):
         "JobAd", back_populates="category", uselist=True, collection_class=list
     )
     category_job_applications: Mapped[list["CategoryJobApplication"]] = relationship(
-        "JobApplication", back_populates="category", uselist=True, collection_class=list
+        "CategoryJobApplication",
+        back_populates="category",
+        uselist=True,
+        collection_class=list,
     )
