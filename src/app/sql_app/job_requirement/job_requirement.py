@@ -10,7 +10,7 @@ from app.sql_app.database import Base
 from app.sql_app.job_requirement.skill_level import SkillLevel
 
 if TYPE_CHECKING:
-    from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
+    from app.sql_app import JobAdsRequirement
 
 
 class JobRequirement(Base):
@@ -50,7 +50,7 @@ class JobRequirement(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ad_requirements: Mapped[list["JobAdsRequirement"]] = relationship(
+    job_ads_requirements: Mapped[list["JobAdsRequirement"]] = relationship(
         "JobAdsRequirement",
         back_populates="job_requirement",
         uselist=True,

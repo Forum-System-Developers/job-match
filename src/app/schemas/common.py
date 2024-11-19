@@ -1,5 +1,6 @@
 from typing import Literal
 
+from fastapi import Query
 from pydantic import BaseModel, Field
 
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
@@ -113,35 +114,26 @@ class SearchJobApplication(SearchParams):
     )
 
 
-# TODO Add a Base class for JobAdSearchParams
-class JobAdSearchParams(BaseModel):
+class JobAdSearchParams(SearchParams):
     """
-    JobAdSearchParams defines the parameters for searching job advertisements.
+    JobAdSearchParams is a class that defines the parameters for searching job advertisements.
 
     Attributes:
-        order (Literal["asc", "desc"]): The order of the search results. Default is "desc".
-        order_by (Literal["created_at", "updated_at"]): The field by which to order the search results. Default is "created_at".
-        title (str): The title of the job ad.
-        min_salary (int): Minimum salary.
-        max_salary (int): Maximum salary.
-        company_id (str): The company ID.
-        location_id (str): The location ID.
-        skills (list[str]): List of skills to be included in the search. Default is an empty list.
+        title (str | None): The title of the job ad. Default is None.
+        min_salary (int | None): Minimum salary for the job ad. Default is None.
+        max_salary (int | None): Maximum salary for the job ad. Default is None.
+        company_id (str | None): The company ID associated with the job ad. Default is None.
+        location_id (str | None): The location ID associated with the job ad. Default is None.
         job_ad_status (JobAdStatus): The status of the job ad. Default is JobAdStatus.ACTIVE.
+            - ACTIVE: Represents an active job ad.
+            - ARCHIVED: Represents an archived job ad.
     """
 
-    order: Literal["asc", "desc"] = "desc"
-    order_by: Literal["created_at", "updated_at"] = "created_at"
-    title: str = Field(description="The title of the job ad")
-    min_salary: int = Field(description="Minimum salary")
-    max_salary: int = Field(description="Maximum salary")
-    company_id: str = Field(description="The company ID")
-    location_id: str = Field(description="The location ID")
-    skills: list[str] = Field(
-        examples=[["FastAPI", "Django", "Flask"]],
-        default=[],
-        description="List of skills to be included in the search",
-    )
+    title: str | None = Field(description="The title of the job ad", default=None)
+    min_salary: int | None = Field(description="Minimum salary", default=None)
+    max_salary: int | None = Field(description="Maximum salary", default=None)
+    company_id: str | None = Field(description="The company ID", default=None)
+    location_id: str | None = Field(description="The location ID", default=None)
     job_ad_status: JobAdStatus = Field(
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,

@@ -9,9 +9,7 @@ from app.sql_app.database import Base
 from app.sql_app.job_requirement.skill_level import SkillLevel
 
 if TYPE_CHECKING:
-    from app.sql_app.job_application_skill.job_application_skill import (
-        JobApplicationSkill,
-    )
+    from app.sql_app import JobApplicationSkill
 
 
 class Skill(Base):
@@ -39,8 +37,8 @@ class Skill(Base):
     level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
 
     job_applications: Mapped[list["JobApplicationSkill"]] = relationship(
-        "JobApplicationSkills",
-        back_populates="job_application",
+        "JobApplicationSkill",
+        back_populates="skill",
         uselist=True,
         collection_class=list,
     )

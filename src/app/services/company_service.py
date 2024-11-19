@@ -6,6 +6,7 @@ from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import FilterParams
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.schemas.user import User
 from app.services import city_service
@@ -15,22 +16,23 @@ from app.sql_app.company.company import Company
 logger = logging.getLogger(__name__)
 
 
-def get_all(db: Session, skip: int = 0, limit: int = 50) -> list[CompanyResponse]:
+def get_all(filter_params: FilterParams, db: Session) -> list[CompanyResponse]:
     """
-    Retrieve a list of companies from the database with optional pagination.
+    Retrieve a list of companies from the database based on the provided filter parameters.
 
     Args:
-        db (Session): The database session to use for the query.
-        skip (int, optional): The number of records to skip. Defaults to 0.
-        limit (int, optional): The maximum number of records to return. Defaults to 50.
+        filter_params (FilterParams): The parameters to filter the companies, including offset and limit.
+        db (Session): The database session used to query the companies.
 
     Returns:
-        List[CompanyResponse]: A list of company response models.
+        list[CompanyResponse]: A list of CompanyResponse objects representing the retrieved companies.
     """
-    companies = db.query(Company).offset(skip).limit(limit).all()
+    companies = (
+        db.query(Company).offset(filter_params.offset).limit(filter_params.limit).all()
+    )
     logger.info(f"Retrieved {len(companies)} companies")
 
-    return [CompanyResponse.model_validate(company) for company in companies]
+    return [CompanyResponse.create(company) for company in companies]
 
 
 def get_by_id(id: UUID, db: Session) -> CompanyResponse:
@@ -47,7 +49,7 @@ def get_by_id(id: UUID, db: Session) -> CompanyResponse:
     company = _ensure_company_exists(id=id, db=db)
     logger.info(f"Retrieved company with id {id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -92,6 +94,7 @@ def create(
     """
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
 
+    upload_logo = None
     if logo is not None:
         upload_logo = logo.file.read()
 
@@ -101,7 +104,7 @@ def create(
     db.refresh(company)
     logger.info(f"Created company with id {company.id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def update(
@@ -127,7 +130,7 @@ def update(
     db.refresh(company)
     logger.info(f"Updated company with id {company.id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def _get_by_id(id: UUID, db: Session) -> Company | None:

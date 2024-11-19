@@ -21,8 +21,8 @@ def format_response(data: Union[BaseModel, list[BaseModel]]) -> dict:
         dict: The formatted response data.
     """
     if isinstance(data, list):
-        return {"detail": [item.model_dump() for item in data]}
-    return {"detail": data.model_dump()}
+        return {"detail": [item.model_dump(mode="json") for item in data]}
+    return {"detail": data.model_dump(mode="json")}
 
 
 def process_request(
