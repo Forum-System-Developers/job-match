@@ -9,13 +9,12 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationUpdate,
-    JobSearchStatus,
     JobStatus,
     MatchResponseRequest,
 )
-from app.schemas.user import UserResponse
+from app.schemas.user import User
 from app.services import job_application_service
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_professional, get_current_company
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
@@ -32,7 +31,7 @@ def create(
     ),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
@@ -62,7 +61,7 @@ def update(
     ),
     is_main: bool = Form(description="Set the Job application as main"),
     application_status: JobStatus = Form(description="Status of the Job Application"),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
@@ -88,7 +87,7 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -108,7 +107,6 @@ def get_all(
 @router.get("/{job_application_id}", description="Fetch a Job Application by its ID")
 def get_by_id(
     job_application_id: UUID,
-    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
@@ -129,7 +127,7 @@ def get_by_id(
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _request_match():
@@ -152,7 +150,7 @@ def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest = Form(),
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():
@@ -173,7 +171,7 @@ def handle_match_response(
 @router.get("/{job_application_id}/match-requests", description="View Match requests.")
 def view_match_requests(
     job_application_id: UUID,
-    user: UserResponse = Depends(get_current_user),
+    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():

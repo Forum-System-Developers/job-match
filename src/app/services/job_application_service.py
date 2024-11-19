@@ -19,7 +19,7 @@ from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
-from app.schemas.user import UserResponse
+from app.schemas.user import User
 from app.services import (
     city_service,
     job_ad_service,
@@ -30,14 +30,13 @@ from app.services import (
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 
 
 def create(
-    user: UserResponse,
+    user: User,
     application_create: JobApplicationCreate,
     is_main: bool,
     application_status: JobStatusInput,
@@ -47,7 +46,7 @@ def create(
     Creates an instance of the Job Application model.
 
     Args:
-        user (UserResponse): Current logged in user.
+        user (User): Current logged in user.
         application_create (JobApplicationCreate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
@@ -94,7 +93,7 @@ def create(
 
 def update(
     job_application_id: UUID,
-    user: UserResponse,
+    user: User,
     application_update: JobApplicationUpdate,
     is_main: bool,
     application_status: JobStatusInput,
@@ -105,7 +104,7 @@ def update(
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
-        user (UserResponse): Current logged in user.
+        user (User): Current logged in user.
         application_update (JobApplicationUpdate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.

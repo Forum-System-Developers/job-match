@@ -19,7 +19,7 @@ class Skill(Base):
     Represents a skill
     Attributes:
         id (UUID): The unique identifier of the Skill.
-        skill (str): Represents the skill title.
+        name (str): Represents the skill title.
         level (SkillLevel): Represents the level of proficiency the Professional has indicated for this skill.
 
     Relationships:
