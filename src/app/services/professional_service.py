@@ -78,7 +78,22 @@ def _register_professional(
     professional_status: ProfessionalStatus,
     city_id: UUID,
     db: Session,
-):
+) -> Professional:
+    """
+    Handles a unique username check and password hashing from user data.
+
+    Args:
+        professional_create (ProfessionalCreate): DTO for Professional creation.
+        professional_status (ProfessionalStatus): The status of the Professional.
+        city_id (UUID): The identifier of the city.
+        db (Session): Database dependency.
+
+    Raises:
+        ApplicationError: If the username already exists in either Company of Professional tables.
+
+    Returns:
+        Professional: The newly created Professional model.
+    """
     username = professional_create.username
     password = professional_create.password
 
@@ -107,6 +122,19 @@ def _create(
     hashed_password: str,
     db: Session,
 ) -> Professional:
+    """
+    Handle creation of a Professional entity.
+
+    Args:
+        professional_create (ProfessionalCreate): Pydantic DTO for collecting data.
+        city_id (UUID): The identifier of the city.
+        professional_status (ProfessionalStatus): The status of the Professional upon creation.
+        hashed_password (str): Hashed password of the user for insertion into the database.
+        db (Session): Database dependency.
+
+    Returns:
+        Professional: Newly created entity.
+    """
     professional = Professional(
         **professional_create.model_dump(exclude={"city", "password"}),
         # photo=upload_photo,
