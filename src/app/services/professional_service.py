@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_application import JobApplicationResponse
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
     ProfessionalResponse,
     ProfessionalUpdate,
 )
-from app.schemas.user import UserResponse, User
+from app.schemas.user import User, UserResponse
 from app.services import city_service
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
@@ -255,7 +256,7 @@ def _update_atributes(
         professional_status (ProfessionalStatus): The new professional status to be applied if different.
 
     Returns:
-        Professional: The updated professional object with modified attributes.
+        Professional (Professional): The updated professional object with modified attributes.
     """
     if professional.status != professional_status:
         professional.status = professional_status
@@ -303,8 +304,12 @@ def get_by_username(username: str, db: Session) -> User:
         username (str): The username of the Professional
         db (Session): Database dependency
 
+    Raises:
+        ApplicationError: When username does not exist.
+
     Returns:
-        User: Pydantic DTO containing User information.
+        User (User): Pydantic DTO containing User information.
+
     """
 
     professional = (
@@ -321,3 +326,32 @@ def get_by_username(username: str, db: Session) -> User:
         username=professional.username,
         password=professional.password,
     )
+
+
+def get_applications(
+    professional_id: UUID, db: Session
+) -> list[JobApplicationResponse]:
+    """
+    Get a list of all JobApplications for a Professional with the given ID.
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        list[JobApplicationResponse]: List of Job Applications Pydantic models.
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+
+    applications = (
+        db.query(JobApplication)
+        .filter(JobApplication.professional_id == professional_id)
+        .all()
+    )
+
+    return [
+        JobApplicationResponse.create(
+            professional=professional, job_application=application
+        )
+        for application in applications
+    ]
