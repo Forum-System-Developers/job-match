@@ -160,7 +160,7 @@ def verify_token(token: str, db: Session) -> dict:
             detail="Could not verify token", status_code=status.HTTP_401_UNAUTHORIZED
         )
 
-    if payload.get("role") == "company":
+    if payload.get("role") == UserRole.COMPANY:
         company = company_service.get_by_id(id=UUID(payload.get("sub")), db=db)
         if not company:
             logger.error(f"Company {payload.get('sub')} not found")
@@ -168,7 +168,7 @@ def verify_token(token: str, db: Session) -> dict:
                 detail="Company not found",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
-    elif payload.get("role") == "professional":
+    elif payload.get("role") == UserRole.PROFESSIONAL:
         professional = professional_service.get_by_id(
             professional_id=UUID(payload.get("sub")), db=db
         )
