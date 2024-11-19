@@ -57,7 +57,7 @@ class Company(Base):
     address_line: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone_number: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
-    logo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    logo: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
     active_job_count: Mapped[int] = mapped_column(Integer, nullable=True)
     successfull_matches_count: Mapped[int] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
