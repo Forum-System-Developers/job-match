@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.common import FilterParams, SearchParams
+from app.schemas.common import FilterParams, JobAdSearchParams
+from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services import job_ad_service
+from app.services.auth_service import get_current_company
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
@@ -19,7 +21,7 @@ router = APIRouter()
 )
 def get_all_job_ads(
     filter_params: FilterParams = Depends(),
-    search_params: SearchParams = Depends(),
+    search_params: JobAdSearchParams = Depends(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all_job_ads():
@@ -54,7 +56,9 @@ def get_job_ad_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
     description="Create a new job advertisement.",
 )
 def create_job_ad(
-    job_ad_data: JobAdCreate, db: Session = Depends(get_db)
+    job_ad_data: JobAdCreate,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_job_ad():
         return job_ad_service.create(job_ad_data=job_ad_data, db=db)
@@ -71,7 +75,10 @@ def create_job_ad(
     description="Update a job advertisement by its unique identifier.",
 )
 def update_job_ad(
-    id: UUID, job_ad_data: JobAdUpdate, db: Session = Depends(get_db)
+    id: UUID,
+    job_ad_data: JobAdUpdate,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_job_ad():
         return job_ad_service.update(id=id, job_ad_data=job_ad_data, db=db)
@@ -88,12 +95,14 @@ def update_job_ad(
     description="Add new job requirements to a job advertisement.",
 )
 def add_job_ad_requirement(
-    id: UUID, requirement_id: UUID, db: Session = Depends(get_db)
+    id: UUID,
+    requirement_id: UUID,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _add_job_ad_requirements():
-        # TODO Add Company ID when authentication is implemented
         return job_ad_service.add_requirement(
-            job_ad_id=id, requirement_id=requirement_id, company_id=None, db=db
+            job_ad_id=id, requirement_id=requirement_id, company_id=company.id, db=db
         )
 
     return process_request(
@@ -108,7 +117,9 @@ def add_job_ad_requirement(
     description="Retrieve all match requests for a job advertisement.",
 )
 def get_job_ad_match_requests(
-    job_ad_id: UUID, db: Session = Depends(get_db)
+    job_ad_id: UUID,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
         return job_ad_service.get_match_requests(id=job_ad_id, db=db)
@@ -125,7 +136,10 @@ def get_job_ad_match_requests(
     description="Accept a match request for a job advertisement.",
 )
 def accept_job_ad_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _accept_job_ad_request():
         return job_ad_service.accept_match_request(
@@ -144,7 +158,10 @@ def accept_job_ad_match_request(
     description="Send a match request to a job advertisement.",
 )
 def send_job_ad_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _send_job_ad_request():
         return job_ad_service.send_match_request(

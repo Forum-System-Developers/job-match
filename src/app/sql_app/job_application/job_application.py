@@ -6,6 +6,9 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, fun
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.sql_app.category_job_application.category_job_application import (
+    CategoryJobApplication,
+)
 from app.sql_app.database import Base
 from app.sql_app.job_application.job_application_status import JobStatus
 
@@ -74,12 +77,12 @@ class JobApplication(Base):
     professional: Mapped["Professional"] = relationship(
         "Professional", back_populates="job_applications"
     )
-    categories: Mapped["Category"] = relationship(
-        "CategoryJobApplication", back_populates="job_applications"
+    category_job_applications: Mapped["CategoryJobApplication"] = relationship(
+        "CategoryJobApplication", back_populates="job_application"
     )
     skills: Mapped[set["JobApplicationSkill"]] = relationship(
         "JobApplicationSkill",
-        back_populates="skill",
+        back_populates="job_application",
         uselist=True,
         collection_class=set,
     )

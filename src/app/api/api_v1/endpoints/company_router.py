@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.schemas.company import CompanyCreate, CompanyUpdate
+from app.schemas.common import FilterParams
+from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services import company_service
+from app.services.auth_service import get_current_company
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
@@ -17,10 +19,10 @@ router = APIRouter()
     description="Retrieve all companies.",
 )
 def get_all_companies(
-    skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+    filter_params: FilterParams = Depends(), db: Session = Depends(get_db)
 ) -> JSONResponse:
     def _get_all_companies():
-        return company_service.get_all(db=db, skip=skip, limit=limit)
+        return company_service.get_all(db=db, filter_params=filter_params)
 
     return process_request(
         get_entities_fn=_get_all_companies,
@@ -68,7 +70,10 @@ def create_company(
     description="Update a company by its unique identifier.",
 )
 def update_company(
-    id: UUID, company_data: CompanyUpdate, db: Session = Depends(get_db)
+    id: UUID,
+    company_data: CompanyUpdate,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_company():
         return company_service.update(id=id, company_data=company_data, db=db)
@@ -77,24 +82,4 @@ def update_company(
         get_entities_fn=_update_company,
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"Company with id {id} not found",
-    )
-
-
-# TODO: Add token authentication
-@router.post(
-    "/job-ads/{job_ad_id}/job-applications/{job_application_id}/request_match",
-    description="Send a match request to a job application.",
-)
-def send_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
-) -> JSONResponse:
-    def _send_match_request():
-        return company_service.send_match_request(
-            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
-        )
-
-    return process_request(
-        get_entities_fn=_send_match_request,
-        status_code=status.HTTP_200_OK,
-        not_found_err_msg="Match request not sent",
     )
