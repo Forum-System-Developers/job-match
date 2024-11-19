@@ -104,34 +104,55 @@ def add_job_ad_requirement(
 
 
 @router.get(
-    "/{id}/requests",
+    "/{job_ad_id}/match-requests",
     description="Retrieve all match requests for a job advertisement.",
 )
-def get_job_ad_match_requests(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+def get_job_ad_match_requests(
+    job_ad_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
     def _get_job_ad_requests():
-        return job_ad_service.get_match_requests(id=id, db=db)
+        return job_ad_service.get_match_requests(id=job_ad_id, db=db)
 
     return process_request(
         get_entities_fn=_get_job_ad_requests,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"No requests found for job ad with id {id}",
+        not_found_err_msg=f"No requests found for job ad with id {job_ad_id}",
     )
 
 
 @router.patch(
-    "/{id}/requests",
+    "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
     description="Accept a match request for a job advertisement.",
 )
 def accept_job_ad_match_request(
-    id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
 ) -> JSONResponse:
     def _accept_job_ad_request():
         return job_ad_service.accept_match_request(
-            job_ad_id=id, job_application_id=job_application_id, db=db
+            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
         )
 
     return process_request(
         get_entities_fn=_accept_job_ad_request,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Match request not found for job ad with id {id}",
+        not_found_err_msg=f"Match request not found for job ad with id {job_ad_id}",
+    )
+
+
+@router.post(
+    "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
+    description="Send a match request to a job advertisement.",
+)
+def send_job_ad_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
+    def _send_job_ad_request():
+        return job_ad_service.send_match_request(
+            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_send_job_ad_request,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg=f"Match request not sent for job ad with id {job_ad_id}",
     )
