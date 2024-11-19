@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Body, Depends, Form
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -9,7 +9,6 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationUpdate,
-    JobStatus,
     MatchResponseRequest,
 )
 from app.schemas.user import User
@@ -26,11 +25,9 @@ router = APIRouter()
     description="Create a Job Application.",
 )
 def create(
-    application_create: JobApplicationCreate = Form(
+    application_create: JobApplicationCreate = Body(
         description="Job Application creation form"
     ),
-    is_main: bool = Form(description="Set the Job application as main"),
-    application_status: JobStatus = Form(description="Status of the Job Application"),
     user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -38,8 +35,6 @@ def create(
         return job_application_service.create(
             user=user,
             application_create=application_create,
-            is_main=is_main,
-            application_status=application_status,
             db=db,
         )
 
@@ -56,11 +51,9 @@ def create(
 )
 def update(
     job_application_id: UUID,
-    application_update: JobApplicationUpdate = Form(
+    application_update: JobApplicationUpdate = Body(
         description="Job Application update form"
     ),
-    is_main: bool = Form(description="Set the Job application as main"),
-    application_status: JobStatus = Form(description="Status of the Job Application"),
     user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -69,8 +62,6 @@ def update(
             job_application_id=job_application_id,
             user=user,
             application_update=application_update,
-            is_main=is_main,
-            application_status=application_status,
             db=db,
         )
 
@@ -87,7 +78,7 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    user: User = Depends(get_current_company),
+    # user: User = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -127,7 +118,7 @@ def get_by_id(
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
-    user: User = Depends(get_current_professional),
+    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _request_match():
@@ -150,7 +141,7 @@ def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest = Form(),
-    user: User = Depends(get_current_professional),
+    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():
@@ -172,7 +163,7 @@ def handle_match_response(
 def view_match_requests(
     job_application_id: UUID,
     filter_params: FilterParams = Depends(),
-    user: User = Depends(get_current_professional),
+    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():

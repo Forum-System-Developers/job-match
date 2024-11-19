@@ -13,7 +13,7 @@ from app.sql_app.database import Base
 from app.sql_app.job_application.job_application_status import JobStatus
 
 if TYPE_CHECKING:
-    from app.sql_app import Category, City, JobApplicationSkill, Match, Professional
+    from app.sql_app import City, JobApplicationSkill, Match, Professional
 
 
 class JobApplication(Base):
