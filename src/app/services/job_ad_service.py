@@ -11,6 +11,7 @@ from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
+    ensure_no_match_request,
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
@@ -226,12 +227,51 @@ def accept_match_request(
 
     db.add(match)
     db.commit()
-    db.refresh(match)
     logger.info(
         f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
     return MessageResponse(message="Match request accepted")
+
+
+def send_match_request(
+    job_ad_id: UUID, job_application_id: UUID, db: Session
+) -> MessageResponse:
+    """
+    Sends a match request from a job advertisement to a job application.
+
+    This function ensures that the provided job advertisement ID and job application ID
+    are valid, and that there is no existing match request between them. It then creates
+    a new match request between the job advertisement and job application, commits the
+    changes to the database, and logs the operation.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        MessageResponse: The response indicating successful match request.
+    """
+    ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    ensure_valid_job_application_id(id=job_application_id, db=db)
+    ensure_no_match_request(
+        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+    )
+
+    match = Match(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        status=MatchStatus.REQUESTED,
+    )
+
+    db.add(match)
+    db.commit()
+    logger.info(
+        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return MessageResponse(message="Match request sent")
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
