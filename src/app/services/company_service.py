@@ -94,6 +94,7 @@ def create(
     """
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
 
+    upload_logo = None
     if logo is not None:
         upload_logo = logo.file.read()
 
@@ -103,7 +104,7 @@ def create(
     db.refresh(company)
     logger.info(f"Created company with id {company.id}")
 
-    return CompanyResponse.model_validate(company)
+    return CompanyResponse.create(company)
 
 
 def update(
