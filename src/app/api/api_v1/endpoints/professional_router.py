@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
+from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
@@ -88,7 +89,10 @@ def get_all(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
-        return professional_service.get_all(db=db, filter_params=filter_params)
+        return professional_service.get_all(
+            db=db,
+            filter_params=filter_params,
+        )
 
     return process_request(
         get_entities_fn=_get_all,
@@ -123,11 +127,18 @@ def get_by_id(
 def get_applications(
     professional_id: UUID,
     user: UserResponse = Depends(get_current_user),
+    application_status: JobSearchStatus = Form(
+        description="Status of the Job Application"
+    ),
+    filter_params: FilterParams = Depends(),
     db: Session = Depends(get_db),
 ):
     def _get_applications():
         return professional_service.get_applications(
-            professional_id=professional_id, db=db
+            professional_id=professional_id,
+            application_status=application_status,
+            filter_params=filter_params,
+            db=db,
         )
 
     return process_request(

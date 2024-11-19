@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.query import RowReturningQuery
+from sqlalchemy.orm.query import RowReturningQuery, Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
@@ -140,7 +140,6 @@ def update(
 def get_all(
     filter_params: FilterParams,
     db: Session,
-    status: JobSearchStatus,
     search_params: SearchParams,
 ) -> list[JobApplicationResponse]:
     """
@@ -154,10 +153,9 @@ def get_all(
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
-    if status == JobSearchStatus.ACTIVE:
-        query = _get_for_status(db=db, job_status=JobSearchStatus.ACTIVE)
-    else:
-        query = _get_for_status(db=db, job_status=JobSearchStatus.MATCHED)
+    query: Query = db.query(JobApplication).filter(
+        JobApplication.status == JobSearchStatus.ACTIVE
+    )
 
     if search_params.skills:
         query.join(JobApplicationSkill).join(Skill).filter(
@@ -207,29 +205,6 @@ def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
     return JobApplicationResponse.create(
         professional=job_application.professional, job_application=job_application
     )
-
-
-def _get_for_status(db: Session, job_status: JobSearchStatus) -> RowReturningQuery:
-    """
-    Retrieve all Job Applications with indicated status.
-
-    Args:
-        db (Session): The database session.
-        job_status (JobSearchStatus): Status of the Job Application; can be ACTIVE or MATCHED.
-    Returns:
-        RowReturningQuery: Object containinig a tuple of JobApplication and Professional objects.
-    """
-    query: RowReturningQuery = (
-        db.query(JobApplication, Professional)
-        .join(Professional, JobApplication.professional_id == Professional.id)
-        .filter(JobApplication.status == job_status)
-    )
-
-    logger.info(
-        f"Retreived all Job Applications that are with status {job_status.value}"
-    )
-
-    return query
 
 
 def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:

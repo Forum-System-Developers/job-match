@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
-from app.schemas.job_application import JobApplicationResponse
+from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
@@ -329,7 +329,10 @@ def get_by_username(username: str, db: Session) -> User:
 
 
 def get_applications(
-    professional_id: UUID, db: Session
+    professional_id: UUID,
+    db: Session,
+    application_status: JobSearchStatus,
+    filter_params: FilterParams,
 ) -> list[JobApplicationResponse]:
     """
     Get a list of all JobApplications for a Professional with the given ID.
@@ -345,7 +348,12 @@ def get_applications(
 
     applications = (
         db.query(JobApplication)
-        .filter(JobApplication.professional_id == professional_id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == application_status.value,
+        )
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
         .all()
     )
 

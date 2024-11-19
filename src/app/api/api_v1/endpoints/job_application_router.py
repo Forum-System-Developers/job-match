@@ -88,9 +88,6 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    application_status: JobSearchStatus = Form(
-        description="Status of the Job Application"
-    ),
     user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -98,7 +95,6 @@ def get_all(
         return job_application_service.get_all(
             filter_params=filter_params,
             db=db,
-            status=application_status,
             search_params=search_params,
         )
 
