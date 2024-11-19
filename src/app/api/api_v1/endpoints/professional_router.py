@@ -9,10 +9,10 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
+    ProfessionalResponse,
     ProfessionalUpdate,
     ProfessionalRequestBody,
 )
-from app.schemas.user import User
 from app.services import professional_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
@@ -28,13 +28,13 @@ router = APIRouter()
 )
 def create(
     professional: ProfessionalRequestBody = Body(media_type="application/json"),
-    photo: UploadFile | None = File(default=None),
+    # photo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
             professional_request=professional,
-            photo=photo,
+            # photo=photo,
             db=db,
         )
 
@@ -55,7 +55,7 @@ def update(
     private_matches: PrivateMatches = Form(),
     professional_status: ProfessionalStatus = Form(),
     photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_professional),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
@@ -82,7 +82,7 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     seacrh_params: SearchParams = Depends(),
-    user: User = Depends(get_current_company),
+    user: ProfessionalResponse = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -103,7 +103,7 @@ def get_all(
 )
 def get_by_id(
     professional_id: UUID,
-    user: User = Depends(get_current_professional),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
@@ -123,7 +123,7 @@ def get_by_id(
 def get_applications(
     professional_id: UUID,
     filter_params: FilterParams = Depends(),
-    user: User = Depends(get_current_professional),
+    user: ProfessionalResponse = Depends(get_current_professional),
     application_status: JobSearchStatus = Form(
         description="Status of the Job Application"
     ),

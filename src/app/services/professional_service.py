@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 def create(
     professional_request: ProfessionalRequestBody,
     db: Session,
-    photo: UploadFile | None = None,
+    # photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
     """
     Creates an instance of the Professional model.
@@ -57,12 +57,12 @@ def create(
         )
     logger.info(f"City {city} fetched")
 
-    if photo is not None:
-        upload_photo = photo.file.read()
+    # if photo is not None:
+    #     upload_photo = photo.file.read()
 
     professional = Professional(
         **professional_create.model_dump(exclude={"city"}),
-        photo=upload_photo,
+        # photo=upload_photo,
         city_id=city.id,
         status=professional_status,
     )
