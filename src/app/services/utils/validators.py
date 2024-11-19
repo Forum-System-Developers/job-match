@@ -102,20 +102,19 @@ def ensure_valid_company_id(id: UUID, db: Session) -> Company:
 
 def ensure_no_match_request(
     job_ad_id: UUID, job_application_id: UUID, db: Session
-) -> Match | None:
+) -> None:
     """
-    Ensures that there is no existing match request between a job advertisement and a job application.
+    Ensures that there is no existing match request between the given job advertisement
+    and job application in the database.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
         db (Session): The database session used to query the Match table.
 
-    Returns:
-        Match: The existing match if found, otherwise None.
-
     Raises:
-        ApplicationError: If a match request already exists between the job advertisement and the job application.
+        ApplicationError: If a match request already exists between the given job advertisement
+                          and job application, an ApplicationError is raised with a 400 status code.
     """
     match = (
         db.query(Match)
@@ -127,7 +126,7 @@ def ensure_no_match_request(
         )
         .first()
     )
-    if match is not None and match.status == MatchStatus.REQUESTED:
+    if match is not None:
         logger.error(
             f"Match request already exists between job ad {job_ad_id} and job application {job_application_id}"
         )
@@ -135,7 +134,6 @@ def ensure_no_match_request(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Match request already exists",
         )
-    return match
 
 
 def ensure_valid_match_request(
