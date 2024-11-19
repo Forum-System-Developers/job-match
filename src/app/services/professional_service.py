@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 def create(
-    user: User,
     professional_create: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     db: Session,
@@ -39,14 +38,13 @@ def create(
     Creates an instance of the Professional model.
 
     Args:
-        user (User): Current logged in user.
         professional_create (ProfessionalCreate): Pydantic schema for collecting data.
         professional_status (ProfessionalStatus): The status of the Professional.
         db (Session): Database dependency.
         photo (UploadFile | None): Photo of the professional.
 
     Returns:
-        Professional: Professional Pydantic response model.
+        Professional: Pydantic response model for Professional.
     """
     city = city_service.get_by_name(city_name=professional_create.city, db=db)
     if city is None:

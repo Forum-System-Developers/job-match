@@ -30,12 +30,10 @@ def create(
     professional: ProfessionalCreate,
     professional_status: ProfessionalStatus,
     photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
-            user=user,
             professional=professional,
             professional_status=professional_status,
             db=db,
