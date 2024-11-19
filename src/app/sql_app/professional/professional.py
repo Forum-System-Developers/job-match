@@ -10,8 +10,7 @@ from app.sql_app.database import Base
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
 if TYPE_CHECKING:
-    from app.sql_app.city.city import City
-    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app import City, JobApplication
 
 
 class Professional(Base):

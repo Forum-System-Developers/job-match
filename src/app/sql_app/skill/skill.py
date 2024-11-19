@@ -9,9 +9,7 @@ from app.sql_app.database import Base
 from app.sql_app.job_requirement.skill_level import SkillLevel
 
 if TYPE_CHECKING:
-    from app.sql_app.job_application_skill.job_application_skill import (
-        JobApplicationSkill,
-    )
+    from app.sql_app import JobApplicationSkill
 
 
 class Skill(Base):

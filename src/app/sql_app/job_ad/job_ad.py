@@ -10,11 +10,7 @@ from app.sql_app.database import Base
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 
 if TYPE_CHECKING:
-    from app.sql_app.category.category import Category
-    from app.sql_app.city.city import City
-    from app.sql_app.company.company import Company
-    from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
-    from app.sql_app.match.match import Match
+    from app.sql_app import Category, City, Company, JobAdsRequirement, Match
 
 
 class JobAd(Base):

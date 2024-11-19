@@ -8,8 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.sql_app.database import Base
 
 if TYPE_CHECKING:
-    from app.sql_app.category.category import Category
-    from app.sql_app.job_application.job_application import JobApplication
+    from app.sql_app import Category, JobApplication
 
 
 class CategoryJobApplication(Base):
