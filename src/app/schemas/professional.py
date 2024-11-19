@@ -5,9 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
+from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.schemas.job_ad import BaseJobAd
 from app.sql_app.professional.professional import Professional
-from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
 class PrivateMatches(Enum):
@@ -46,7 +46,7 @@ class ProfessionalCreate(ProfessionalBase):
     @field_validator("password")
     def _validate_password(cls, value: str) -> str:
         if not re.match(
-            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\\|;:\'",.<>/?])$',
+            r"^(?=.*\d)(?=.*[!@#$%^&*()\-_=+\\|;:'\",.<>/?]).{8,}$",
             value,
         ):
             raise ValueError(
@@ -106,3 +106,8 @@ class ProfessionalResponse(ProfessionalBase):
             active_application_count=professional.active_application_count,
             matched_ads=matched_ads,
         )
+
+
+class ProfessionalRequestBody(BaseModel):
+    professional: ProfessionalCreate
+    status: ProfessionalStatus

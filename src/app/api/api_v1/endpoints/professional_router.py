@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -9,10 +9,10 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
-    ProfessionalCreate,
+    ProfessionalResponse,
     ProfessionalUpdate,
+    ProfessionalRequestBody,
 )
-from app.schemas.user import User
 from app.services import professional_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
@@ -27,19 +27,15 @@ router = APIRouter()
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalCreate,
-    professional_status: ProfessionalStatus,
-    photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_professional),
+    professional: ProfessionalRequestBody = Body(),
+    # photo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
-            user=user,
-            professional=professional,
-            professional_status=professional_status,
+            professional_request=professional,
+            # photo=photo,
             db=db,
-            photo=photo,
         )
 
     return process_request(
@@ -55,21 +51,19 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalUpdate,
+    professional: ProfessionalRequestBody = Body(),
     private_matches: PrivateMatches = Form(),
-    professional_status: ProfessionalStatus = Form(),
-    photo: UploadFile | None = File(None),
-    user: User = Depends(get_current_professional),
+    # photo: UploadFile | None = File(None),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
             professional_id=professional_id,
             professional=professional,
-            professional_status=professional_status,
             private_matches=private_matches,
             db=db,
-            photo=photo,
+            # photo=photo,
         )
 
     return process_request(
@@ -86,7 +80,7 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     seacrh_params: SearchParams = Depends(),
-    user: User = Depends(get_current_company),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -107,7 +101,7 @@ def get_all(
 )
 def get_by_id(
     professional_id: UUID,
-    user: User = Depends(get_current_professional),
+    user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
@@ -127,7 +121,7 @@ def get_by_id(
 def get_applications(
     professional_id: UUID,
     filter_params: FilterParams = Depends(),
-    user: User = Depends(get_current_professional),
+    user: ProfessionalResponse = Depends(get_current_professional),
     application_status: JobSearchStatus = Form(
         description="Status of the Job Application"
     ),
