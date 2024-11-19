@@ -126,11 +126,11 @@ def get_by_id(
 )
 def get_applications(
     professional_id: UUID,
+    filter_params: FilterParams = Depends(),
     user: User = Depends(get_current_professional),
     application_status: JobSearchStatus = Form(
         description="Status of the Job Application"
     ),
-    filter_params: FilterParams = Depends(),
     db: Session = Depends(get_db),
 ):
     def _get_applications():
