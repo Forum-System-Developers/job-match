@@ -10,9 +10,11 @@ from app.schemas.address import CityResponse
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import (
-    JobAplicationBase,
+    JobApplicationCreate,
     JobApplicationResponse,
+    JobApplicationUpdate,
     JobSearchStatus,
+    MatchResponseRequest,
 )
 from app.schemas.job_application import JobStatus as JobStatusInput
 from app.schemas.professional import ProfessionalResponse
@@ -25,7 +27,6 @@ from app.services import (
     professional_service,
     skill_service,
 )
-from app.sql_app.city.city import City
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 def create(
     user: UserResponse,
-    application_create: JobAplicationBase,
+    application_create: JobApplicationCreate,
     is_main: bool,
     application_status: JobStatusInput,
     db: Session,
@@ -47,7 +48,7 @@ def create(
 
     Args:
         user (UserResponse): Current logged in user.
-        application_create (ProfessionalBase): Pydantic schema for collecting data.
+        application_create (JobApplicationCreate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
@@ -94,7 +95,7 @@ def create(
 def update(
     job_application_id: UUID,
     user: UserResponse,
-    application_update: JobAplicationBase,
+    application_update: JobApplicationUpdate,
     is_main: bool,
     application_status: JobStatusInput,
     db: Session,
@@ -105,7 +106,7 @@ def update(
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         user (UserResponse): Current logged in user.
-        application_update (ProfessionalBase): Pydantic schema for collecting data.
+        application_update (JobApplicationUpdate): Pydantic schema for collecting data.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
         db (Session): Database dependency.
@@ -260,7 +261,7 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
 
 
 def _update_attributes(
-    application_update: JobAplicationBase,
+    application_update: JobApplicationUpdate,
     job_application_model: JobApplication,
     is_main: bool,
     application_status: JobStatusInput,
@@ -272,7 +273,7 @@ def _update_attributes(
 
     Args:
 
-        application_update (JobAplicationBase): Pydantic schema for collecting data.
+        application_update (JobAplicationUpdate): Pydantic schema for collecting data.
         job_application_model (JobApplication): The Job Application to be updated.
         is_main (bool): Statement representing is the User wants to set this Application as their Main application.
         application_status (JobStatusInput): The status of the Job Application - can be ACTIVE, HIDDEN or PRIVATE.
@@ -306,7 +307,10 @@ def _update_attributes(
         job_application_model.status = JobStatus(application_status.value)
         logger.info(f"Job Application id {job_application_model.id} status updated")
 
-    if application_update.city != job_application_model.city.name:
+    if (
+        application_update.city is not None
+        and application_update.city != job_application_model.city.name
+    ):
         city: CityResponse = city_service.get_by_name(
             city_name=application_update.city, db=db
         )
@@ -384,7 +388,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
-    accept_request: bool,
+    accept_request: MatchResponseRequest,
     db: Session,
 ):
     """
@@ -393,7 +397,7 @@ def handle_match_response(
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
-        accept_request (bool): Accept or reject Match request.
+        accept_request (MatchResponseRequest): Accept or reject Match request.
         db (Session): Database dependency.
 
     Returns:

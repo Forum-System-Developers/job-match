@@ -65,7 +65,6 @@ class JobAplicationBase(BaseModel):
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
     skills: list[SkillBase] = Field(default_factory=list)
-    city: str | None = Field(examples=["Sofia"], default=None)
 
     @model_validator(mode="before")
     def validate_salary_range(cls, values):
@@ -77,6 +76,14 @@ class JobAplicationBase(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class JobApplicationCreate(JobAplicationBase):
+    city: str = Field(examples=["Sofia"])
+
+
+class JobApplicationUpdate(JobAplicationBase):
+    city: str | None = Field(examples=["Sofia"], default=None)
 
 
 class JobApplicationResponse(JobAplicationBase):

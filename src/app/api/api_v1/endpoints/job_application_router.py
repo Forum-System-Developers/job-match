@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import (
-    JobAplicationBase,
+    JobApplicationCreate,
+    JobApplicationUpdate,
     JobSearchStatus,
     JobStatus,
     MatchResponseRequest,
@@ -26,7 +27,7 @@ router = APIRouter()
     description="Create a Job Application.",
 )
 def create(
-    application_create: JobAplicationBase = Form(
+    application_create: JobApplicationCreate = Form(
         description="Job Application creation form"
     ),
     is_main: bool = Form(description="Set the Job application as main"),
@@ -56,7 +57,7 @@ def create(
 )
 def update(
     job_application_id: UUID,
-    application_update: JobAplicationBase = Form(
+    application_update: JobApplicationUpdate = Form(
         description="Job Application update form"
     ),
     is_main: bool = Form(description="Set the Job application as main"),
