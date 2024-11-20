@@ -4,26 +4,26 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy import and_, asc, desc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Query, Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
+from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
-    ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
     ensure_valid_location,
     ensure_valid_match_request,
     ensure_valid_requirement_id,
 )
+from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
 from app.sql_app.job_application.job_application_status import JobStatus
-from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 
@@ -45,11 +45,13 @@ def get_all(
         list[JobAdResponse]: The list of job advertisements.
     """
     job_ads = _search_job_ads(search_params=search_params, db=db)
-    job_ads = (
-        db.query(JobAd).offset(filter_params.offset).limit(filter_params.limit).all()
-    )
-
-    logger.info(f"Retrieved {len(job_ads)} job ads")
+    job_ads = job_ads.offset(filter_params.offset).limit(filter_params.limit)
+    job_ads_list = job_ads.options(
+        joinedload(JobAd.job_ads_requirements).joinedload(
+            JobAdsRequirement.job_requirement
+        )
+    ).all()
+    logger.info(f"Retrieved {len(job_ads_list)} job ads")
 
     return [JobAdResponse.create(job_ad) for job_ad in job_ads]
 
@@ -71,7 +73,9 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     return JobAdResponse.create(job_ad)
 
 
-def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
+def create(
+    company: CompanyResponse, job_ad_data: JobAdCreate, db: Session
+) -> JobAdResponse:
     """
     Create a new job advertisement.
 
@@ -85,8 +89,11 @@ def create(job_ad_data: JobAdCreate, db: Session) -> JobAdResponse:
     Raises:
         ApplicationError: If the company or city is not found.
     """
-    ensure_valid_company_id(id=job_ad_data.company_id, db=db)
+    company_entity = db.query(Company).filter(Company.id == company.id).first()
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
+
+    if company_entity is not None:
+        company_entity.job_ads.append(job_ad)
 
     db.add(job_ad)
     db.commit()
@@ -117,9 +124,9 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
     if any(value is None for value in vars(job_ad_data).values()):
         job_ad.updated_at = datetime.now(timezone.utc)
 
-        db.commit()
-        db.refresh(job_ad)
-        logger.info(f"Job ad with id: {id} updated.")
+    db.commit()
+    db.refresh(job_ad)
+    logger.info(f"Job ad with id: {id} updated.")
 
     return JobAdResponse.create(job_ad)
 
@@ -315,7 +322,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
     return job_ad
 
 
-def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd]:
+def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobAd]:
     """
     Searches for job advertisements based on the provided search parameters.
     Args:
@@ -374,4 +381,4 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> list[JobAd
                 f"Ordering job ads by {search_params.order_by} in descending order"
             )
 
-    return job_ads.all()
+    return job_ads
