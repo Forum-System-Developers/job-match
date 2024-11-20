@@ -2,6 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import status
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
@@ -14,22 +15,16 @@ from app.schemas.job_application import (
     JobApplicationResponse,
     JobApplicationUpdate,
     JobSearchStatus,
+    MatchResponseRequest,
 )
-from app.schemas.job_application import JobStatus as JobStatusInput
-from app.schemas.job_application import MatchResponseRequest
-from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase
 from app.schemas.user import User
-from app.services import (
-    city_service,
-    job_ad_service,
-    match_service,
-    professional_service,
-    skill_service,
-)
+from app.services import city_service, job_ad_service, match_service, skill_service
+from app.services.utils.validators import ensure_valid_professional_id
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
+from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
@@ -51,7 +46,7 @@ def create(
     Returns:
         JobApplicationResponse: JobApplication Pydantic response model.
     """
-    professional: ProfessionalResponse = professional_service.get_by_id(
+    professional: Professional = ensure_valid_professional_id(
         professional_id=user.id, db=db
     )
 
@@ -59,20 +54,12 @@ def create(
         city_name=application_create.city, db=db
     )
 
-    professional.active_application_count += 1
-
-    job_application: JobApplication = JobApplication(
-        **application_create.model_dump(exclude={"city"}),
-        is_main=application_create.is_main,
-        status=JobStatus(application_create.application_status.value),
+    job_application = _create(
+        professional=professional,
+        application_create=application_create,
         city_id=city.id,
-        professional_id=professional.id,
+        db=db,
     )
-    logger.info(f"Job Application with id {job_application.id} created")
-
-    db.add(job_application)
-    db.commit()
-    db.refresh(job_application)
 
     if application_create.skills:
         _update_skillset(
@@ -108,7 +95,7 @@ def update(
     job_application: JobApplication = _get_by_id(
         job_application_id=job_application_id, db=db
     )
-    professional: ProfessionalResponse = professional_service.get_by_id(
+    professional: Professional = ensure_valid_professional_id(
         professional_id=user.id, db=db
     )
 
@@ -241,11 +228,15 @@ def _update_attributes(
     is_main = application_update.is_main
     application_status = application_update.application_status
 
-    if job_application_model.min_salary != application_update.min_salary:
+    if (
+        job_application_model.min_salary is not None
+    ) and job_application_model.min_salary != application_update.min_salary:
         job_application_model.min_salary = application_update.min_salary
         logger.info(f"Job Application id {job_application_model.id} min_salary updated")
 
-    if job_application_model.max_salary != application_update.max_salary:
+    if (
+        job_application_model.max_salary is not None
+    ) and job_application_model.max_salary != application_update.max_salary:
         job_application_model.max_salary = application_update.max_salary
         logger.info(f"Job Application id {job_application_model.id} max_salary updated")
 
@@ -267,8 +258,7 @@ def _update_attributes(
 
     if (
         application_update.city is not None
-        and application_update.city != job_application_model.city.name
-    ):
+    ) and application_update.city != job_application_model.city.name:
         city: CityResponse = city_service.get_by_name(
             city_name=application_update.city, db=db
         )
@@ -289,7 +279,21 @@ def _update_attributes(
             db=db, job_application_model=job_application_model, skills=new_skills
         )
 
-    return job_application_model
+    try:
+        db.commit()
+        db.refresh(job_application_model)
+        logger.info(
+            f"Job application with id {job_application_model.id} updated successfully."
+        )
+
+        return job_application_model
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def _update_skillset(
@@ -393,3 +397,53 @@ def view_match_requests(
     return match_service.get_match_requests_for_job_application(
         job_application_id=job_application.id, filter_params=filter_params, db=db
     )
+
+
+def _create(
+    professional: Professional,
+    application_create: JobApplicationCreate,
+    city_id: UUID,
+    db: Session,
+) -> JobApplication:
+    """
+    Creates an instance of the Job Application model.
+
+    Args:
+        professional (Professional): Professional associated with the Job Application.
+        application_create (JobApplicationCreate): DTO for data collection.
+        city_id (UUID): Identifier for the city the Application is associated with.
+        db (Session): Database dependency.
+
+    Returns:
+        JobApplication: The new instance of the Job Aplication model.
+    """
+    try:
+        professional.active_application_count += 1
+
+        job_application: JobApplication = JobApplication(
+            **application_create.model_dump(exclude={"city"}),
+            is_main=application_create.is_main,
+            status=JobStatus(application_create.application_status.value),
+            city_id=city_id,
+            professional_id=professional.id,
+        )
+        logger.info(f"Job Application with id {job_application.id} created")
+
+        db.add(job_application)
+        db.commit()
+        db.refresh(job_application)
+
+        return job_application
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error: {str(e)}")
+        raise ApplicationError(
+            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

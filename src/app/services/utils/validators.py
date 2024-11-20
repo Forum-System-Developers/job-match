@@ -246,3 +246,16 @@ def unique_email(email: str, db: Session) -> bool:
         return False
 
     return True
+
+
+def ensure_valid_professional_id(professional_id: UUID, db: Session) -> Professional:
+    professional = (
+        db.query(Professional).filter(Professional.id == professional_id).first()
+    )
+    if professional is None:
+        raise ApplicationError(
+            detail=f"Professional with id {professional_id} not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    return professional
