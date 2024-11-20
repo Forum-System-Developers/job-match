@@ -7,6 +7,7 @@ from app.api.api_v1.endpoints import (
     company_router,
     job_ad_router,
     job_application_router,
+    job_requirement_router,
     professional_router,
 )
 
@@ -19,8 +20,13 @@ api_router.include_router(
 )
 
 api_router.include_router(
+    job_requirement_router.router, prefix="/job-requirements", tags=["Job Requirements"]
+)
+
+api_router.include_router(
     company_router.router, prefix="/companies", tags=["Companies"]
 )
+
 
 api_router.include_router(
     professional_router.router, prefix="/professionals", tags=["Professionals"]
