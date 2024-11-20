@@ -1,5 +1,8 @@
 from pydantic import condecimal, constr
 
+PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,30}$"
+
+
 Salary = condecimal(gt=0, max_digits=10, decimal_places=2)
 
 Username = constr(
