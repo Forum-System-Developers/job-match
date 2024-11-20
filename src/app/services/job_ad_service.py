@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy import and_, asc, desc
+from sqlalchemy import and_, asc, desc, func
 from sqlalchemy.orm import Query, Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -24,6 +24,7 @@ from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 
@@ -380,7 +381,16 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
             f"Searching for job ads with location_id: {search_params.location_id}"
         )
 
-    # TODO: Add search by skills
+    if search_params.skills:
+        for skill in search_params.skills:
+            job_ads = job_ads.filter(
+                JobAd.job_ads_requirements.any(
+                    JobAdsRequirement.job_requirement.has(
+                        func.lower(JobRequirement.description) == skill.lower()
+                    )
+                )
+            )
+            logger.info(f"Searching for job ads with skill: {skill}")
 
     order_by_column = getattr(JobAd, search_params.order_by, None)
 
