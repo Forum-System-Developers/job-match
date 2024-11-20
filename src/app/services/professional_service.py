@@ -1,7 +1,10 @@
+import io
 import logging
 from uuid import UUID
 
 from fastapi import UploadFile, status
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -9,11 +12,9 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
-    PrivateMatches,
     ProfessionalCreate,
     ProfessionalRequestBody,
     ProfessionalResponse,
-    ProfessionalUpdate,
     ProfessionalUpdateRequestBody,
 )
 from app.schemas.user import User
@@ -35,7 +36,6 @@ logger = logging.getLogger(__name__)
 def create(
     professional_request: ProfessionalRequestBody,
     db: Session,
-    # photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
     """
     Creates an instance of the Professional model.
@@ -60,9 +60,6 @@ def create(
         )
     logger.info(f"City {city} fetched")
 
-    # if photo is not None:
-    #     upload_photo = photo.file.read()
-
     professional = _register_professional(
         professional_create=professional_create,
         professional_status=professional_status,
@@ -74,93 +71,10 @@ def create(
     return ProfessionalResponse.create(professional=professional)
 
 
-def _register_professional(
-    professional_create: ProfessionalCreate,
-    professional_status: ProfessionalStatus,
-    city_id: UUID,
-    db: Session,
-) -> Professional:
-    """
-    Handles a unique username check and password hashing from user data.
-
-    Args:
-        professional_create (ProfessionalCreate): DTO for Professional creation.
-        professional_status (ProfessionalStatus): The status of the Professional.
-        city_id (UUID): The identifier of the city.
-        db (Session): Database dependency.
-
-    Raises:
-        ApplicationError: If the username already exists in either Company of Professional tables.
-
-    Returns:
-        Professional: The newly created Professional model.
-    """
-    username = professional_create.username
-    password = professional_create.password
-    email = professional_create.email
-
-    if not unique_username(username=username, db=db):
-        raise ApplicationError(
-            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
-        )
-    if not unique_email(email=email, db=db):
-        raise ApplicationError(
-            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
-        )
-
-    hashed_password = hash_password(password=password)
-
-    professional = _create(
-        professional_create=professional_create,
-        city_id=city_id,
-        professional_status=professional_status,
-        hashed_password=hashed_password,
-        db=db,
-    )
-
-    return professional
-
-
-def _create(
-    professional_create: ProfessionalCreate,
-    city_id: UUID,
-    professional_status: ProfessionalStatus,
-    hashed_password: str,
-    db: Session,
-) -> Professional:
-    """
-    Handle creation of a Professional entity.
-
-    Args:
-        professional_create (ProfessionalCreate): Pydantic DTO for collecting data.
-        city_id (UUID): The identifier of the city.
-        professional_status (ProfessionalStatus): The status of the Professional upon creation.
-        hashed_password (str): Hashed password of the user for insertion into the database.
-        db (Session): Database dependency.
-
-    Returns:
-        Professional: Newly created entity.
-    """
-    professional = Professional(
-        **professional_create.model_dump(exclude={"city", "password"}),
-        # photo=upload_photo,
-        city_id=city_id,
-        password=hashed_password,
-        status=professional_status,
-    )
-
-    db.add(professional)
-    db.commit()
-    db.refresh(professional)
-
-    return professional
-
-
 def update(
     professional_id: UUID,
     professional_request: ProfessionalUpdateRequestBody,
     db: Session,
-    # photo: UploadFile | None = None,
 ) -> ProfessionalResponse:
     """
     Upates an instance of the Professional model.
@@ -183,14 +97,9 @@ def update(
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
 
-    professional = _update_atributes(
+    professional = _update_attributes(
         professional_request=professional_request, professional=professional, db=db
     )
-
-    # if photo is not None:
-    #     upload_photos = photo.file.read()
-    #     professional.photo = upload_photos
-    #     logger.info("Professional photo updated successfully")
 
     matched_ads = (
         _get_matches(professional_id=professional_id, db=db)
@@ -206,6 +115,59 @@ def update(
         professional=professional,
         matched_ads=matched_ads,
     )
+
+
+def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
+    """
+    Upload Professional photo to the database
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        photo (UploadFile): The upload file.
+        db (Session): Database dependency.
+
+    Returns:
+        dict: Confirmation message.
+    """
+    profesional = _get_by_id(professional_id=professional_id, db=db)
+
+    try:
+        upload_photo = photo.file.read()
+        profesional.photo = upload_photo
+        db.commit()
+        return {"msg": "Photo successfully uploaded"}
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error: {str(e)}")
+        raise ApplicationError(
+            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+def download(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
+    """
+    Fetches the photo of the Professional with the given UUID.
+
+    Args:
+        professional_id (UUID): Identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        bytes | dict:
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    photo = professional.photo
+    if photo is None:
+        return JSONResponse(content={"msg": "No available photo"})
+
+    return StreamingResponse(io.BytesIO(photo), media_type="image/png")
 
 
 def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
@@ -335,7 +297,7 @@ def _get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
     return [BaseJobAd.model_validate(ad) for ad in ads]
 
 
-def _update_atributes(
+def _update_attributes(
     professional_request: ProfessionalUpdateRequestBody,
     professional: Professional,
     db: Session,
@@ -361,36 +323,44 @@ def _update_atributes(
 
     if (
         professional_update.city is not None
-        and professional_update.city != professional.city.name
-    ):
+    ) and professional_update.city != professional.city.name:
         city = city_service.get_by_name(city_name=professional_update.city, db=db)
         professional.city_id = city.id
         logger.info("professional city updated successfully")
 
     if (
         professional_update.description is not None
-        and professional.description != professional_update.description
-    ):
+    ) and professional.description != professional_update.description:
         professional.description = professional_update.description
         logger.info("Professional description updated successfully")
 
     if (
-        professional_update.first_name
-        and professional.first_name != professional_update.first_name
-    ):
+        professional_update.first_name is not None
+    ) and professional.first_name != professional_update.first_name:
         professional.first_name = professional_update.first_name
         logger.info("Professional first name updated successfully")
 
     if (
-        professional_update.last_name
-        and professional.last_name != professional_update.last_name
-    ):
+        professional_update.last_name is not None
+    ) and professional.last_name != professional_update.last_name:
         professional.last_name = professional_update.last_name
         logger.info("Professional last name updated successfully")
 
     professional.has_private_matches = private_matches.value
 
-    return professional
+    try:
+        db.commit()
+        db.refresh(professional)
+        logger.info(f"Professional {professional.id} updated successfully.")
+
+        return professional
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -460,3 +430,96 @@ def get_applications(
         )
         for application in applications
     ]
+
+
+def _register_professional(
+    professional_create: ProfessionalCreate,
+    professional_status: ProfessionalStatus,
+    city_id: UUID,
+    db: Session,
+) -> Professional:
+    """
+    Handles a unique username check and password hashing from user data.
+
+    Args:
+        professional_create (ProfessionalCreate): DTO for Professional creation.
+        professional_status (ProfessionalStatus): The status of the Professional.
+        city_id (UUID): The identifier of the city.
+        db (Session): Database dependency.
+
+    Raises:
+        ApplicationError: If the username already exists in either Company of Professional tables.
+
+    Returns:
+        Professional: The newly created Professional model.
+    """
+    username = professional_create.username
+    password = professional_create.password
+    email = professional_create.email
+
+    if not unique_username(username=username, db=db):
+        raise ApplicationError(
+            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
+        )
+    if not unique_email(email=email, db=db):
+        raise ApplicationError(
+            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
+        )
+
+    hashed_password = hash_password(password=password)
+
+    professional = _create(
+        professional_create=professional_create,
+        city_id=city_id,
+        professional_status=professional_status,
+        hashed_password=hashed_password,
+        db=db,
+    )
+
+    return professional
+
+
+def _create(
+    professional_create: ProfessionalCreate,
+    city_id: UUID,
+    professional_status: ProfessionalStatus,
+    hashed_password: str,
+    db: Session,
+) -> Professional:
+    """
+    Handle creation of a Professional entity.
+
+    Args:
+        professional_create (ProfessionalCreate): Pydantic DTO for collecting data.
+        city_id (UUID): The identifier of the city.
+        professional_status (ProfessionalStatus): The status of the Professional upon creation.
+        hashed_password (str): Hashed password of the user for insertion into the database.
+        db (Session): Database dependency.
+
+    Returns:
+        Professional: Newly created entity.
+    """
+    try:
+        professional = Professional(
+            **professional_create.model_dump(exclude={"city", "password"}),
+            city_id=city_id,
+            password=hashed_password,
+            status=professional_status,
+        )
+        db.add(professional)
+        db.commit()
+        db.refresh(professional)
+        return professional
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error: {str(e)}")
+        raise ApplicationError(
+            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
