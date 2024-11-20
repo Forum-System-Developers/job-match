@@ -10,7 +10,7 @@ class CompanyBase(BaseModel):
     id: UUID
     name: str
     address_line: str
-    city_id: UUID
+    city: str
     description: str
     email: EmailStr
     phone_number: str
@@ -26,7 +26,7 @@ class CompanyBase(BaseModel):
             id=company.id,
             name=company.name,
             address_line=company.address_line,
-            city_id=company.city_id,
+            city=company.city.name,
             description=company.description,
             email=company.email,
             phone_number=company.phone_number,
@@ -40,7 +40,7 @@ class CompanyCreate(BaseModel):
     password: Password  # type: ignore
     name: str
     address_line: str
-    city_id: UUID
+    city: str
     description: str
     email: EmailStr
     phone_number: str
