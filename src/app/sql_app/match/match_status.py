@@ -16,7 +16,6 @@ class MatchStatus(Enum):
         from_string(value: str) -> MatchStatus:
     """
 
-    REQUESTED = "requested"
     REQUESTED_BY_JOB_AD = "requested_by_job_ad"
     REQUESTED_BY_JOB_APP = "requested_by_job_app"
     ACCEPTED = "accepted"

@@ -113,7 +113,7 @@ def get_by_id(
 
 
 @router.post(
-    "/{job_application_id}/{job_ad_id}/request-match", description="Send match request"
+    "/{job_application_id}/job-ads/{job_ad_id}", description="Send match request"
 )
 def request_match(
     job_application_id: UUID,
