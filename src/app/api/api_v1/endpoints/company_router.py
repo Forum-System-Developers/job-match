@@ -66,20 +66,19 @@ def create_company(
 
 
 @router.put(
-    "/{id}",
-    description="Update a company by its unique identifier.",
+    "/",
+    description="Update the current company.",
 )
 def update_company(
-    id: UUID,
     company_data: CompanyUpdate,
     company: CompanyResponse = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_company():
-        return company_service.update(id=id, company_data=company_data, db=db)
+        return company_service.update(id=company.id, company_data=company_data, db=db)
 
     return process_request(
         get_entities_fn=_update_company,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Company with id {id} not found",
+        not_found_err_msg=f"Company with id {company.id} not updated",
     )

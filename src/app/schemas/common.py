@@ -134,7 +134,7 @@ class JobAdSearchParams(SearchParams):
     max_salary: int | None = Field(description="Maximum salary", default=None)
     company_id: str | None = Field(description="The company ID", default=None)
     location_id: str | None = Field(description="The location ID", default=None)
-    job_ad_status: JobAdStatus = Field(
+    job_ad_status: JobAdStatus | None = Field(
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,
     )

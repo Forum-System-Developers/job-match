@@ -1,8 +1,9 @@
+import re
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
-from app.schemas.custom_types import Password, Username
+from app.schemas.custom_types import PASSWORD_REGEX, Password, Username
 from app.sql_app.company.company import Company
 
 
@@ -44,6 +45,15 @@ class CompanyCreate(BaseModel):
     description: str
     email: EmailStr
     phone_number: str
+
+    @field_validator("password")
+    def check_password(cls, password):
+        if not re.match(PASSWORD_REGEX, password):
+            raise ValueError(
+                'Password must contain at least one lowercase letter, \
+                one uppercase letter, one digit, one special character(@$!%*?&), \
+                and be between 8 and 30 characters long.')
+        return password
 
 
 class CompanyUpdate(BaseModel):

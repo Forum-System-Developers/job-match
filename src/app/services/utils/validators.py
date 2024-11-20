@@ -42,27 +42,36 @@ def ensure_valid_location(location: str, db: Session) -> City:
     return city
 
 
-def ensure_valid_job_ad_id(id: UUID, db: Session) -> JobAd:
+def ensure_valid_job_ad_id(
+    job_ad_id: UUID, db: Session, company_id: UUID | None = None
+) -> JobAd:
     """
-    Ensures that a JobAd with the given ID exists in the database.
-
+    Ensures that the provided job advertisement ID is valid and optionally belongs to the specified company.
     Args:
-        id (UUID): The unique identifier of the JobAd.
-        db (Session): The database session used to query the JobAd.
-
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for querying.
+        company_id (UUID | None, optional): The unique identifier of the company to which the job advertisement should belong. Defaults to None.
     Returns:
-        JobAd: The JobAd object if found.
-
+        JobAd: The job advertisement object if it is found and valid.
     Raises:
-        ApplicationError: If no JobAd with the given ID is found, raises an error with a 404 status code.
+        ApplicationError: If the job advertisement is not found or does not belong to the specified company.
     """
-    job_ad = db.query(JobAd).filter(JobAd.id == id).first()
+    job_ad = db.query(JobAd).filter(JobAd.id == job_ad_id).first()
     if job_ad is None:
-        logger.error(f"Job Ad with id {id} not found")
+        logger.error(f"Job Ad with id {job_ad_id} not found")
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job Ad with id {id} not found",
+            detail=f"Job Ad with id {job_ad_id} not found",
         )
+    if company_id is not None and job_ad.company_id != company_id:
+        logger.error(
+            f"Job Ad with id {job_ad_id} does not belong to company with id {company_id}"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Job Ad with id {job_ad_id} does not belong to company with id {company_id}",
+        )
+
     return job_ad
 
 
@@ -138,7 +147,10 @@ def ensure_no_match_request(
 
 
 def ensure_valid_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    match_status: MatchStatus,
+    db: Session,
 ) -> Match:
     """
     Ensures that a match request exists and is in the REQUESTED status.
@@ -146,6 +158,7 @@ def ensure_valid_match_request(
     Args:
         job_ad_id (UUID): The ID of the job advertisement.
         job_application_id (UUID): The ID of the job application.
+        match_status (MatchStatus): The status of the match request.
         db (Session): The database session.
 
     Returns:
@@ -172,13 +185,13 @@ def ensure_valid_match_request(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Match request not found",
         )
-    if match.status != MatchStatus.REQUESTED:
+    if match.status != match_status:
         logger.error(
-            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires REQUESTED status"
+            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires {match_status.name} status"
         )
         raise ApplicationError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Match request is not in REQUESTED status",
+            detail=f"Match request is not in {match_status.name} status",
         )
 
     return match
