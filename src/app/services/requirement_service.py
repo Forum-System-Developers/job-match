@@ -5,7 +5,7 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.skill import RequirementCreate, RequirementResponse
+from app.schemas.requirement import RequirementCreate, RequirementResponse
 from app.sql_app.job_requirement.job_requirement import JobRequirement
 
 logger = logging.getLogger(__name__)
@@ -24,18 +24,22 @@ def create(
     Returns:
         JobRequirement: JobRequirement SQLAlchemy model.
     """
-    if _exists(company_id=company_id, requirement_name=requirement_data.name, db=db):
+    if _exists(
+        company_id=company_id,
+        requirement_description=requirement_data.description,
+        db=db,
+    ):
         logger.error(
-            f"Requirement {requirement_data.name} for company id {company_id} already exists"
+            f"Requirement {requirement_data.description} for company id {company_id} already exists"
         )
         raise ApplicationError(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Requirement {requirement_data.name} already exists",
+            detail=f"Requirement {requirement_data.description} already exists",
         )
 
     requirement_model = JobRequirement(
-        description=requirement_data.name,
-        level=requirement_data.level,
+        description=requirement_data.description,
+        skill_level=requirement_data.skill_level,
         company_id=company_id,
     )
 
@@ -45,10 +49,10 @@ def create(
 
     logger.info(f"Requirement {requirement_model.description} created")
 
-    return RequirementResponse.model_validate(requirement_model)
+    return RequirementResponse.create(requirement_model)
 
 
-def _exists(company_id: UUID, requirement_name: str, db: Session) -> bool:
+def _exists(company_id: UUID, requirement_description: str, db: Session) -> bool:
     """
     Check if a job requirement exists by its name and company_id.
 
@@ -64,7 +68,7 @@ def _exists(company_id: UUID, requirement_name: str, db: Session) -> bool:
         db.query(JobRequirement)
         .filter(
             JobRequirement.company_id == company_id,
-            JobRequirement.description == requirement_name,
+            JobRequirement.description == requirement_description,
         )
         .first()
         is not None
