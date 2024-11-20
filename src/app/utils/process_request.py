@@ -22,7 +22,9 @@ def format_response(data: Union[BaseModel, list[BaseModel]]) -> dict:
     """
     if isinstance(data, list):
         return {"detail": [item.model_dump(mode="json") for item in data]}
-    return {"detail": data.model_dump(mode="json")}
+    return {
+        "detail": data.model_dump(mode="json") if isinstance(data, BaseModel) else data
+    }
 
 
 def process_request(
