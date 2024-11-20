@@ -1,8 +1,10 @@
+import io
+from typing import Union
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
 from fastapi import status as status_code
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
@@ -25,13 +27,11 @@ router = APIRouter()
 )
 def create(
     professional: ProfessionalRequestBody = Body(),
-    # photo: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
             professional_request=professional,
-            # photo=photo,
             db=db,
         )
 
@@ -49,7 +49,6 @@ def create(
 def update(
     professional_id: UUID,
     professional: ProfessionalUpdateRequestBody = Form(),
-    # photo: UploadFile | None = File(None),
     # user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -58,7 +57,6 @@ def update(
             professional_id=professional_id,
             professional_request=professional,
             db=db,
-            # photo=photo,
         )
 
     return process_request(
@@ -68,8 +66,35 @@ def update(
     )
 
 
+@router.post("/{professional_id}/upload-photo", description="Upload a photo")
+def upload(
+    professional_id: UUID,
+    photo: UploadFile = File(),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _upload():
+        return professional_service.upload(
+            professional_id=professional_id,
+            photo=photo,
+            db=db,
+        )
+
+    return process_request(
+        get_entities_fn=_upload,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not upload photo",
+    )
+
+
+@router.get("/{professional_id}/download-photo", response_model=None)
+def download(
+    professional_id: UUID, db: Session = Depends(get_db)
+) -> Union[StreamingResponse, JSONResponse]:
+    return professional_service.download(professional_id=professional_id, db=db)
+
+
 @router.post(
-    "/get",
+    "/all",
     description="Retreive all Professional profiles.",
 )
 def get_all(
