@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyResponse
 from app.schemas.professional import ProfessionalResponse
+from app.schemas.token import AccessToken, Token
 from app.schemas.user import User, UserLogin, UserRole
 from app.services import company_service, professional_service
 from app.sql_app.database import get_db
@@ -20,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
-def login(login_data: UserLogin, db: Session) -> dict:
+def login(login_data: UserLogin, db: Session) -> Token:
     """
     Authenticates a user based on their role and generates access and refresh tokens.
 
@@ -115,28 +116,28 @@ def _create_token(data: dict, expires_delta: timedelta) -> str:
         )
 
 
-def create_access_and_refresh_tokens(user: User, login_data: UserLogin) -> dict:
+def create_access_and_refresh_tokens(user: User, login_data: UserLogin) -> Token:
     """
-    Generate access and refresh tokens for a given user.
+    Create access and refresh tokens for a given user.
 
     Args:
-        user (User): The user object containing user details.
+        user (User): The user for whom the tokens are being created.
         login_data (UserLogin): The login data containing user role information.
     Returns:
-        dict: A dictionary containing the access token, refresh token, and token type.
+        Token: An object containing the access token, refresh token, and token type.
     """
-    token_data = {"sub": str(user.id), "role": login_data.role}
+    token_data = {"sub": str(user.id), "role": str(login_data.role)}
     logger.info(f"Created token data for user {user.id}")
     access_token = _create_access_token(token_data)
     logger.info(f"Created access token for user {user.id}")
     refresh_token = _create_refresh_token(token_data)
     logger.info(f"Created refresh token for user {user.id}")
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
 
 
 def verify_token(token: str, db: Session) -> dict:
@@ -216,17 +217,17 @@ def authenticate_user(login_data: UserLogin, db: Session) -> User:
     return user
 
 
-def refresh_access_token(refresh_token: str, db: Session) -> str:
+def refresh_access_token(refresh_token: str, db: Session) -> AccessToken:
     """
     Refreshes the access token using the provided refresh token.
 
     Args:
-        refresh_token (str): The refresh token to be verified and used for generating a new access token.
-        db (Session): The database session used for verifying the token.
+        refresh_token (str): The refresh token used to verify the user.
+        db (Session): The database session used for token verification.
     Returns:
-        str: The newly created access token.
-    Raises:
+        AccessToken: A new access token for the user.
     """
+
     payload = verify_token(token=refresh_token, db=db)
     user_id = payload.get("sub")
     user_role = payload.get("role")
@@ -234,7 +235,7 @@ def refresh_access_token(refresh_token: str, db: Session) -> str:
     access_token = _create_access_token({"sub": user_id, "role": user_role})
     logger.info(f"Created new access token for user {user_id}")
 
-    return access_token
+    return AccessToken(access_token=access_token)
 
 
 def get_current_company(
