@@ -99,6 +99,7 @@ def create(
 
     if company_entity is not None:
         company_entity.job_ads.append(job_ad)
+        company_entity.active_job_count += 1
 
     db.add(job_ad)
     db.commit()
@@ -256,6 +257,8 @@ def accept_match_request(
     job_ad.status = JobAdStatus.ARCHIVED
     job_application.status = JobStatus.MATCHED
     match.status = MatchStatus.ACCEPTED
+
+    job_ad.company.successfull_matches_count += 1
 
     db.commit()
     logger.info(
