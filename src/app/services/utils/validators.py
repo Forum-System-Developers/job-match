@@ -147,7 +147,10 @@ def ensure_no_match_request(
 
 
 def ensure_valid_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    match_status: MatchStatus,
+    db: Session,
 ) -> Match:
     """
     Ensures that a match request exists and is in the REQUESTED status.
@@ -155,6 +158,7 @@ def ensure_valid_match_request(
     Args:
         job_ad_id (UUID): The ID of the job advertisement.
         job_application_id (UUID): The ID of the job application.
+        match_status (MatchStatus): The status of the match request.
         db (Session): The database session.
 
     Returns:
@@ -181,13 +185,13 @@ def ensure_valid_match_request(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Match request not found",
         )
-    if match.status != MatchStatus.REQUESTED:
+    if match.status != match_status:
         logger.error(
-            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires REQUESTED status"
+            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires {match_status.name} status"
         )
         raise ApplicationError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Match request is not in REQUESTED status",
+            detail=f"Match request is not in {match_status.name} status",
         )
 
     return match
