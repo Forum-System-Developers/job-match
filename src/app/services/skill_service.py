@@ -2,9 +2,9 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillBase
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -25,7 +25,8 @@ def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
     Returns:
         SkillBase: SkillBase Pydantic response model.
     """
-    try:
+
+    def _handle_create():
         skill_model: Skill = Skill(
             name=skill_schema.name,
             level=SkillLevel(skill_schema.level),
@@ -36,19 +37,8 @@ def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
         logger.info(f"Skill {skill_model.name} created")
 
         return skill_schema
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_create, db=db)
 
 
 def create_job_application_skill(
@@ -65,7 +55,8 @@ def create_job_application_skill(
     Returns:
         UUID: Identifier for the skill.
     """
-    try:
+
+    def _handle_create():
         job_application_skill = JobApplicationSkill(
             job_application_id=job_application_id,
             skill_id=skill_id,
@@ -77,19 +68,8 @@ def create_job_application_skill(
 
         logger.info(f"Job Application skill id {skill_id} created")
         return skill_id
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_create, db=db)
 
 
 def exists(db: Session, skill_name: str) -> bool:

@@ -4,9 +4,9 @@ from uuid import UUID
 
 from fastapi import UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
+from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
@@ -131,24 +131,13 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     """
     profesional = _get_by_id(professional_id=professional_id, db=db)
 
-    try:
+    def _handle_upload():
         upload_photo = photo.file.read()
         profesional.photo = upload_photo
         db.commit()
         return {"msg": "Photo successfully uploaded"}
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_upload, db=db)
 
 
 def download(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
@@ -348,19 +337,14 @@ def _update_attributes(
 
     professional.has_private_matches = private_matches.value
 
-    try:
+    def _handle_update():
         db.commit()
         db.refresh(professional)
         logger.info(f"Professional {professional.id} updated successfully.")
 
         return professional
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_update, db=db)
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -499,7 +483,8 @@ def _create(
     Returns:
         Professional: Newly created entity.
     """
-    try:
+
+    def _handle_create():
         professional = Professional(
             **professional_create.model_dump(exclude={"city", "password"}),
             city_id=city_id,
@@ -510,16 +495,5 @@ def _create(
         db.commit()
         db.refresh(professional)
         return professional
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_create, db=db)

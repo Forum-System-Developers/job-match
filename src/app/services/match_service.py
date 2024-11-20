@@ -2,9 +2,9 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
@@ -56,7 +56,7 @@ def create_if_not_exists(
                     status_code=status.HTTP_403_FORBIDDEN,
                 )
 
-    try:
+    def _handle_create():
         match_request = Match(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
@@ -73,19 +73,8 @@ def create_if_not_exists(
             f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
         )
         return {"msg": "Match Request successfully sent"}
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_create, db=db)
 
 
 def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match | None:
@@ -146,21 +135,39 @@ def process_request_from_company(
         )
 
     if accept_request == MatchResponseRequest.accept:
-        accept_match_request(match=existing_match, db=db)
-        logger.info(
-            f"Updated statuses for JobAplication with id {job_application_id}, JobAd id {job_ad_id}, Professional with id {existing_match.job_application.professional.id}"
+        accept_match_request(
+            match=existing_match,
+            db=db,
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
         )
-        return {"msg": "Match Request accepted"}
 
     elif accept_request == MatchResponseRequest.reject:
-        existing_match.status = MatchStatus.REJECTED
+        return reject_match_request(
+            match=existing_match,
+            db=db,
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+        )
+
+
+def reject_match_request(
+    match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
+) -> dict:
+    def _handle_reject():
+        match.status = MatchStatus.REJECTED
+        db.commit()
         logger.info(
             f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
         )
         return {"msg": "Match Request rejected"}
 
+    return handle_database_operation(db_request=_handle_reject, db=db)
 
-def accept_match_request(match: Match, db: Session):
+
+def accept_match_request(
+    match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
+) -> dict:
     """
     Updates .
 
@@ -175,7 +182,7 @@ def accept_match_request(match: Match, db: Session):
     match_job_application = match.job_application
     professional = match_job_application.professional
 
-    try:
+    def _handle_accept():
         match.status = MatchStatus.ACCEPTED
         professional.status = ProfessionalStatus.BUSY
         professional.active_application_count -= 1
@@ -183,13 +190,12 @@ def accept_match_request(match: Match, db: Session):
         match.job_ad.status = JobAdStatus.ARCHIVED
 
         db.commit()
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        logger.info(
+            f"Updated statuses for JobAplication with id {job_application_id}, JobAd id {job_ad_id}, Professional with id {professional.id}"
         )
+        return {"msg": "Match Request accepted"}
+
+    return handle_database_operation(db_request=_handle_accept, db=db)
 
 
 def get_match_requests_for_job_application(

@@ -2,10 +2,10 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
+from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
 from app.schemas.common import FilterParams, SearchParams
@@ -279,7 +279,7 @@ def _update_attributes(
             db=db, job_application_model=job_application_model, skills=new_skills
         )
 
-    try:
+    def _handle_update():
         db.commit()
         db.refresh(job_application_model)
         logger.info(
@@ -287,13 +287,8 @@ def _update_attributes(
         )
 
         return job_application_model
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_update, db=db)
 
 
 def _update_skillset(
@@ -417,7 +412,8 @@ def _create(
     Returns:
         JobApplication: The new instance of the Job Aplication model.
     """
-    try:
+
+    def _handle_create():
         professional.active_application_count += 1
 
         job_application: JobApplication = JobApplication(
@@ -434,16 +430,5 @@ def _create(
         db.refresh(job_application)
 
         return job_application
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"Integrity error: {str(e)}")
-        raise ApplicationError(
-            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
-        )
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Unexpected DB error: {str(e)}")
-        raise ApplicationError(
-            detail="Internal server error",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+
+    return handle_database_operation(db_request=_handle_create, db=db)
