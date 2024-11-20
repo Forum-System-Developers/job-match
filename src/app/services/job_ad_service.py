@@ -205,7 +205,11 @@ def get_match_requests(job_ad_id: UUID, db: Session) -> list[MatchResponse]:
     requests = requests = (
         db.query(Match)
         .join(Match.job_ad)
-        .filter(and_(JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED))
+        .filter(
+            and_(
+                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
+            )
+        )
         .all()
     )
 
@@ -238,7 +242,10 @@ def accept_match_request(
     job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db)
     job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
     match = ensure_valid_match_request(
-        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        match_status=MatchStatus.REQUESTED_BY_JOB_APP,
+        db=db,
     )
 
     job_ad.status = JobAdStatus.ARCHIVED
@@ -285,7 +292,7 @@ def send_match_request(
     match = Match(
         job_ad_id=job_ad_id,
         job_application_id=job_application_id,
-        status=MatchStatus.REQUESTED,
+        status=MatchStatus.REQUESTED_BY_JOB_AD,
     )
 
     db.add(match)
