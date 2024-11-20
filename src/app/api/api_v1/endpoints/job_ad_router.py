@@ -188,3 +188,26 @@ def send_job_ad_match_request(
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"Match request not sent for job ad with id {job_ad_id}",
     )
+
+
+@router.get(
+    "/{job_ad_id}/sent-match-requests",
+    description="Retrieve all sent match requests for a job advertisement.",
+)
+def view_sent_match_requests(
+    job_ad_id: UUID,
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _view_sent_requests():
+        return job_ad_service.view_sent_match_requests(
+            job_ad_id=job_ad_id,
+            company_id=company.id,
+            db=db,
+        )
+
+    return process_request(
+        get_entities_fn=_view_sent_requests,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg=f"No requests found for job ad with id {job_ad_id}",
+    )
