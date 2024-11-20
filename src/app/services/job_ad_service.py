@@ -190,7 +190,11 @@ def add_requirement(
     return MessageResponse(message="Requirement added to job ad")
 
 
-def get_match_requests(job_ad_id: UUID, db: Session) -> list[MatchResponse]:
+def get_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
     """
     Retrieve match requests for a given job advertisement.
 
@@ -201,7 +205,7 @@ def get_match_requests(job_ad_id: UUID, db: Session) -> list[MatchResponse]:
     Returns:
         list[MatchResponse]: A list of match responses for the specified job advertisement.
     """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     requests = requests = (
         db.query(Match)
         .join(Match.job_ad)
@@ -221,6 +225,7 @@ def get_match_requests(job_ad_id: UUID, db: Session) -> list[MatchResponse]:
 def accept_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
+    company_id: UUID,
     db: Session,
 ) -> MessageResponse:
     """
@@ -239,7 +244,7 @@ def accept_match_request(
     Returns:
         AcceptRequestMatchResponse: The response indicating successful match acceptance.
     """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
     match = ensure_valid_match_request(
         job_ad_id=job_ad_id,
