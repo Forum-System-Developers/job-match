@@ -2,6 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import status
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -55,23 +56,36 @@ def create_if_not_exists(
                     status_code=status.HTTP_403_FORBIDDEN,
                 )
 
-    match_request = Match(
-        job_ad_id=job_ad_id,
-        job_application_id=job_application_id,
-        status=MatchStatus.REQUESTED,
-    )
-    logger.info(
-        f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED}"
-    )
-    db.add(match_request)
-    db.commit()
-    db.refresh(match_request)
+    try:
+        match_request = Match(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            status=MatchStatus.REQUESTED,
+        )
+        logger.info(
+            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED}"
+        )
+        db.add(match_request)
+        db.commit()
+        db.refresh(match_request)
 
-    logger.info(
-        f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
-    )
-
-    return {"msg": "Match Request successfully sent"}
+        logger.info(
+            f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
+        )
+        return {"msg": "Match Request successfully sent"}
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error: {str(e)}")
+        raise ApplicationError(
+            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match | None:
@@ -161,16 +175,21 @@ def accept_match_request(match: Match, db: Session):
     match_job_application = match.job_application
     professional = match_job_application.professional
 
-    match.status = MatchStatus.ACCEPTED
+    try:
+        match.status = MatchStatus.ACCEPTED
+        professional.status = ProfessionalStatus.BUSY
+        professional.active_application_count -= 1
+        match_job_application.status = JobStatus.MATCHED
+        match.job_ad.status = JobAdStatus.ARCHIVED
 
-    professional.status = ProfessionalStatus.BUSY
-    professional.active_application_count -= 1
-
-    match_job_application.status = JobStatus.MATCHED
-
-    match.job_ad.status = JobAdStatus.ARCHIVED
-
-    db.commit()
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def get_match_requests_for_job_application(
