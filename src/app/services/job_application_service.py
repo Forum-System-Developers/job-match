@@ -279,7 +279,7 @@ def _update_attributes(
             db=db, job_application_model=job_application_model, skills=new_skills
         )
 
-    def handle_update():
+    def _handle_update():
         db.commit()
         db.refresh(job_application_model)
         logger.info(
@@ -288,7 +288,7 @@ def _update_attributes(
 
         return job_application_model
 
-    return handle_database_operation(db_request=handle_update, db=db)
+    return handle_database_operation(db_request=_handle_update, db=db)
 
 
 def _update_skillset(
@@ -413,7 +413,7 @@ def _create(
         JobApplication: The new instance of the Job Aplication model.
     """
 
-    def handle_create():
+    def _handle_create():
         professional.active_application_count += 1
 
         job_application: JobApplication = JobApplication(
@@ -431,4 +431,4 @@ def _create(
 
         return job_application
 
-    return handle_database_operation(db_request=handle_create, db=db)
+    return handle_database_operation(db_request=_handle_create, db=db)
