@@ -127,7 +127,11 @@ def get_job_ad_match_requests(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
-        return job_ad_service.get_match_requests(job_ad_id=job_ad_id, db=db)
+        return job_ad_service.get_match_requests(
+            job_ad_id=job_ad_id,
+            company_id=company.id,
+            db=db,
+        )
 
     return process_request(
         get_entities_fn=_get_job_ad_requests,
@@ -148,7 +152,10 @@ def accept_job_ad_match_request(
 ) -> JSONResponse:
     def _accept_job_ad_request():
         return job_ad_service.accept_match_request(
-            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            company_id=company.id,
+            db=db,
         )
 
     return process_request(
