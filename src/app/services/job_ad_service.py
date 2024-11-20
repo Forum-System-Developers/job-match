@@ -312,6 +312,37 @@ def send_match_request(
     return MessageResponse(message="Match request sent")
 
 
+def view_sent_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
+    """
+    Retrieve sent match requests for a given job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    requests = (
+        db.query(Match)
+        .filter(
+            and_(Match.job_ad_id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_AD)
+        )
+        .all()
+    )
+
+    logger.info(
+        f"Retrieved {len(requests)} sent requests for job ad with id {job_ad_id}"
+    )
+
+    return [MatchResponse.create(request) for request in requests]
+
+
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
     """
     Updates the fields of a job advertisement based on the provided job_ad_data.
