@@ -12,6 +12,7 @@ from app.schemas.user import User
 from app.services import city_service
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
+from app.utils.password_utils import hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +94,21 @@ def create(
         CompanyResponse: The response object containing the created company details.
     """
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
+    city = _ensure_valid_city(city_name=company_data.city, db=db)
 
     upload_logo = None
     if logo is not None:
         upload_logo = logo.file.read()
 
-    company = Company(**company_data.model_dump(), logo=upload_logo)
+    password_hash = hash_password(company_data.password)
+
+    company = Company(
+        **company_data.model_dump(exclude={"password", "city"}),
+        password=password_hash,
+        city_id=city.id,
+        logo=upload_logo,
+    )
+
     db.add(company)
     db.commit()
     db.refresh(company)
