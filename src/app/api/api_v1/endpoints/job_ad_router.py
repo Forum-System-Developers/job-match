@@ -15,13 +15,13 @@ from app.utils.process_request import process_request
 router = APIRouter()
 
 
-@router.get(
-    "/",
+@router.post(
+    "/all",
     description="Retrieve all job advertisements.",
 )
 def get_all_job_ads(
+    search_params: JobAdSearchParams,
     filter_params: FilterParams = Depends(),
-    search_params: JobAdSearchParams = Depends(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all_job_ads():
