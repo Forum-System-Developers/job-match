@@ -37,17 +37,17 @@ def get_all_job_ads(
 
 
 @router.get(
-    "/{id}",
+    "/{job_ad_id}",
     description="Retrieve a job advertisement by its unique identifier.",
 )
-def get_job_ad_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+def get_job_ad_by_id(job_ad_id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
     def _get_job_ad_by_id():
-        return job_ad_service.get_by_id(id=id, db=db)
+        return job_ad_service.get_by_id(id=job_ad_id, db=db)
 
     return process_request(
         get_entities_fn=_get_job_ad_by_id,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Job Ad with id {id} not found",
+        not_found_err_msg=f"Job Ad with id {job_ad_id} not found",
     )
 
 
@@ -71,44 +71,49 @@ def create_job_ad(
 
 
 @router.put(
-    "/{id}",
+    "/{job_ad_id}",
     description="Update a job advertisement by its unique identifier.",
 )
 def update_job_ad(
-    id: UUID,
+    job_ad_id: UUID,
     job_ad_data: JobAdUpdate,
     company: CompanyResponse = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_job_ad():
-        return job_ad_service.update(id=id, job_ad_data=job_ad_data, db=db)
+        return job_ad_service.update(
+            job_ad_id=job_ad_id, company_id=company.id, job_ad_data=job_ad_data, db=db
+        )
 
     return process_request(
         get_entities_fn=_update_job_ad,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Job Ad with id {id} not found",
+        not_found_err_msg=f"Job Ad with id {job_ad_id} not found",
     )
 
 
 @router.post(
-    "/{id}/requirements/{requirement_id}",
+    "/{job_ad_id}/requirements/{requirement_id}",
     description="Add new job requirements to a job advertisement.",
 )
 def add_job_ad_requirement(
-    id: UUID,
+    job_ad_id: UUID,
     requirement_id: UUID,
     company: CompanyResponse = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _add_job_ad_requirements():
         return job_ad_service.add_requirement(
-            job_ad_id=id, requirement_id=requirement_id, company_id=company.id, db=db
+            job_ad_id=job_ad_id,
+            requirement_id=requirement_id,
+            company_id=company.id,
+            db=db,
         )
 
     return process_request(
         get_entities_fn=_add_job_ad_requirements,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Job Ad with id {id} not found",
+        not_found_err_msg=f"Job Ad with id {job_ad_id} not found",
     )
 
 
@@ -122,7 +127,7 @@ def get_job_ad_match_requests(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
-        return job_ad_service.get_match_requests(id=job_ad_id, db=db)
+        return job_ad_service.get_match_requests(job_ad_id=job_ad_id, db=db)
 
     return process_request(
         get_entities_fn=_get_job_ad_requests,
@@ -165,7 +170,10 @@ def send_job_ad_match_request(
 ) -> JSONResponse:
     def _send_job_ad_request():
         return job_ad_service.send_match_request(
-            job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            company_id=company.id,
+            db=db,
         )
 
     return process_request(
