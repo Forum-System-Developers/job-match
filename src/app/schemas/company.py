@@ -50,9 +50,10 @@ class CompanyCreate(BaseModel):
     def check_password(cls, password):
         if not re.match(PASSWORD_REGEX, password):
             raise ValueError(
-                'Password must contain at least one lowercase letter, \
+                "Password must contain at least one lowercase letter, \
                 one uppercase letter, one digit, one special character(@$!%*?&), \
-                and be between 8 and 30 characters long.')
+                and be between 8 and 30 characters long."
+            )
         return password
 
 
