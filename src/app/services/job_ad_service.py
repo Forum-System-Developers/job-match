@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_all(
-    filter_params: FilterParams, search_params: JobAdSearchParams, db: Session
+    filter_params: FilterParams,
+    search_params: JobAdSearchParams,
+    db: Session,
 ) -> list[JobAdResponse]:
     """
     Retrieve all job advertisements.
@@ -67,14 +69,16 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
     Returns:
         JobAdResponse: The job advertisement if found, otherwise None.
     """
-    job_ad = ensure_valid_job_ad_id(id=id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=id, db=db)
     logger.info(f"Retrieved job ad with id {id}")
 
     return JobAdResponse.create(job_ad)
 
 
 def create(
-    company: CompanyResponse, job_ad_data: JobAdCreate, db: Session
+    company: CompanyResponse,
+    job_ad_data: JobAdCreate,
+    db: Session,
 ) -> JobAdResponse:
     """
     Create a new job advertisement.
@@ -103,22 +107,25 @@ def create(
     return JobAdResponse.create(job_ad)
 
 
-def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
+def update(
+    job_ad_id: UUID,
+    company_id: UUID,
+    job_ad_data: JobAdUpdate,
+    db: Session,
+) -> JobAdResponse:
     """
-    Update an existing job advertisement.
+    Update a job advertisement with the given data.
 
     Args:
-        id (UUID): The unique identifier of the job advertisement to update.
+        job_ad_id (UUID): The unique identifier of the job advertisement to update.
+        company_id (UUID): The unique identifier of the company associated with the job advertisement.
         job_ad_data (JobAdUpdate): The data to update the job advertisement with.
-        db (Session): The database session used to update the job advertisement.
+        db (Session): The database session to use for the update.
 
     Returns:
-        JobAdResponse: The updated job advertisement.
-
-    Raises:
-        ApplicationError: If the job advertisement, city, or company is not found.
+        JobAdResponse: The response object containing the updated job advertisement data.
     """
-    job_ad = ensure_valid_job_ad_id(id=id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     job_ad = _update_job_ad(job_ad_data=job_ad_data, job_ad=job_ad, db=db)
 
     if any(value is None for value in vars(job_ad_data).values()):
@@ -126,13 +133,16 @@ def update(id: UUID, job_ad_data: JobAdUpdate, db: Session) -> JobAdResponse:
 
     db.commit()
     db.refresh(job_ad)
-    logger.info(f"Job ad with id: {id} updated.")
+    logger.info(f"Job ad with id: {job_ad_id} updated.")
 
     return JobAdResponse.create(job_ad)
 
 
 def add_requirement(
-    job_ad_id: UUID, requirement_id: UUID, company_id: UUID, db: Session
+    job_ad_id: UUID,
+    requirement_id: UUID,
+    company_id: UUID,
+    db: Session,
 ) -> MessageResponse:
     """
     Adds a requirement to a job advertisement.
@@ -149,7 +159,7 @@ def add_requirement(
     Raises:
         ApplicationError: If the requirement is already added to the job advertisement.
     """
-    job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     job_requirement = ensure_valid_requirement_id(
         requirement_id=requirement_id, company_id=company_id, db=db
     )
@@ -179,32 +189,34 @@ def add_requirement(
     return MessageResponse(message="Requirement added to job ad")
 
 
-def get_match_requests(id: UUID, db: Session) -> list[MatchResponse]:
+def get_match_requests(job_ad_id: UUID, db: Session) -> list[MatchResponse]:
     """
-    Retrieve all requests for a job advertisement.
+    Retrieve match requests for a given job advertisement.
 
     Args:
-        id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session used to query the job advertisements.
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
 
     Returns:
-        list[JobAdResponse]: The list of job advertisements that match the job advertisement.
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
     """
-    job_ad = ensure_valid_job_ad_id(id=id, db=db)
-    requests = (
-        db.query(JobAd)
-        .options(joinedload(JobAd.matches))
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db)
+    requests = requests = (
+        db.query(Match)
+        .join(Match.job_ad)
         .filter(and_(JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED))
         .all()
     )
 
-    logger.info(f"Retrieved {len(requests)} requests for job ad with id {id}")
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
 
-    return [MatchResponse.model_validate(request) for request in requests]
+    return [MatchResponse.create(request) for request in requests]
 
 
 def accept_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    db: Session,
 ) -> MessageResponse:
     """
     Accepts a match request between a job advertisement and a job application.
@@ -222,7 +234,7 @@ def accept_match_request(
     Returns:
         AcceptRequestMatchResponse: The response indicating successful match acceptance.
     """
-    job_ad = ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db)
     job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
     match = ensure_valid_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
@@ -232,7 +244,6 @@ def accept_match_request(
     job_application.status = JobStatus.MATCHED
     match.status = MatchStatus.ACCEPTED
 
-    db.add(match)
     db.commit()
     logger.info(
         f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
@@ -242,7 +253,10 @@ def accept_match_request(
 
 
 def send_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    company_id: UUID,
+    db: Session,
 ) -> MessageResponse:
     """
     Sends a match request from a job advertisement to a job application.
@@ -255,12 +269,13 @@ def send_match_request(
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
+        company_id (UUID): The unique identifier of the company.
         db (Session): The database session to use for the operation.
 
     Returns:
         MessageResponse: The response indicating successful match request.
     """
-    ensure_valid_job_ad_id(id=job_ad_id, db=db)
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     ensure_valid_job_application_id(id=job_application_id, db=db)
     ensure_no_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
