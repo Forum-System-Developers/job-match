@@ -18,7 +18,7 @@ class MatchStatus(Enum):
 
     REQUESTED = "requested"
     REQUESTED_BY_JOB_AD = "requested_by_job_ad"
-    REQUESTED_BY_JOB_APP = "requested_by_job_application"
+    REQUESTED_BY_JOB_APP = "requested_by_job_app"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
 
