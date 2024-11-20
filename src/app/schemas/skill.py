@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from pydantic import BaseModel
 
 from app.sql_app.job_requirement.skill_level import SkillLevel
@@ -20,16 +18,3 @@ class SkillBase(BaseModel):
 
     class Config:
         use_enum_values = True
-
-
-class Requirement(SkillBase):
-    pass
-
-
-class RequirementCreate(SkillBase):
-    pass
-
-
-class RequirementResponse(SkillBase):
-    id: UUID
-    company_id: UUID
