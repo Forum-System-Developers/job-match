@@ -40,7 +40,7 @@ def create_if_not_exists(
     )
     if existing_match is not None:
         match existing_match.status:
-            case MatchStatus.REQUESTED:
+            case MatchStatus.REQUESTED_BY_JOB_APP:
                 raise ApplicationError(
                     detail="Match Request already sent",
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -60,10 +60,10 @@ def create_if_not_exists(
         match_request = Match(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
-            status=MatchStatus.REQUESTED,
+            status=MatchStatus.REQUESTED_BY_JOB_APP,
         )
         logger.info(
-            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED}"
+            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED_BY_JOB_APP}"
         )
         db.add(match_request)
         db.commit()
@@ -217,7 +217,7 @@ def get_match_requests_for_job_application(
         db.query(Match)
         .filter(
             Match.job_application_id == job_application_id,
-            Match.status == MatchStatus.REQUESTED,
+            Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
         )
         .offset(filter_params.offset)
         .limit(filter_params.limit)
