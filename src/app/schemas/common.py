@@ -1,7 +1,7 @@
 from typing import Literal
 
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 
@@ -138,6 +138,16 @@ class JobAdSearchParams(SearchParams):
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,
     )
+
+    @field_validator("min_salary")
+    def validate_min_salary(cls, value, values):
+        if value is not None:
+            if value < 0:
+                raise ValueError("Minimum salary must be non-negative")
+            max_salary = values.get("max_salary")
+            if max_salary is not None and value > max_salary:
+                raise ValueError("Minimum salary cannot be greater than maximum salary")
+        return value
 
 
 class MessageResponse(BaseModel):
