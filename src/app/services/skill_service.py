@@ -4,12 +4,12 @@ from uuid import UUID
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillBase
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.skill.skill import Skill
+from app.utils.database_utils import handle_database_operation
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
         SkillBase: SkillBase Pydantic response model.
     """
 
-    def _handle_create():
+    def _handle_create() -> SkillBase:
         skill_model: Skill = Skill(
             name=skill_schema.name,
             level=SkillLevel(skill_schema.level),
