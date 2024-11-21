@@ -191,38 +191,6 @@ def add_requirement(
     return MessageResponse(message="Requirement added to job ad")
 
 
-def get_match_requests(
-    job_ad_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> list[MatchResponse]:
-    """
-    Retrieve match requests for a given job advertisement.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
-
-    Returns:
-        list[MatchResponse]: A list of match responses for the specified job advertisement.
-    """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = requests = (
-        db.query(Match)
-        .join(Match.job_ad)
-        .filter(
-            and_(
-                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
-            )
-        )
-        .all()
-    )
-
-    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
-
-    return [MatchResponse.create(request) for request in requests]
-
-
 def accept_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
@@ -312,6 +280,38 @@ def send_match_request(
     return MessageResponse(message="Match request sent")
 
 
+def view_received_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
+    """
+    Retrieve match requests for a given job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    requests = requests = (
+        db.query(Match)
+        .join(Match.job_ad)
+        .filter(
+            and_(
+                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
+            )
+        )
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
+
+    return [MatchResponse.create(request) for request in requests]
+
+
 def view_sent_match_requests(
     job_ad_id: UUID,
     company_id: UUID,
@@ -331,7 +331,10 @@ def view_sent_match_requests(
     requests = (
         db.query(Match)
         .filter(
-            and_(Match.job_ad_id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_AD)
+            and_(
+                Match.job_ad_id == job_ad.id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+            )
         )
         .all()
     )

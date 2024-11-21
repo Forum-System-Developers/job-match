@@ -127,7 +127,7 @@ def get_job_ad_match_requests(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
-        return job_ad_service.get_match_requests(
+        return job_ad_service.view_received_match_requests(
             job_ad_id=job_ad_id,
             company_id=company.id,
             db=db,
