@@ -1,15 +1,18 @@
+import io
 import logging
 from datetime import datetime
 from uuid import UUID
 
 from fastapi import UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.schemas.user import User
 from app.services import city_service
+from app.services.utils.validators import ensure_valid_company_id
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
@@ -131,7 +134,7 @@ def update(
     Returns:
         CompanyResponse: The response object containing the updated company's details.
     """
-    company = _ensure_company_exists(id=id, db=db)
+    company = ensure_valid_company_id(id=id, db=db)
     company = _update_company(
         company=company, company_data=company_data, logo=logo, db=db
     )
@@ -141,6 +144,51 @@ def update(
     logger.info(f"Updated company with id {company.id}")
 
     return CompanyResponse.create(company)
+
+
+def upload_logo(company_id: UUID, logo: UploadFile, db: Session) -> MessageResponse:
+    """
+    Uploads a logo for a specified company.
+
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        logo (UploadFile): The logo file to be uploaded.
+        db (Session): The database session.
+
+    Returns:
+        MessageResponse: A response message indicating the result of the upload operation.
+    """
+    company = ensure_valid_company_id(id=company_id, db=db)
+    upload_logo = logo.file.read()
+    company.logo = upload_logo
+    company.updated_at = datetime.now()
+    db.commit()
+    logger.info(f"Uploaded logo for company with id {company_id}")
+
+    return MessageResponse(message="Logo uploaded successfully")
+
+
+def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
+    """
+    Downloads the logo of a company.
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session.
+    Returns:
+        StreamingResponse: A streaming response containing the company's logo.
+    Raises:
+        ApplicationError: If the company does not have a logo or does not exist.
+    """
+    company = _ensure_company_exists(id=company_id, db=db)
+    logo = company.logo
+    if logo is None:
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Company with id {company_id} does not have a logo",
+        )
+    logger.info(f"Downloaded logo of company with id {company_id}")
+
+    return StreamingResponse(io.BytesIO(logo), media_type="image/png")
 
 
 def _get_by_id(id: UUID, db: Session) -> Company | None:
