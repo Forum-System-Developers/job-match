@@ -486,8 +486,15 @@ def _filter_by_skills(
     """
     if search_params.skills:
         num_skills = len(search_params.skills)
-        threshold = search_params.skills_threshold or 0
+        threshold = search_params.skills_threshold
         required_matches = max(num_skills - threshold, 0)
+
+        if required_matches == 0:
+            logger.info(
+                f"Threshold equals to the number of skills({num_skills}), skipping skill filtering."
+            )
+            return job_ads
+
         job_requirement_alias = aliased(JobRequirement)
 
         skill_match_count = (
