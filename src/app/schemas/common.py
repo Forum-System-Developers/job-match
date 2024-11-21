@@ -131,7 +131,7 @@ class JobAdSearchParams(SearchParams):
     """
 
     title: str | None = Field(description="The title of the job ad", default=None)
-    salary_threshold: float | None = Field(
+    salary_threshold: float = Field(
         description="The salary threshold", ge=0, default=0
     )
     min_salary: float | None = Field(description="Minimum salary", default=None)
@@ -142,9 +142,7 @@ class JobAdSearchParams(SearchParams):
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,
     )
-    skills_threshold: int | None = Field(
-        description="The skills threshold", default=None
-    )
+    skills_threshold: int = Field(description="The skills threshold", ge=0, default=0)
 
     @field_validator("min_salary")
     def validate_min_salary(cls, value, values):
