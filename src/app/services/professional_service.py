@@ -6,7 +6,6 @@ from fastapi import UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 
-from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
@@ -28,6 +27,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.skill.skill import Skill
+from app.utils.database_utils import handle_database_operation
 from app.utils.password_utils import hash_password
 
 logger = logging.getLogger(__name__)
