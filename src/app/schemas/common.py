@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from fastapi import Query
 from pydantic import BaseModel, Field, field_validator
@@ -130,13 +131,19 @@ class JobAdSearchParams(SearchParams):
     """
 
     title: str | None = Field(description="The title of the job ad", default=None)
-    min_salary: int | None = Field(description="Minimum salary", default=None)
-    max_salary: int | None = Field(description="Maximum salary", default=None)
-    company_id: str | None = Field(description="The company ID", default=None)
-    location_id: str | None = Field(description="The location ID", default=None)
+    salary_threshold: float | None = Field(
+        description="The salary threshold", ge=0, default=0
+    )
+    min_salary: float | None = Field(description="Minimum salary", default=None)
+    max_salary: float | None = Field(description="Maximum salary", default=None)
+    company_id: UUID | None = Field(description="The company ID", default=None)
+    location_id: UUID | None = Field(description="The location ID", default=None)
     job_ad_status: JobAdStatus | None = Field(
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
         default=JobAdStatus.ACTIVE,
+    )
+    skills_threshold: int | None = Field(
+        description="The skills threshold", default=None
     )
 
     @field_validator("min_salary")
@@ -144,9 +151,19 @@ class JobAdSearchParams(SearchParams):
         if value is not None:
             if value < 0:
                 raise ValueError("Minimum salary must be non-negative")
-            max_salary = values.get("max_salary")
+            max_salary = values.data.get("max_salary")
             if max_salary is not None and value > max_salary:
                 raise ValueError("Minimum salary cannot be greater than maximum salary")
+        return value
+
+    @field_validator("skills_threshold")
+    def validate_skills_threshold(cls, value, values):
+        if value is not None:
+            skills = values.data.get("skills", [])
+            if not 0 <= value <= len(skills):
+                raise ValueError(
+                    "Skills threshold must be between 0 and the number of skills"
+                )
         return value
 
 
