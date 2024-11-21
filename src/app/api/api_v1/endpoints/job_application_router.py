@@ -11,8 +11,6 @@ from app.schemas.job_application import (
     JobApplicationUpdate,
     MatchResponseRequest,
 )
-from app.schemas.professional import ProfessionalResponse
-from app.schemas.user import User
 from app.services import job_application_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db

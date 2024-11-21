@@ -1,7 +1,7 @@
 from typing import Union
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
+    ProfessionalResponse,
     ProfessionalRequestBody,
     ProfessionalUpdateRequestBody,
 )
@@ -20,17 +21,26 @@ from app.utils.process_request import process_request
 router = APIRouter()
 
 
+def get_current_user():
+    try:
+        return get_current_professional()
+    except Exception:
+        return get_current_company()
+
+
 @router.post(
     "/",
     description="Create a profile for a Professional.",
 )
 def create(
-    professional: ProfessionalRequestBody = Body(),
+    professional_request: ProfessionalRequestBody = Body(),
+    professional: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
-            professional_request=professional,
+            professional_request=professional_request,
+            professional=professional,
             db=db,
         )
 
@@ -44,11 +54,11 @@ def create(
 @router.put(
     "/{professional_id}",
     description="Update a profile for a Professional.",
+    # dependencies=[Depends(get_current_professional)],
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalUpdateRequestBody = Form(),
-    # user: ProfessionalResponse = Depends(get_current_professional),
+    professional: ProfessionalUpdateRequestBody = Body(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
@@ -65,7 +75,11 @@ def update(
     )
 
 
-@router.post("/{professional_id}/upload-photo", description="Upload a photo")
+@router.post(
+    "/{professional_id}/upload-photo",
+    description="Upload a photo",
+    # dependencies=[Depends(get_current_professional)],
+)
 def upload(
     professional_id: UUID,
     photo: UploadFile = File(),
@@ -85,7 +99,11 @@ def upload(
     )
 
 
-@router.get("/{professional_id}/download-photo", response_model=None)
+@router.get(
+    "/{professional_id}/download-photo",
+    response_model=None,
+    # dependencies=[Depends(get_current_user)],
+)
 def download(
     professional_id: UUID, db: Session = Depends(get_db)
 ) -> Union[StreamingResponse, JSONResponse]:
@@ -95,11 +113,11 @@ def download(
 @router.post(
     "/all",
     description="Retreive all Professional profiles.",
+    # dependencies=[Depends(get_current_user)],
 )
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    # user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -117,10 +135,10 @@ def get_all(
 @router.get(
     "/{professional_id}",
     description="Retreive a Professional profile by its ID.",
+    # dependencies=[Depends(get_current_user)],
 )
 def get_by_id(
     professional_id: UUID,
-    # user: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
@@ -136,12 +154,12 @@ def get_by_id(
 @router.get(
     "/{professional_id}/job-applications",
     description="View Job Applications by a Professional",
+    # dependencies=[Depends(get_current_user)],
 )
 def get_applications(
     professional_id: UUID,
     filter_params: FilterParams = Depends(),
-    # user: ProfessionalResponse = Depends(get_current_professional),
-    application_status: JobSearchStatus = Form(
+    application_status: JobSearchStatus = Query(
         description="Status of the Job Application"
     ),
     db: Session = Depends(get_db),
