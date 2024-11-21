@@ -61,7 +61,9 @@ def create_job_ad(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_job_ad():
-        return job_ad_service.create(company=company, job_ad_data=job_ad_data, db=db)
+        return job_ad_service.create(
+            company_id=company.id, job_ad_data=job_ad_data, db=db
+        )
 
     return process_request(
         get_entities_fn=_create_job_ad,
