@@ -480,6 +480,7 @@ def _filter_by_skills(
     Args:
         job_ads (Query[JobAd]): The query object containing the job advertisements.
         search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
+        db (Session): The database session to use for querying.
 
     Returns:
         Query[JobAd]: The filtered query object containing the job advertisements.
