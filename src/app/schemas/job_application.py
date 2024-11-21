@@ -2,9 +2,10 @@ from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
+from sqlalchemy.orm import Session
 
 from app.schemas.professional import ProfessionalResponse
-from app.schemas.skill import SkillBase
+from app.schemas.skill import SkillBase, SkillResponse
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
 
@@ -18,7 +19,7 @@ class JobStatus(str, Enum):
         HIDDEN: Accessible only by ID.
     """
 
-    ACTIVE = "acitve"
+    ACTIVE = "active"
     PRIVATE = "private"
     HIDDEN = "hidden"
 
@@ -31,7 +32,7 @@ class JobSearchStatus(str, Enum):
         MATCHED: Matched with Job Ad.
     """
 
-    ACTIVE = "acitve"
+    ACTIVE = "active"
     MATCHED = "matched"
 
 
@@ -64,7 +65,6 @@ class JobAplicationBase(BaseModel):
     description: str = Field(
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
-    skills: list[SkillBase] = Field(default_factory=list)
 
     @model_validator(mode="before")
     def validate_salary_range(cls, values):
@@ -81,11 +81,13 @@ class JobAplicationBase(BaseModel):
 class JobApplicationCreate(JobAplicationBase):
     city: str = Field(examples=["Sofia"])
     is_main: bool
-    application_status: JobStatus
+    skills: list[SkillBase] = Field(default_factory=list)
+    status: JobStatus
 
 
 class JobApplicationUpdate(JobAplicationBase):
     city: str | None = Field(examples=["Sofia"], default=None)
+    skills: list[SkillBase] | None = Field(default=None)
     is_main: bool
     application_status: JobStatus
 
@@ -116,23 +118,27 @@ class JobApplicationResponse(JobAplicationBase):
     email: EmailStr
     photo: bytes | None = None
     status: str
+    skills: list[SkillResponse] | None = None
 
     @classmethod
     def create(
         cls,
         professional: ProfessionalResponse | Professional,
         job_application: JobApplication,
+        db: Session,
+        skills: list[SkillResponse] | None = None,
     ) -> "JobApplicationResponse":
-        skills = [
-            SkillBase(name=skill.skill.name, level=skill.skill.level)
-            for skill in job_application.skills
-        ]
+        from app.services import job_application_service
+
         city = (
             professional.city.name
             if isinstance(professional, Professional)
             else professional.city
         )
-
+        if skills is None:
+            skills = job_application_service.get_skills(
+                job_application=job_application, db=db
+            )
         return cls(
             application_id=job_application.id,
             professional_id=professional.id,
@@ -147,3 +153,6 @@ class JobApplicationResponse(JobAplicationBase):
             city=city,
             skills=skills,
         )
+
+    class Config:
+        json_encoders = {bytes: lambda v: "<binary data>"}

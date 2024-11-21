@@ -18,3 +18,17 @@ class SkillBase(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class SkillResponse(BaseModel):
+    """
+    Pydantic model representing a skill associated with a specific skill level.
+
+    Attributes:
+        name (str): Skill name.
+        level (SkillLevel): Enum representing the level of proficiency for the skill.
+
+    """
+
+    name: str
+    level: str

@@ -43,7 +43,6 @@ def create(
     Args:
         professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
         db (Session): Database dependency.
-        photo (UploadFile | None): Photo of the professional.
 
     Returns:
         Professional: Pydantic response model for Professional.
@@ -83,7 +82,6 @@ def update(
         professional_id (UUID): The identifier of the professional.
         professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
         db (Session): Database dependency.
-        photo (UploadFile | None): Photo of the professional.
 
     Returns:
         Professional: Professional Pydantic response model.
@@ -131,8 +129,19 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     """
     profesional = _get_by_id(professional_id=professional_id, db=db)
 
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
     def _handle_upload():
         upload_photo = photo.file.read()
+        file_size = len(upload_photo)
+        photo.file.seek(0)
+        if file_size > MAX_FILE_SIZE:
+            logger.error("Upload cancelled, max file size exceeded")
+            raise ApplicationError(
+                detail=f"File size exceeds the allowed limit of {MAX_FILE_SIZE / (1024 * 1024)}MB.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         profesional.photo = upload_photo
         db.commit()
         return {"msg": "Photo successfully uploaded"}
@@ -396,12 +405,13 @@ def get_applications(
         list[JobApplicationResponse]: List of Job Applications Pydantic models.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
+    status = JobStatus(application_status.value)
 
     applications = (
         db.query(JobApplication)
         .filter(
             JobApplication.professional_id == professional_id,
-            JobApplication.status == application_status.value,
+            JobApplication.status == status,
         )
         .offset(filter_params.offset)
         .limit(filter_params.limit)
@@ -410,7 +420,7 @@ def get_applications(
 
     return [
         JobApplicationResponse.create(
-            professional=professional, job_application=application
+            professional=professional, job_application=application, db=db
         )
         for application in applications
     ]

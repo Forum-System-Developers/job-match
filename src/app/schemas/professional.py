@@ -107,6 +107,9 @@ class ProfessionalResponse(ProfessionalBase):
             matched_ads=matched_ads,
         )
 
+    class Config:
+        json_encoders = {bytes: lambda v: "<binary data>"}
+
 
 class ProfessionalRequestBody(BaseModel):
     professional: ProfessionalCreate

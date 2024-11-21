@@ -11,7 +11,6 @@ from app.schemas.job_application import (
     JobApplicationUpdate,
     MatchResponseRequest,
 )
-from app.schemas.user import User
 from app.services import job_application_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
@@ -20,20 +19,28 @@ from app.utils.process_request import process_request
 router = APIRouter()
 
 
+def get_current_user():
+    try:
+        return get_current_professional()
+    except Exception:
+        return get_current_company()
+
+
 @router.post(
-    "/",
+    "/{professional_id}",
     description="Create a Job Application.",
+    # dependencies=[Depends(get_current_professional)],
 )
 def create(
+    professional_id: UUID,
     application_create: JobApplicationCreate = Body(
         description="Job Application creation form"
     ),
-    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return job_application_service.create(
-            user=user,
+            professional_id=professional_id,
             application_create=application_create,
             db=db,
         )
@@ -46,21 +53,22 @@ def create(
 
 
 @router.put(
-    "/{job_application_id}",
+    "/{job_application_id}/{professional_id}",
     description="Update a Job Application.",
+    dependencies=[Depends(get_current_professional)],
 )
 def update(
     job_application_id: UUID,
+    professional_id: UUID,
     application_update: JobApplicationUpdate = Body(
         description="Job Application update form"
     ),
-    user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
         return job_application_service.update(
+            professional_id=professional_id,
             job_application_id=job_application_id,
-            user=user,
             application_update=application_update,
             db=db,
         )
@@ -72,13 +80,14 @@ def update(
     )
 
 
-@router.get(
-    "/", description="Get all Job applications (filtered by indicated parameters)"
+@router.post(
+    "/",
+    description="Get all Job applications (filtered by indicated parameters)",
+    # dependencies=[Depends(get_current_user)],
 )
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    # user: User = Depends(get_current_company),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
@@ -95,7 +104,11 @@ def get_all(
     )
 
 
-@router.get("/{job_application_id}", description="Fetch a Job Application by its ID")
+@router.get(
+    "/{job_application_id}",
+    description="Fetch a Job Application by its ID",
+    # dependencies=[Depends(get_current_user)],
+)
 def get_by_id(
     job_application_id: UUID,
     db: Session = Depends(get_db),
@@ -113,12 +126,13 @@ def get_by_id(
 
 
 @router.post(
-    "/{job_application_id}/job-ads/{job_ad_id}", description="Send match request"
+    "/{job_application_id}/job-ads/{job_ad_id}",
+    description="Send match request",
+    # dependencies=[Depends(get_current_company)],
 )
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
-    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _request_match():
@@ -136,12 +150,12 @@ def request_match(
 @router.put(
     "/{job_application_id}/{job_ad_id}/match-response",
     description="Accept or reject a Match request",
+    # dependencies=[Depends(get_current_professional)],
 )
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest = Form(),
-    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():
@@ -159,11 +173,14 @@ def handle_match_response(
     )
 
 
-@router.get("/{job_application_id}/match-requests", description="View Match requests.")
+@router.get(
+    "/{job_application_id}/match-requests",
+    description="View Match requests.",
+    # dependencies=[Depends(get_current_professional)],
+)
 def view_match_requests(
     job_application_id: UUID,
     filter_params: FilterParams = Depends(),
-    # user: User = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():
