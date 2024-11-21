@@ -412,17 +412,7 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
         job_ads = job_ads.filter(JobAd.title.ilike(f"%{search_params.title}%"))
         logger.info(f"Searching for job ads with title: {search_params.title}")
 
-    if search_params.min_salary:
-        job_ads = job_ads.filter(JobAd.min_salary >= search_params.min_salary)
-        logger.info(
-            f"Searching for job ads with min_salary: {search_params.min_salary}"
-        )
-
-    if search_params.max_salary:
-        job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
-        logger.info(
-            f"Searching for job ads with max_salary: {search_params.max_salary}"
-        )
+    job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
 
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
@@ -454,5 +444,37 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
             logger.info(
                 f"Ordering job ads by {search_params.order_by} in descending order"
             )
+
+    return job_ads
+
+
+def _filter_by_salary(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+) -> Query[JobAd]:
+    """
+    Filters job advertisements by salary range.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
+
+    Returns:
+        Query[JobAd]: The filtered query object containing the job advertisements.
+    """
+    min_salary = search_params.min_salary or 0
+    max_salary = search_params.max_salary or float("inf")
+
+    if search_params.min_salary:
+        job_ads = job_ads.filter(
+            (JobAd.min_salary - search_params.salary_threshold) <= max_salary
+        )
+        logger.info(f"Filtering job ads with min_salary: {search_params.min_salary}")
+
+    if search_params.max_salary:
+        job_ads = job_ads.filter(
+            (JobAd.max_salary + search_params.salary_threshold) >= min_salary
+        )
+        logger.info(f"Filtering job ads with max_salary: {search_params.max_salary}")
 
     return job_ads
