@@ -4,7 +4,6 @@ from uuid import UUID
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_ad import BaseJobAd
@@ -13,6 +12,7 @@ from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
+from app.utils.database_utils import handle_database_operation
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +230,8 @@ def get_match_requests_for_job_application(
         BaseJobAd(
             title=job_ad.title,
             description=job_ad.description,
-            location=job_ad.location.name,
+            category_id=job_ad.category.id,
+            location_id=job_ad.location.id,
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
         )

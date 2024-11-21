@@ -4,22 +4,21 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy import and_, asc, desc, func
-from sqlalchemy.orm import Query, Session, joinedload
+from sqlalchemy.orm import Query, Session, aliased
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
-from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
+    ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
     ensure_valid_location,
     ensure_valid_match_request,
     ensure_valid_requirement_id,
 )
-from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
@@ -49,11 +48,7 @@ def get_all(
     """
     job_ads = _search_job_ads(search_params=search_params, db=db)
     job_ads = job_ads.offset(filter_params.offset).limit(filter_params.limit)
-    job_ads_list = job_ads.options(
-        joinedload(JobAd.job_ads_requirements).joinedload(
-            JobAdsRequirement.job_requirement
-        )
-    ).all()
+    job_ads_list = job_ads.all()
     logger.info(f"Retrieved {len(job_ads_list)} job ads")
 
     return [JobAdResponse.create(job_ad) for job_ad in job_ads]
@@ -77,7 +72,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
 
 
 def create(
-    company: CompanyResponse,
+    company_id: UUID,
     job_ad_data: JobAdCreate,
     db: Session,
 ) -> JobAdResponse:
@@ -85,6 +80,7 @@ def create(
     Create a new job advertisement.
 
     Args:
+        company_id (UUID): The unique identifier of the company associated with the job advertisement.
         job_ad_data (JobAdCreate): The data required to create a new job advertisement.
         db (Session): The database session used to create the job advertisement.
 
@@ -94,12 +90,12 @@ def create(
     Raises:
         ApplicationError: If the company or city is not found.
     """
-    company_entity = db.query(Company).filter(Company.id == company.id).first()
+    company = ensure_valid_company_id(id=company_id, db=db)
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
-    if company_entity is not None:
-        company_entity.job_ads.append(job_ad)
-        company_entity.active_job_count += 1
+    if company is not None:
+        company.job_ads.append(job_ad)
+        company.active_job_count += 1
 
     db.add(job_ad)
     db.commit()
@@ -191,38 +187,6 @@ def add_requirement(
     return MessageResponse(message="Requirement added to job ad")
 
 
-def get_match_requests(
-    job_ad_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> list[MatchResponse]:
-    """
-    Retrieve match requests for a given job advertisement.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
-
-    Returns:
-        list[MatchResponse]: A list of match responses for the specified job advertisement.
-    """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = requests = (
-        db.query(Match)
-        .join(Match.job_ad)
-        .filter(
-            and_(
-                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
-            )
-        )
-        .all()
-    )
-
-    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
-
-    return [MatchResponse.create(request) for request in requests]
-
-
 def accept_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
@@ -312,6 +276,38 @@ def send_match_request(
     return MessageResponse(message="Match request sent")
 
 
+def view_received_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
+    """
+    Retrieve match requests for a given job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    requests = requests = (
+        db.query(Match)
+        .join(Match.job_ad)
+        .filter(
+            and_(
+                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
+            )
+        )
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
+
+    return [MatchResponse.create(request) for request in requests]
+
+
 def view_sent_match_requests(
     job_ad_id: UUID,
     company_id: UUID,
@@ -331,7 +327,10 @@ def view_sent_match_requests(
     requests = (
         db.query(Match)
         .filter(
-            and_(Match.job_ad_id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_AD)
+            and_(
+                Match.job_ad_id == job_ad.id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+            )
         )
         .all()
     )
@@ -409,35 +408,14 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
         job_ads = job_ads.filter(JobAd.title.ilike(f"%{search_params.title}%"))
         logger.info(f"Searching for job ads with title: {search_params.title}")
 
-    if search_params.min_salary:
-        job_ads = job_ads.filter(JobAd.min_salary >= search_params.min_salary)
-        logger.info(
-            f"Searching for job ads with min_salary: {search_params.min_salary}"
-        )
-
-    if search_params.max_salary:
-        job_ads = job_ads.filter(JobAd.max_salary <= search_params.max_salary)
-        logger.info(
-            f"Searching for job ads with max_salary: {search_params.max_salary}"
-        )
-
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
         logger.info(
             f"Searching for job ads with location_id: {search_params.location_id}"
         )
 
-    if search_params.skills:
-        for skill in search_params.skills:
-            job_ads = job_ads.filter(
-                JobAd.job_ads_requirements.any(
-                    JobAdsRequirement.job_requirement.has(
-                        func.lower(JobRequirement.description) == skill.lower()
-                    )
-                )
-            )
-            logger.info(f"Searching for job ads with skill: {skill}")
-
+    job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
+    job_ads = _filter_by_skills(job_ads=job_ads, search_params=search_params, db=db)
     order_by_column = getattr(JobAd, search_params.order_by, None)
 
     if order_by_column is not None:
@@ -451,5 +429,94 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
             logger.info(
                 f"Ordering job ads by {search_params.order_by} in descending order"
             )
+
+    return job_ads
+
+
+def _filter_by_salary(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+) -> Query[JobAd]:
+    """
+    Filters job advertisements by salary range.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
+
+    Returns:
+        Query[JobAd]: The filtered query object containing the job advertisements.
+    """
+    min_salary = search_params.min_salary or 0
+    max_salary = search_params.max_salary or float("inf")
+    logger.info(
+        f"Filtering job ads with salary range: {search_params.min_salary} - {search_params.max_salary} \
+            and threshold: {search_params.salary_threshold}"
+    )
+
+    job_ads = job_ads.filter(
+        (JobAd.min_salary - search_params.salary_threshold) <= max_salary
+    )
+    logger.info(f"Filtering job ads with max_salary: {max_salary}")
+
+    job_ads = job_ads.filter(
+        (JobAd.max_salary + search_params.salary_threshold) >= min_salary
+    )
+    logger.info(f"Filtering job ads with min_salary: {min_salary}")
+
+    return job_ads
+
+
+def _filter_by_skills(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+    db: Session,
+) -> Query[JobAd]:
+    """
+    Filters job advertisements by skills.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
+        db (Session): The database session to use for querying.
+
+    Returns:
+        Query[JobAd]: The filtered query object containing the job advertisements.
+    """
+    if search_params.skills:
+        num_skills = len(search_params.skills)
+        threshold = search_params.skills_threshold
+        required_matches = max(num_skills - threshold, 0)
+
+        if required_matches == 0:
+            logger.info(
+                f"Threshold equals to the number of skills({num_skills}), skipping skill filtering."
+            )
+            return job_ads
+
+        job_requirement_alias = aliased(JobRequirement)
+
+        skill_match_count = (
+            db.query(JobAd.id.label("job_ad_id"))
+            .join(JobAdsRequirement)
+            .join(job_requirement_alias, JobAdsRequirement.job_requirement)
+            .filter(
+                func.lower(job_requirement_alias.description).in_(
+                    [skill.lower() for skill in search_params.skills]
+                )
+            )
+            .group_by(JobAd.id)
+            .having(
+                func.count(func.distinct(job_requirement_alias.id)) >= required_matches
+            )
+            .subquery()
+        )
+
+        job_ads = job_ads.join(
+            skill_match_count, JobAd.id == skill_match_count.c.job_ad_id
+        )
+        logger.info(
+            f"Searching for job ads with at least {required_matches} skills from the provided skill list: {search_params.skills}"
+        )
 
     return job_ads

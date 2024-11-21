@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
@@ -82,3 +82,33 @@ def update_company(
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"Company with id {company.id} not updated",
     )
+
+
+@router.post(
+    "/upload-logo",
+    description="Upload a logo for the current company.",
+)
+def upload_logo(
+    logo: UploadFile = File(),
+    company: CompanyResponse = Depends(get_current_company),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _upload_logo():
+        return company_service.upload_logo(company_id=company.id, logo=logo, db=db)
+
+    return process_request(
+        get_entities_fn=_upload_logo,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg="Could not upload logo",
+    )
+
+
+@router.post(
+    "/{company_id}/download-logo",
+    description="Download the logo of the current company",
+)
+def download_logo(
+    company_id: UUID,
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    return company_service.download_logo(company_id=company_id, db=db)

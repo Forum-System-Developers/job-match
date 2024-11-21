@@ -5,7 +5,6 @@ from fastapi import status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
 from app.schemas.common import FilterParams, SearchParams
@@ -25,6 +24,7 @@ from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
+from app.utils.database_utils import handle_database_operation
 
 logger = logging.getLogger(__name__)
 
@@ -465,7 +465,7 @@ def _create(
         JobApplication: The new instance of the Job Aplication model.
     """
 
-    def _handle_create():
+    def _handle_create() -> JobApplication:
         professional.active_application_count += 1
 
         job_application: JobApplication = JobApplication(
