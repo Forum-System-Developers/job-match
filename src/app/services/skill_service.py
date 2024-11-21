@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.utils.database_utils import handle_database_operation
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.skill import SkillBase
+from app.schemas.skill import SkillBase, SkillResponse
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.skill.skill import Skill
@@ -14,7 +14,7 @@ from app.sql_app.skill.skill import Skill
 logger = logging.getLogger(__name__)
 
 
-def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
+def create_skill(db: Session, skill_schema: SkillBase) -> UUID:
     """
     Creates a new Skill instance.
 
@@ -23,7 +23,7 @@ def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
         skill_schema (SkillBase): Pydantic schema for collecting data.
 
     Returns:
-        SkillBase: SkillBase Pydantic response model.
+        UUID: The ID of the newly created Skill.
     """
 
     def _handle_create():
@@ -36,7 +36,7 @@ def create_skill(db: Session, skill_schema: SkillBase) -> SkillBase:
         db.refresh(skill_model)
         logger.info(f"Skill {skill_model.name} created")
 
-        return skill_schema
+        return skill_model.id
 
     return handle_database_operation(db_request=_handle_create, db=db)
 
@@ -105,3 +105,14 @@ def get_id(db: Session, skill_name: str) -> UUID:
             status_code=status.HTTP_404_NOT_FOUND,
         )
     return skill.id
+
+
+def get_by_id(skill_id: UUID, db: Session) -> SkillResponse:
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if skill is None:
+        raise ApplicationError(
+            detail=f"Skill with id {skill_id} not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    return SkillResponse(name=skill.name, level=skill.level.value)
