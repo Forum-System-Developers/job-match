@@ -138,7 +138,7 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
         if file_size > MAX_FILE_SIZE:
             logger.error("Upload cancelled, max file size exceeded")
             raise ApplicationError(
-                detail=f"File size exceeds the allowed limit of {MAX_FILE_SIZE / (1024 * 1024)} MB.",
+                detail=f"File size exceeds the allowed limit of {MAX_FILE_SIZE / (1024 * 1024)}MB.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -405,12 +405,13 @@ def get_applications(
         list[JobApplicationResponse]: List of Job Applications Pydantic models.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
+    status = JobStatus(application_status.value)
 
     applications = (
         db.query(JobApplication)
         .filter(
             JobApplication.professional_id == professional_id,
-            JobApplication.status == application_status.value,
+            JobApplication.status == status,
         )
         .offset(filter_params.offset)
         .limit(filter_params.limit)
@@ -419,7 +420,7 @@ def get_applications(
 
     return [
         JobApplicationResponse.create(
-            professional=professional, job_application=application
+            professional=professional, job_application=application, db=db
         )
         for application in applications
     ]
