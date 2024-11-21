@@ -50,7 +50,7 @@ def get_by_id(id: UUID, db: Session) -> CompanyResponse:
     Returns:
         CompanyResponse: The company response model.
     """
-    company = _ensure_company_exists(id=id, db=db)
+    company = ensure_valid_company_id(id=id, db=db)
     logger.info(f"Retrieved company with id {id}")
 
     return CompanyResponse.create(company)
@@ -121,7 +121,9 @@ def create(
 
 
 def update(
-    id: UUID, company_data: CompanyUpdate, db: Session, logo: UploadFile | None = None
+    id: UUID,
+    company_data: CompanyUpdate,
+    db: Session,
 ) -> CompanyResponse:
     """
     Update an existing company in the database.
@@ -135,9 +137,7 @@ def update(
         CompanyResponse: The response object containing the updated company's details.
     """
     company = ensure_valid_company_id(id=id, db=db)
-    company = _update_company(
-        company=company, company_data=company_data, logo=logo, db=db
-    )
+    company = _update_company(company=company, company_data=company_data, db=db)
 
     db.commit()
     db.refresh(company)
@@ -179,7 +179,7 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     Raises:
         ApplicationError: If the company does not have a logo or does not exist.
     """
-    company = _ensure_company_exists(id=company_id, db=db)
+    company = ensure_valid_company_id(id=company_id, db=db)
     logo = company.logo
     if logo is None:
         raise ApplicationError(
@@ -251,7 +251,6 @@ def _update_company(
     company: Company,
     company_data: CompanyUpdate,
     db: Session,
-    logo: UploadFile | None = None,
 ) -> Company:
     """
     Updates the details of a company with the provided data.
@@ -259,7 +258,6 @@ def _update_company(
         company (Company): The company instance to be updated.
         company_data (CompanyUpdate): The data to update the company with.
         db (Session): The database session to use for any database operations.
-        logo (UploadFile | None, optional): The new logo file to update, if any. Defaults to None.
     Returns:
         Company: The updated company instance.
     """
@@ -296,12 +294,7 @@ def _update_company(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
         )
 
-    if logo is not None:
-        upload_logo = logo.file.read()
-        company.logo = upload_logo
-        logger.info(f"Updated company (id: {company.id}) logo")
-
-    if any(value is None for value in vars(company_data).values()) or logo is not None:
+    if any(value is None for value in vars(company_data).values()):
         company.updated_at = datetime.now()
         logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
 
@@ -382,28 +375,6 @@ def _ensure_unique_phone_number(phone_number: str, db: Session) -> None:
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Company with phone number {phone_number} already exists",
         )
-
-
-def _ensure_company_exists(id: UUID, db: Session) -> Company:
-    """
-    Ensure that a company exists in the database.
-
-    Args:
-        id (UUID): The unique identifier of the company.
-        db (Session): The database session used to query the company.
-
-    Raises:
-        ApplicationError: If the company does not exist.
-    """
-    company = _get_by_id(id=id, db=db)
-    if company is None:
-        logger.error(f"Company with id {id} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company with id {id} not found",
-        )
-
-    return company
 
 
 def _ensure_valid_company_creation_data(
