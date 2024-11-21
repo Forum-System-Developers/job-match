@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy import and_, asc, desc, func
-from sqlalchemy.orm import Query, Session, joinedload
+from sqlalchemy.orm import Query, Session, aliased, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
@@ -412,25 +412,14 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
         job_ads = job_ads.filter(JobAd.title.ilike(f"%{search_params.title}%"))
         logger.info(f"Searching for job ads with title: {search_params.title}")
 
-    job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
-
     if search_params.location_id:
         job_ads = job_ads.filter(JobAd.location_id == search_params.location_id)
         logger.info(
             f"Searching for job ads with location_id: {search_params.location_id}"
         )
 
-    if search_params.skills:
-        for skill in search_params.skills:
-            job_ads = job_ads.filter(
-                JobAd.job_ads_requirements.any(
-                    JobAdsRequirement.job_requirement.has(
-                        func.lower(JobRequirement.description) == skill.lower()
-                    )
-                )
-            )
-            logger.info(f"Searching for job ads with skill: {skill}")
-
+    job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
+    job_ads = _filter_by_skills(job_ads=job_ads, search_params=search_params, db=db)
     order_by_column = getattr(JobAd, search_params.order_by, None)
 
     if order_by_column is not None:
@@ -476,5 +465,52 @@ def _filter_by_salary(
             (JobAd.max_salary + search_params.salary_threshold) >= min_salary
         )
         logger.info(f"Filtering job ads with max_salary: {search_params.max_salary}")
+
+    return job_ads
+
+
+def _filter_by_skills(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+    db: Session,
+) -> Query[JobAd]:
+    """
+    Filters job advertisements by skills.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
+
+    Returns:
+        Query[JobAd]: The filtered query object containing the job advertisements.
+    """
+    if search_params.skills:
+        num_skills = len(search_params.skills)
+        threshold = search_params.skills_threshold or 0
+        required_matches = max(num_skills - threshold, 0)
+        job_requirement_alias = aliased(JobRequirement)
+
+        skill_match_count = (
+            db.query(JobAd.id.label("job_ad_id"))
+            .join(JobAdsRequirement)
+            .join(job_requirement_alias, JobAdsRequirement.job_requirement)
+            .filter(
+                func.lower(job_requirement_alias.description).in_(
+                    [skill.lower() for skill in search_params.skills]
+                )
+            )
+            .group_by(JobAd.id)
+            .having(
+                func.count(func.distinct(job_requirement_alias.id)) >= required_matches
+            )
+            .subquery()
+        )
+
+        job_ads = job_ads.join(
+            skill_match_count, JobAd.id == skill_match_count.c.job_ad_id
+        )
+        logger.info(
+            f"Searching for job ads with at least {required_matches} skills from the provided skill list: {search_params.skills}"
+        )
 
     return job_ads
