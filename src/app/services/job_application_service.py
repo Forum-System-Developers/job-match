@@ -14,13 +14,12 @@ from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
     JobApplicationUpdate,
-    JobSearchStatus,
     MatchResponseRequest,
 )
-from app.schemas.skill import SkillBase
-from app.schemas.user import User
+from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
 from app.services.utils.validators import ensure_valid_professional_id
+from app.schemas.professional import ProfessionalResponse
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def create(
-    user: User,
+    professional_id: UUID,
     application_create: JobApplicationCreate,
     db: Session,
 ) -> JobApplicationResponse:
@@ -39,7 +38,7 @@ def create(
     Creates an instance of the Job Application model.
 
     Args:
-        user (User): Current logged in user.
+        professional (ProfessionalResponse): Current logged in Professional.
         application_create (JobApplicationCreate): Pydantic schema for collecting data.
         db (Session): Database dependency.
 
@@ -47,7 +46,7 @@ def create(
         JobApplicationResponse: JobApplication Pydantic response model.
     """
     professional: Professional = ensure_valid_professional_id(
-        professional_id=user.id, db=db
+        professional_id=professional_id, db=db
     )
 
     city: CityResponse = city_service.get_by_name(
@@ -62,21 +61,24 @@ def create(
     )
 
     if application_create.skills:
-        _update_skillset(
+        skills = _create_skillset(
             db=db,
             job_application_model=job_application,
-            skills=set(application_create.skills),
+            skills=application_create.skills,
         )
         logger.info(f"Job Application id {job_application.id} skillset created")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application
+        professional=professional,
+        job_application=job_application,
+        skills=skills if skills else [],
+        db=db,
     )
 
 
 def update(
     job_application_id: UUID,
-    user: User,
+    professional_id: UUID,
     application_update: JobApplicationUpdate,
     db: Session,
 ) -> JobApplicationResponse:
@@ -85,7 +87,6 @@ def update(
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
-        user (User): Current logged in user.
         application_update (JobApplicationUpdate): Pydantic schema for collecting data.
         db (Session): Database dependency.
 
@@ -95,9 +96,7 @@ def update(
     job_application: JobApplication = _get_by_id(
         job_application_id=job_application_id, db=db
     )
-    professional: Professional = ensure_valid_professional_id(
-        professional_id=user.id, db=db
-    )
+    professional = ensure_valid_professional_id(professional_id=professional_id, db=db)
 
     job_application = _update_attributes(
         application_update=application_update,
@@ -108,33 +107,40 @@ def update(
     logger.info(f"Job Application with id {job_application.id} updated")
 
     return JobApplicationResponse.create(
-        professional=professional, job_application=job_application
+        professional=professional,
+        job_application=job_application,
+        db=db,
     )
 
 
 def get_all(
     filter_params: FilterParams,
-    db: Session,
     search_params: SearchParams,
+    db: Session,
 ) -> list[JobApplicationResponse]:
     """
     Retrieve all Job Applications that match the filtering parameters and keywords.
 
     Args:
         filer_params (FilterParams): Pydantic schema for filtering params.
-        status (JobSearchStatus): Can be ACTIVE or MATCHED.
-        search (str): Search keyword.
+        search_params (SearchParams): Pydantic for search parameteres.
         db (Session): The database session.
     Returns:
         list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
     """
-    query: Query = db.query(JobApplication).filter(
-        JobApplication.status == JobSearchStatus.ACTIVE
+    query: Query = (
+        db.query(JobApplication, Professional)
+        .join(Professional, JobApplication.professional_id == Professional.id)
+        .filter(
+            JobApplication.status == JobStatus.ACTIVE,
+        )
     )
 
     if search_params.skills:
-        query.join(JobApplicationSkill).join(Skill).filter(
-            Skill.name.in_(search_params.skills)
+        query = (
+            query.join(JobApplicationSkill)
+            .join(Skill)
+            .filter(Skill.name.in_(search_params.skills))
         )
         logger.info("Filtered applications by skills.")
 
@@ -146,16 +152,15 @@ def get_all(
         f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
     )
 
-    result: Query = query.offset(filter_params.offset).limit(filter_params.limit)
+    result = query.offset(filter_params.offset).limit(filter_params.limit).all()
 
     logger.info("Limited applications based on offset and limit")
 
     return [
         JobApplicationResponse.create(
-            job_application=row[0],
-            professional=row[1],
+            job_application=row[0], professional=row[1], db=db
         )
-        for row in result.all()
+        for row in result
     ]
 
 
@@ -176,7 +181,9 @@ def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
     )
 
     return JobApplicationResponse.create(
-        professional=job_application.professional, job_application=job_application
+        professional=job_application.professional,
+        job_application=job_application,
+        db=db,
     )
 
 
@@ -266,17 +273,11 @@ def _update_attributes(
         job_application_model.city_id = city.id
         logger.info(f"Job Application id {job_application_model.id} city updated")
 
-    if any(
-        (skill not in job_application_model.skills)
-        for skill in application_update.skills
-    ):
-        new_skills: set[SkillBase] = {
-            s
-            for s in application_update.skills
-            if s.name not in job_application_model.skills
-        }
+    if application_update.skills is not None:
         _update_skillset(
-            db=db, job_application_model=job_application_model, skills=new_skills
+            db=db,
+            job_application_model=job_application_model,
+            skills=application_update.skills,
         )
 
     def _handle_update():
@@ -294,7 +295,7 @@ def _update_attributes(
 def _update_skillset(
     db: Session,
     job_application_model: JobApplication,
-    skills: set[SkillBase],
+    skills: list[SkillBase],
 ) -> None:
     """
     Updates the skillset for a Job Application.
@@ -303,22 +304,73 @@ def _update_skillset(
 
         db (Session): Database dependency.
         job_application_model (JobApplication): The ORM model instance for Job Application.
-        skills (list[SkillBase]): List of Pydantic schemas representing each skill in the skillset.
+        skills (list[SkillBase]): Set of Pydantic schemas representing each skill in the skillset.
 
     Returns:
-        None
+        None:
     """
 
-    for skill in skills:
-        if not skill_service.exists(db=db, skill_name=skill.name):
-            skill_service.create_skill(db=db, skill_schema=skill)
+    def _handle_update():
+        skills_ids = {skill.skill_id for skill in job_application_model.skills}
+        for skill in skills:
+            if not skill_service.exists(db=db, skill_name=skill.name):
+                skill_id = skill_service.create_skill(db=db, skill_schema=skill)
+            else:
+                skill_id = skill_service.get_id(skill_name=skill.name, db=db)
 
-        skill_id = skill_service.get_id(db=db, skill_name=skill.name)
-        skill_service.create_job_application_skill(
-            db=db, skill_id=skill_id, job_application_id=job_application_model.id
-        )
+            if skill_id not in skills_ids:
+                skill_service.create_job_application_skill(
+                    db=db,
+                    skill_id=skill_id,
+                    job_application_id=job_application_model.id,
+                )
 
-    logger.info(f"Job Application id {job_application_model.id} skillset updated")
+        db.flush()
+        logger.info(f"Job Application id {job_application_model.id} skillset updated")
+
+    return handle_database_operation(db_request=_handle_update, db=db)
+
+
+def _create_skillset(
+    db: Session,
+    job_application_model: JobApplication,
+    skills: list[SkillBase],
+) -> list[SkillResponse]:
+    """
+    Creates the skillset for a Job Application.
+
+    Args:
+
+        db (Session): Database dependency.
+        job_application_model (JobApplication): The ORM model instance for Job Application.
+        skills (list[SkillBase]): Set of Pydantic schemas representing each skill in the skillset.
+
+    Returns:
+        list[SkillBase]: List of Pydantic schemas representing each skill in the newly created skillset.
+    """
+    skillset = []
+
+    def _handle_create():
+        for skill in skills:
+            if not skill_service.exists(db=db, skill_name=skill.name):
+                skill_id = skill_service.create_skill(db=db, skill_schema=skill)
+            else:
+                skill_id = skill_service.get_id(skill_name=skill.name, db=db)
+
+            skill_service.create_job_application_skill(
+                db=db,
+                skill_id=skill_id,
+                job_application_id=job_application_model.id,
+            )
+            skill = skill_service.get_by_id(skill_id=skill_id, db=db)
+            skillset.append(skill)
+
+        db.flush()
+        logger.info(f"Job Application id {job_application_model.id} skillset updated")
+
+        return skillset
+
+    return handle_database_operation(db_request=_handle_create, db=db)
 
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
@@ -417,10 +469,9 @@ def _create(
         professional.active_application_count += 1
 
         job_application: JobApplication = JobApplication(
-            **application_create.model_dump(exclude={"city"}),
-            is_main=application_create.is_main,
-            status=JobStatus(application_create.application_status.value),
+            **application_create.model_dump(exclude={"city", "skills", "status"}),
             city_id=city_id,
+            status=JobStatus(application_create.status.value),
             professional_id=professional.id,
         )
         logger.info(f"Job Application with id {job_application.id} created")
@@ -432,3 +483,13 @@ def _create(
         return job_application
 
     return handle_database_operation(db_request=_handle_create, db=db)
+
+
+def get_skills(job_application: JobApplication, db: Session) -> list[SkillResponse]:
+    skills_ids = [_.skill_id for _ in job_application.skills]
+    skills = []
+    for skill_id in skills_ids:
+        skill = skill_service.get_by_id(skill_id=skill_id, db=db)
+        skills.append(skill)
+
+    return skills
