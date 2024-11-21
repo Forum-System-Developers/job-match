@@ -131,9 +131,7 @@ class JobAdSearchParams(SearchParams):
     """
 
     title: str | None = Field(description="The title of the job ad", default=None)
-    salary_threshold: float = Field(
-        description="The salary threshold", ge=0, default=0
-    )
+    salary_threshold: float = Field(description="The salary threshold", ge=0, default=0)
     min_salary: float | None = Field(description="Minimum salary", default=None)
     max_salary: float | None = Field(description="Maximum salary", default=None)
     company_id: UUID | None = Field(description="The company ID", default=None)
