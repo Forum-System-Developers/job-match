@@ -135,7 +135,7 @@ def process_request_from_company(
         )
 
     if accept_request == MatchResponseRequest.accept:
-        accept_match_request(
+        return accept_match_request(
             match=existing_match,
             db=db,
             job_application_id=job_application_id,
