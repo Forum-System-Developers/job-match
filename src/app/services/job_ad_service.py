@@ -450,17 +450,15 @@ def _filter_by_salary(
     min_salary = search_params.min_salary or 0
     max_salary = search_params.max_salary or float("inf")
 
-    if search_params.min_salary:
-        job_ads = job_ads.filter(
-            (JobAd.min_salary - search_params.salary_threshold) <= max_salary
-        )
-        logger.info(f"Filtering job ads with min_salary: {search_params.min_salary}")
+    job_ads = job_ads.filter(
+        (JobAd.min_salary - search_params.salary_threshold) <= max_salary
+    )
+    logger.info(f"Filtering job ads with min_salary: {search_params.min_salary}")
 
-    if search_params.max_salary:
-        job_ads = job_ads.filter(
-            (JobAd.max_salary + search_params.salary_threshold) >= min_salary
-        )
-        logger.info(f"Filtering job ads with max_salary: {search_params.max_salary}")
+    job_ads = job_ads.filter(
+        (JobAd.max_salary + search_params.salary_threshold) >= min_salary
+    )
+    logger.info(f"Filtering job ads with max_salary: {search_params.max_salary}")
 
     return job_ads
 
