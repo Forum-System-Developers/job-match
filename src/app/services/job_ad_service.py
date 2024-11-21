@@ -4,22 +4,21 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy import and_, asc, desc, func
-from sqlalchemy.orm import Query, Session, aliased, joinedload
+from sqlalchemy.orm import Query, Session, aliased
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
-from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
+    ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
     ensure_valid_location,
     ensure_valid_match_request,
     ensure_valid_requirement_id,
 )
-from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
@@ -49,11 +48,7 @@ def get_all(
     """
     job_ads = _search_job_ads(search_params=search_params, db=db)
     job_ads = job_ads.offset(filter_params.offset).limit(filter_params.limit)
-    job_ads_list = job_ads.options(
-        joinedload(JobAd.job_ads_requirements).joinedload(
-            JobAdsRequirement.job_requirement
-        )
-    ).all()
+    job_ads_list = job_ads.all()
     logger.info(f"Retrieved {len(job_ads_list)} job ads")
 
     return [JobAdResponse.create(job_ad) for job_ad in job_ads]
@@ -77,7 +72,7 @@ def get_by_id(id: UUID, db: Session) -> JobAdResponse:
 
 
 def create(
-    company: CompanyResponse,
+    company_id: UUID,
     job_ad_data: JobAdCreate,
     db: Session,
 ) -> JobAdResponse:
@@ -85,6 +80,7 @@ def create(
     Create a new job advertisement.
 
     Args:
+        company_id (UUID): The unique identifier of the company associated with the job advertisement.
         job_ad_data (JobAdCreate): The data required to create a new job advertisement.
         db (Session): The database session used to create the job advertisement.
 
@@ -94,12 +90,12 @@ def create(
     Raises:
         ApplicationError: If the company or city is not found.
     """
-    company_entity = db.query(Company).filter(Company.id == company.id).first()
+    company = ensure_valid_company_id(id=company_id, db=db)
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
-    if company_entity is not None:
-        company_entity.job_ads.append(job_ad)
-        company_entity.active_job_count += 1
+    if company is not None:
+        company.job_ads.append(job_ad)
+        company.active_job_count += 1
 
     db.add(job_ad)
     db.commit()

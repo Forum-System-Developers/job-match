@@ -1,9 +1,9 @@
 import logging
-from typing import Callable, Any
+from typing import Any, Callable
 
 from fastapi import status
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 
