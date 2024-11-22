@@ -387,7 +387,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
-    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
 
     return match_service.create_if_not_exists(
         job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
