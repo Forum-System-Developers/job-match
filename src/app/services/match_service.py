@@ -60,10 +60,10 @@ def create_if_not_exists(
         match_request = Match(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
-            status=MatchStatus.REQUESTED_BY_JOB_APP,
+            status=MatchStatus(MatchStatus.REQUESTED_BY_JOB_AD),
         )
         logger.info(
-            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED_BY_JOB_APP}"
+            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED_BY_JOB_AD}"
         )
         db.add(match_request)
         db.commit()
@@ -134,7 +134,7 @@ def process_request_from_company(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    if accept_request == MatchResponseRequest.accept:
+    if accept_request.accept_request:
         return accept_match_request(
             match=existing_match,
             db=db,
@@ -142,7 +142,7 @@ def process_request_from_company(
             job_ad_id=job_ad_id,
         )
 
-    elif accept_request == MatchResponseRequest.reject:
+    else:
         return reject_match_request(
             match=existing_match,
             db=db,
@@ -176,7 +176,7 @@ def accept_match_request(
         db (Session): Database dependency.
 
     Returns:
-        None:
+        dict: Confirmation message.
 
     """
     match_job_application = match.job_application
