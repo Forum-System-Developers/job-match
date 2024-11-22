@@ -26,7 +26,7 @@ def create_skill(db: Session, skill_schema: SkillBase) -> UUID:
         UUID: The ID of the newly created Skill.
     """
 
-    def _handle_create() -> SkillBase:
+    def _handle_create():
         skill_model: Skill = Skill(
             name=skill_schema.name,
             level=SkillLevel(skill_schema.level),
