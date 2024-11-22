@@ -36,9 +36,8 @@ class JobSearchStatus(str, Enum):
     MATCHED = "matched"
 
 
-class MatchResponseRequest(Enum):
-    accept = True
-    reject = False
+class MatchResponseRequest(BaseModel):
+    accept_request: bool
 
 
 class JobAplicationBase(BaseModel):
