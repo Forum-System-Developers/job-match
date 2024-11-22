@@ -1,7 +1,7 @@
 from typing import Union
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
+    PrivateMatches,
     ProfessionalResponse,
     ProfessionalRequestBody,
     ProfessionalUpdateRequestBody,
@@ -72,6 +73,28 @@ def update(
         get_entities_fn=_update,
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Professional could not be updated",
+    )
+
+
+@router.patch(
+    "/{professional_id}/private-matches",
+    description="Set matches to Private or Public",
+    # dependencies=[Depends(get_current_professional)]
+)
+def private_matches(
+    professional_id: UUID,
+    private_matches: PrivateMatches = Form(),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _private_matches():
+        return professional_service.set_matches_status(
+            professional_id=professional_id, db=db, private_matches=private_matches
+        )
+
+    return process_request(
+        get_entities_fn=_private_matches,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="An error ocurred while setting matches status",
     )
 
 
