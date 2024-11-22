@@ -15,10 +15,10 @@ from app.schemas.job_application import (
     JobApplicationUpdate,
     MatchResponseRequest,
 )
+from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
 from app.services.utils.validators import ensure_valid_professional_id
-from app.schemas.professional import ProfessionalResponse
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill

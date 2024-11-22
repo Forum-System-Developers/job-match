@@ -6,13 +6,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
+from app.schemas.company import CompanyResponse
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationUpdate,
     MatchResponseRequest,
 )
 from app.schemas.professional import ProfessionalResponse
-from app.schemas.company import CompanyResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db

@@ -10,8 +10,8 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
-    ProfessionalResponse,
     ProfessionalRequestBody,
+    ProfessionalResponse,
     ProfessionalUpdateRequestBody,
 )
 from app.services import professional_service

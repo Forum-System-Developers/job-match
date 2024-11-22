@@ -15,7 +15,6 @@ from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 
-
 logger = logging.getLogger(__name__)
 
 
