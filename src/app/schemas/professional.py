@@ -1,5 +1,4 @@
 import re
-from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -10,9 +9,8 @@ from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
 
-class PrivateMatches(Enum):
-    accept = True
-    reject = False
+class PrivateMatches(BaseModel):
+    status: bool
 
 
 class ProfessionalBase(BaseModel):
@@ -104,7 +102,7 @@ class ProfessionalResponse(ProfessionalBase):
             photo=professional.photo,
             status=professional.status,
             active_application_count=professional.active_application_count,
-            matched_ads=matched_ads,
+            matched_ads=matched_ads if not professional.has_private_matches else None,
         )
 
     class Config:
@@ -118,5 +116,4 @@ class ProfessionalRequestBody(BaseModel):
 
 class ProfessionalUpdateRequestBody(BaseModel):
     professional: ProfessionalUpdate
-    private_matches: PrivateMatches
     status: ProfessionalStatus

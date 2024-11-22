@@ -15,10 +15,10 @@ from app.schemas.job_application import (
     JobApplicationUpdate,
     MatchResponseRequest,
 )
+from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
 from app.services.utils.validators import ensure_valid_professional_id
-from app.schemas.professional import ProfessionalResponse
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -387,7 +387,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
-    job_ad = job_ad_service.get_by_id(id=job_application_id, db=db)
+    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
 
     return match_service.create_if_not_exists(
         job_application_id=job_application.id, job_ad_id=job_ad.id, db=db

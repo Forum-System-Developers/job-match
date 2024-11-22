@@ -6,11 +6,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
+from app.schemas.company import CompanyResponse
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationUpdate,
     MatchResponseRequest,
 )
+from app.schemas.professional import ProfessionalResponse
 from app.services import job_application_service
 from app.services.auth_service import get_current_company, get_current_professional
 from app.sql_app.database import get_db
@@ -55,7 +57,7 @@ def create(
 @router.put(
     "/{job_application_id}/{professional_id}",
     description="Update a Job Application.",
-    dependencies=[Depends(get_current_professional)],
+    # dependencies=[Depends(get_current_professional)],
 )
 def update(
     job_application_id: UUID,
@@ -83,9 +85,9 @@ def update(
 @router.post(
     "/",
     description="Get all Job applications (filtered by indicated parameters)",
-    # dependencies=[Depends(get_current_user)],
 )
 def get_all(
+    # current_user: ProfessionalResponse | CompanyResponse = Depends(get_current_user),
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
     db: Session = Depends(get_db),
@@ -93,6 +95,7 @@ def get_all(
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
+            # current_user=current_user,
             db=db,
             search_params=search_params,
         )
@@ -127,7 +130,7 @@ def get_by_id(
 
 @router.post(
     "/{job_application_id}/job-ads/{job_ad_id}",
-    description="Send match request",
+    description="Send match request to a Job Application",
     # dependencies=[Depends(get_current_company)],
 )
 def request_match(
