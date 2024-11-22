@@ -11,6 +11,7 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
+    PrivateMatches,
     ProfessionalCreate,
     ProfessionalRequestBody,
     ProfessionalResponse,
@@ -313,7 +314,6 @@ def _update_attributes(
     """
     professional_update = professional_request.professional
     professional_status = professional_request.status
-    private_matches = professional_request.private_matches
 
     if professional.status != professional_status:
         professional.status = professional_status
@@ -344,8 +344,6 @@ def _update_attributes(
         professional.last_name = professional_update.last_name
         logger.info("Professional last name updated successfully")
 
-    professional.has_private_matches = private_matches.value
-
     def _handle_update():
         db.commit()
         db.refresh(professional)
@@ -354,6 +352,22 @@ def _update_attributes(
         return professional
 
     return handle_database_operation(db_request=_handle_update, db=db)
+
+
+def set_matches_status(
+    professional_id: UUID, db: Session, private_matches: PrivateMatches
+) -> dict:
+    professional = _get_by_id(professional_id=professional_id, db=db)
+
+    def _update_status():
+        professional.has_private_matches = private_matches.status
+        db.commit()
+
+        return {
+            "msg": f"Matches set as {'private' if private_matches.status else 'public'}"
+        }
+
+    return handle_database_operation(db_request=_update_status, db=db)
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -390,6 +404,7 @@ def get_by_username(username: str, db: Session) -> User:
 
 def get_applications(
     professional_id: UUID,
+    # current_user: ProfessionalResponse | CompanyResponse,
     db: Session,
     application_status: JobSearchStatus,
     filter_params: FilterParams,
@@ -405,13 +420,23 @@ def get_applications(
         list[JobApplicationResponse]: List of Job Applications Pydantic models.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    status = JobStatus(application_status.value)
+    if (
+        professional.has_private_matches
+        and application_status.value == JobSearchStatus.MATCHED
+        # and isinstance(current_user, CompanyResponse)
+    ):
+        raise ApplicationError(
+            detail="Professional has set their Matches to Private",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    search_status = JobStatus(application_status.value)
 
     applications = (
         db.query(JobApplication)
         .filter(
             JobApplication.professional_id == professional_id,
-            JobApplication.status == status,
+            JobApplication.status == search_status,
         )
         .offset(filter_params.offset)
         .limit(filter_params.limit)
