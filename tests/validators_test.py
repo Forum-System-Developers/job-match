@@ -245,3 +245,33 @@ def test_ensureNoMatchRequest_doesNotRaiseApplicationError_whenMatchRequestDoesN
         (Match.job_ad_id == td.VALID_JOB_AD_ID)
         & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
     )
+
+
+def test_ensureNoMatchRequest_raisesApplicationError_whenMatchRequestExists(
+    mocker, mock_db
+):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = mocker.Mock()
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_no_match_request(
+            job_ad_id=td.VALID_JOB_AD_ID,
+            job_application_id=td.VALID_JOB_APPLICATION_ID,
+            db=mock_db,
+        )
+
+    # Assert
+    mock_db.query.assert_called_once()
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == td.VALID_JOB_AD_ID)
+        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    )
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    assert (
+        exc.value.data.detail
+        == f"Match request between job ad with id {td.VALID_JOB_AD_ID} and job application with id {td.VALID_JOB_APPLICATION_ID} already exists"
+    )
