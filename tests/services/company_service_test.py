@@ -66,3 +66,28 @@ def test_getAll_returnsEmptyList_whenNoCompaniesAreFound(
     mock_query.offset.assert_called_with(mock_filter_params.offset)
     mock_offset.limit.assert_called_with(mock_filter_params.limit)
     assert len(result) == 0
+
+
+def test_getById_returnsCompany_whenCompanyIsFound(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_response = mocker.Mock()
+    mock_company = mocker.Mock()
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_create = mocker.patch(
+        "app.schemas.company.CompanyResponse.create",
+        return_value=mock_response,
+    )
+
+    # Act
+    result = company_service.get_by_id(id=td.VALID_COMPANY_ID, db=mock_db)
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
+    mock_create.assert_called_with(mock_company)
+    assert result == mock_response
