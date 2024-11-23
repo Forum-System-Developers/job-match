@@ -8,7 +8,7 @@ from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services import job_ad_service
-from app.services.auth_service import get_current_company
+from app.services.auth_service import require_company_role
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
@@ -57,7 +57,7 @@ def get_job_ad_by_id(job_ad_id: UUID, db: Session = Depends(get_db)) -> JSONResp
 )
 def create_job_ad(
     job_ad_data: JobAdCreate,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_job_ad():
@@ -79,7 +79,7 @@ def create_job_ad(
 def update_job_ad(
     job_ad_id: UUID,
     job_ad_data: JobAdUpdate,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_job_ad():
@@ -101,7 +101,7 @@ def update_job_ad(
 def add_job_ad_requirement(
     job_ad_id: UUID,
     requirement_id: UUID,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _add_job_ad_requirements():
@@ -125,7 +125,7 @@ def add_job_ad_requirement(
 )
 def get_job_ad_match_requests(
     job_ad_id: UUID,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
@@ -149,7 +149,7 @@ def get_job_ad_match_requests(
 def accept_job_ad_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _accept_job_ad_request():
@@ -174,7 +174,7 @@ def accept_job_ad_match_request(
 def send_job_ad_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _send_job_ad_request():
@@ -198,7 +198,7 @@ def send_job_ad_match_request(
 )
 def view_sent_match_requests(
     job_ad_id: UUID,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_sent_requests():

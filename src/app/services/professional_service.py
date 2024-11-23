@@ -482,7 +482,7 @@ def _register_professional(
         )
     if not unique_email(email=email, db=db):
         raise ApplicationError(
-            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
+            detail="Email already taken", status_code=status.HTTP_409_CONFLICT
         )
 
     hashed_password = hash_password(password=password)

@@ -15,18 +15,11 @@ from app.schemas.professional import (
     ProfessionalUpdateRequestBody,
 )
 from app.services import professional_service
-from app.services.auth_service import get_current_company, get_current_professional
+from app.services.auth_service import get_current_user, require_professional_role
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
 router = APIRouter()
-
-
-def get_current_user():
-    try:
-        return get_current_professional()
-    except Exception:
-        return get_current_company()
 
 
 @router.post(
@@ -35,13 +28,11 @@ def get_current_user():
 )
 def create(
     professional_request: ProfessionalRequestBody = Body(),
-    professional: ProfessionalResponse = Depends(get_current_professional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return professional_service.create(
             professional_request=professional_request,
-            professional=professional,
             db=db,
         )
 
@@ -55,7 +46,7 @@ def create(
 @router.put(
     "/{professional_id}",
     description="Update a profile for a Professional.",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def update(
     professional_id: UUID,
@@ -79,7 +70,7 @@ def update(
 @router.patch(
     "/{professional_id}/private-matches",
     description="Set matches to Private or Public",
-    # dependencies=[Depends(get_current_professional)]
+    dependencies=[Depends(require_professional_role)],
 )
 def private_matches(
     professional_id: UUID,
@@ -101,7 +92,7 @@ def private_matches(
 @router.post(
     "/{professional_id}/upload-photo",
     description="Upload a photo",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def upload(
     professional_id: UUID,
@@ -125,7 +116,7 @@ def upload(
 @router.get(
     "/{professional_id}/download-photo",
     response_model=None,
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
 )
 def download(
     professional_id: UUID, db: Session = Depends(get_db)
@@ -136,7 +127,7 @@ def download(
 @router.post(
     "/all",
     description="Retreive all Professional profiles.",
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_all(
     filter_params: FilterParams = Depends(),
@@ -158,7 +149,7 @@ def get_all(
 @router.get(
     "/{professional_id}",
     description="Retreive a Professional profile by its ID.",
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_by_id(
     professional_id: UUID,
@@ -177,7 +168,7 @@ def get_by_id(
 @router.get(
     "/{professional_id}/job-applications",
     description="View Job Applications by a Professional",
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_applications(
     professional_id: UUID,

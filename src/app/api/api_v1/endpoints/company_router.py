@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.schemas.common import FilterParams
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services import company_service
-from app.services.auth_service import get_current_company
+from app.services.auth_service import require_company_role
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
@@ -71,7 +71,7 @@ def create_company(
 )
 def update_company(
     company_data: CompanyUpdate,
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_company():
@@ -90,7 +90,7 @@ def update_company(
 )
 def upload_logo(
     logo: UploadFile = File(),
-    company: CompanyResponse = Depends(get_current_company),
+    company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload_logo():

@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -20,7 +19,7 @@ class UserRole(Enum):
 
 class User(BaseModel):
     """
-    Pyantic model representing a User.
+    Pydantic model representing a User.
 
     Attributes:
         id (UUID): The identifier of the User.
@@ -35,14 +34,25 @@ class User(BaseModel):
 
 class UserLogin(BaseModel):
     """
-    Pyantic model representing a user login data.
+    Pydantic model representing user login data.
 
     Attributes:
         username (str): The username of the User.
         password (str): The password of the User.
-        role (UserRole): The role of the User.
     """
 
     username: str
     password: str
-    role: UserRole
+
+
+class UserResponse(BaseModel):
+    """
+    Pydantic model representing UserResponse.
+
+    Attributes:
+        id (UUID): The identifier of the User.
+        role (UserRole): The role of the User.
+    """
+
+    id: UUID
+    user_role: UserRole
