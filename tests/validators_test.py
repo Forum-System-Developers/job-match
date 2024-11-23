@@ -500,3 +500,19 @@ def test_uniqueEmail_returnsFalse_whenEmailExistsInProfessional(mocker, mock_db)
     # Assert
     mock_db.query.assert_called_once_with(Professional.email)
     assert result is False
+
+
+def test_uniqueEmail_returnsFalse_whenEmailExistsInCompany(mocker, mock_db):
+    # Arrange
+    email = "existing_email"
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.side_effect = [None, mocker.Mock()]
+
+    # Act
+    result = unique_email(email=email, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_any_call(Professional.email)
+    mock_db.query.assert_any_call(Company.email)
+    assert result is False
