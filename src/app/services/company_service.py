@@ -82,16 +82,13 @@ def get_by_username(username: str, db: Session) -> User:
     return User(id=company.id, username=company.username, password=company.password)
 
 
-def create(
-    company_data: CompanyCreate, db: Session, logo: UploadFile | None = None
-) -> CompanyResponse:
+def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
     """
     Create a new company record in the database.
 
     Args:
         company_data (CompanyCreate): The data required to create a new company.
         db (Session): The database session to use for the operation.
-        logo (UploadFile | None, optional): An optional logo file for the company. Defaults to None.
 
     Returns:
         CompanyResponse: The response object containing the created company details.
@@ -99,17 +96,12 @@ def create(
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
     city = _ensure_valid_city(city_name=company_data.city, db=db)
 
-    upload_logo = None
-    if logo is not None:
-        upload_logo = logo.file.read()
-
     password_hash = hash_password(company_data.password)
 
     company = Company(
         **company_data.model_dump(exclude={"password", "city"}),
         password=password_hash,
         city_id=city.id,
-        logo=upload_logo,
     )
 
     db.add(company)
