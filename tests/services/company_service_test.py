@@ -120,3 +120,19 @@ def test_getByUsername_returnsCompany_whenCompanyIsFound(
     assert result.id == td.VALID_COMPANY_ID
     assert result.username == td.VALID_COMPANY_USERNAME
     assert result.password == td.VALID_PASSWORD
+
+
+def test_getByUsername_raisesApplicationError_whenCompanyIsNotFound(mock_db) -> None:
+    # Arrange
+    mock_username = td.NON_EXISTENT_USERNAME
+    mock_query = mock_db.query.return_value
+    mock_query.filter.return_value.first.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        company_service.get_by_username(username=mock_username, db=mock_db)
+
+    assert_filter_called_with(mock_query, Company.username == mock_username)
+    mock_query.filter.return_value.first.assert_called_once()
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert exc.value.data.detail == f"Company with username {mock_username} not found"
