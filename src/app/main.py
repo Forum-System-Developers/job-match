@@ -41,8 +41,8 @@ def _setup_session(p_app: FastAPI) -> None:
     secret_key = get_settings().SECRET_KEY
     app.add_middleware(
         SessionMiddleware,
-        secret_key=secret_key,
-        max_age=3600,
+        secret_key=secret_key,  # type: ignore
+        max_age=max_age,  # type: ignore
     )
 
 

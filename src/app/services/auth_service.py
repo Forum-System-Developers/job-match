@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from fastapi import Depends, Request, status, HTTPException
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
