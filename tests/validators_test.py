@@ -187,3 +187,20 @@ def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIs
     assert (
         exc.value.data.detail == f"Job Application with id {td.NON_EXISTENT_ID} not found"
     )
+
+
+def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker, mock_db):
+    # Arrange
+    company = mocker.Mock(id=td.VALID_COMPANY_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = company
+
+    # Act
+    result = ensure_valid_company_id(id=td.VALID_COMPANY_ID, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Company)
+    assert_filter_called_with(mock_query, Company.id == td.VALID_COMPANY_ID)
+    assert result == company
