@@ -221,3 +221,27 @@ def test_ensureValidCompanyId_raisesApplicationError_whenCompanyIsNotFound(mock_
     assert_filter_called_with(mock_query, Company.id == td.NON_EXISTENT_ID)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert exc.value.data.detail == f"Company with id {td.NON_EXISTENT_ID} not found"
+
+
+def test_ensureNoMatchRequest_doesNotRaiseApplicationError_whenMatchRequestDoesNotExist(
+    mock_db,
+):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    ensure_no_match_request(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        job_application_id=td.VALID_JOB_APPLICATION_ID,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once()
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == td.VALID_JOB_AD_ID)
+        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    )
