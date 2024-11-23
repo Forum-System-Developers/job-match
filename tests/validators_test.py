@@ -422,3 +422,19 @@ def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFou
     assert (
         exc.value.data.detail == f"Requirement with id {td.VALID_REQUIREMENT_ID} not found"
     )
+
+
+def test_uniqueUsername_returnsTrue_whenUsernameIsUnique(mock_db):
+    # Arrange
+    username = "unique_username"
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.side_effect = [None, None]
+
+    # Act
+    result = unique_username(username=username, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_any_call(Professional.username)
+    mock_db.query.assert_any_call(Company.username)
+    assert result is True
