@@ -370,3 +370,28 @@ def test_ensureValidMatchRequest_raisesApplicationError_whenMatchRequestIsNotInR
         exc.value.data.detail
         == f"Match request with job ad id {td.VALID_JOB_AD_ID} and job application id {td.VALID_JOB_APPLICATION_ID} is not in {match_status.name} status"
     )
+
+
+def test_ensureValidRequirementId_returnsRequirement_whenRequirementIsFound(
+    mocker, mock_db
+):
+    # Arrange
+    requirement = mocker.Mock(id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = requirement
+
+    # Act
+    result = ensure_valid_requirement_id(
+        requirement_id=requirement.id, company_id=td.VALID_COMPANY_ID, db=mock_db
+    )
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobRequirement)
+    assert_filter_called_with(
+        mock_query,
+        (JobRequirement.id == td.VALID_REQUIREMENT_ID)
+        & (JobRequirement.company_id == td.VALID_COMPANY_ID),
+    )
+    assert result == requirement
