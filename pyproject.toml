@@ -34,8 +34,15 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "autoflake==2.2.1", "black==23.9.1", "isort[colors]==5.8.0", "mypy==1.5.1", "pylint==3.0.0a7",
-    "pytest==7.4.2", "pytest-cov==4.1.0", "coverage==7.3.1"
+    "autoflake==2.2.1", 
+    "black==23.9.1", 
+    "isort[colors]==5.8.0", 
+    "mypy==1.5.1", 
+    "pylint==3.0.0a7",
+    "pytest==7.4.2", 
+    "pytest-mock==3.14.0", 
+    "pytest-cov==4.1.0", 
+    "coverage==7.3.1"
 ]
 
 [project.urls]
@@ -59,6 +66,7 @@ markers = [
     "integration: marks tests as integration with other components",
     "api: marks tests as api tests"
 ]
+pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.coverage.report]

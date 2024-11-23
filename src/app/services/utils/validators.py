@@ -142,7 +142,7 @@ def ensure_no_match_request(
         )
         raise ApplicationError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Match request already exists",
+            detail=f"Match request between job ad with id {job_ad_id} and job application with id {job_application_id} already exists",
         )
 
 
@@ -183,7 +183,7 @@ def ensure_valid_match_request(
         )
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Match request not found",
+            detail=f"Match request with job ad id {job_ad_id} and job application id {job_application_id} not found",
         )
     if match.status != match_status:
         logger.error(
@@ -191,7 +191,7 @@ def ensure_valid_match_request(
         )
         raise ApplicationError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Match request is not in {match_status.name} status",
+            detail=f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is not in {match_status.name} status",
         )
 
     return match
@@ -217,7 +217,10 @@ def ensure_valid_requirement_id(
     requirement = (
         db.query(JobRequirement)
         .filter(
-            JobRequirement.id == requirement_id, JobRequirement.company_id == company_id
+            and_(
+                JobRequirement.id == requirement_id,
+                JobRequirement.company_id == company_id,
+            )
         )
         .first()
     )
