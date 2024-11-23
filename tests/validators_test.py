@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 from fastapi import status
 
@@ -25,8 +23,8 @@ from app.sql_app import (
     Match,
     Professional,
 )
-from tests.utils import assert_filter_called_with
 from tests import test_data as td
+from tests.utils import assert_filter_called_with
 
 
 @pytest.fixture
@@ -164,7 +162,9 @@ def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsF
 
     # Assert
     mock_db.query.assert_called_once_with(JobApplication)
-    assert_filter_called_with(mock_query, JobApplication.id == td.VALID_JOB_APPLICATION_ID)
+    assert_filter_called_with(
+        mock_query, JobApplication.id == td.VALID_JOB_APPLICATION_ID
+    )
     assert result == job_application
 
 
@@ -185,7 +185,8 @@ def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIs
     assert_filter_called_with(mock_query, JobApplication.id == td.NON_EXISTENT_ID)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert (
-        exc.value.data.detail == f"Job Application with id {td.NON_EXISTENT_ID} not found"
+        exc.value.data.detail
+        == f"Job Application with id {td.NON_EXISTENT_ID} not found"
     )
 
 
@@ -376,7 +377,9 @@ def test_ensureValidRequirementId_returnsRequirement_whenRequirementIsFound(
     mocker, mock_db
 ):
     # Arrange
-    requirement = mocker.Mock(id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID)
+    requirement = mocker.Mock(
+        id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID
+    )
 
     mock_query = mock_db.query.return_value
     mock_filter = mock_query.filter.return_value
@@ -408,7 +411,9 @@ def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFou
     # Act
     with pytest.raises(ApplicationError) as exc:
         ensure_valid_requirement_id(
-            requirement_id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID, db=mock_db
+            requirement_id=td.VALID_REQUIREMENT_ID,
+            company_id=td.VALID_COMPANY_ID,
+            db=mock_db,
         )
 
     # Assert
@@ -420,7 +425,8 @@ def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFou
     )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert (
-        exc.value.data.detail == f"Requirement with id {td.VALID_REQUIREMENT_ID} not found"
+        exc.value.data.detail
+        == f"Requirement with id {td.VALID_REQUIREMENT_ID} not found"
     )
 
 
@@ -522,7 +528,7 @@ def test_ensureValidProfessionalId_returnsProfessional_whenProfessionalIsFound(
     mocker, mock_db
 ):
     # Arrange
-    professional = mocker.Mock(id=uuid.uuid4())
+    professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
 
     mock_query = mock_db.query.return_value
     mock_filter = mock_query.filter.return_value
@@ -535,3 +541,24 @@ def test_ensureValidProfessionalId_returnsProfessional_whenProfessionalIsFound(
     mock_db.query.assert_called_once_with(Professional)
     assert_filter_called_with(mock_query, Professional.id == professional.id)
     assert result == professional
+
+
+def test_ensureValidProfessionalId_raisesApplicationError_whenProfessionalIsNotFound(
+    mock_db,
+):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_professional_id(professional_id=td.NON_EXISTENT_ID, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Professional)
+    assert_filter_called_with(mock_query, Professional.id == td.NON_EXISTENT_ID)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail == f"Professional with id {td.NON_EXISTENT_ID} not found."
+    )
