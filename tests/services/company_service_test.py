@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pytest
 from fastapi import status
 
@@ -136,3 +138,47 @@ def test_getByUsername_raisesApplicationError_whenCompanyIsNotFound(mock_db) -> 
     mock_query.filter.return_value.first.assert_called_once()
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert exc.value.data.detail == f"Company with username {mock_username} not found"
+
+
+def test_create_createsCompany_whenDataIsValid(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company_data = mocker.Mock()
+    mock_company_data.model_dump.return_value = {}
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID)
+    mock_response = mocker.Mock()
+
+    mock_ensure_valid_company_creation_data = mocker.patch(
+        "app.services.company_service._ensure_valid_company_creation_data"
+    )
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service._ensure_valid_city",
+        return_value=mock_city,
+    )
+    mock_hash_password = mocker.patch(
+        "app.services.company_service.hash_password",
+        return_value=td.HASHED_PASSWORD,
+    )
+    mock_create = mocker.patch(
+        "app.schemas.company.CompanyResponse.create",
+        return_value=mock_response,
+    )
+
+    # Act
+    result = company_service.create(company_data=mock_company_data, db=mock_db)
+
+    # Assert
+    mock_ensure_valid_company_creation_data.assert_called_with(
+        company_data=mock_company_data, db=mock_db
+    )
+    mock_ensure_valid_city.assert_called_with(
+        city_name=mock_company_data.city, db=mock_db
+    )
+    mock_hash_password.assert_called_with(mock_company_data.password)
+    mock_db.add.assert_called_once_with(ANY)
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(ANY)
+    mock_create.assert_called_with(ANY)
+    assert result == mock_response
