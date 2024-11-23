@@ -91,3 +91,32 @@ def test_getById_returnsCompany_whenCompanyIsFound(
     mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
     mock_create.assert_called_with(mock_company)
     assert result == mock_response
+
+
+def test_getByUsername_returnsCompany_whenCompanyIsFound(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(
+        id=td.VALID_COMPANY_ID,
+        username=td.VALID_COMPANY_USERNAME,
+        password=td.VALID_PASSWORD,
+    )
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = mock_company
+
+    # Act
+    result = company_service.get_by_username(
+        username=td.VALID_COMPANY_USERNAME, db=mock_db
+    )
+
+    # Assert
+    mock_db.query.assert_called_with(Company)
+    assert_filter_called_with(mock_query, Company.username == td.VALID_COMPANY_USERNAME)
+    mock_filter.first.assert_called_once()
+    assert result.id == td.VALID_COMPANY_ID
+    assert result.username == td.VALID_COMPANY_USERNAME
+    assert result.password == td.VALID_PASSWORD
