@@ -516,3 +516,22 @@ def test_uniqueEmail_returnsFalse_whenEmailExistsInCompany(mocker, mock_db):
     mock_db.query.assert_any_call(Professional.email)
     mock_db.query.assert_any_call(Company.email)
     assert result is False
+
+
+def test_ensureValidProfessionalId_returnsProfessional_whenProfessionalIsFound(
+    mocker, mock_db
+):
+    # Arrange
+    professional = mocker.Mock(id=uuid.uuid4())
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = professional
+
+    # Act
+    result = ensure_valid_professional_id(professional_id=professional.id, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Professional)
+    assert_filter_called_with(mock_query, Professional.id == professional.id)
+    assert result == professional
