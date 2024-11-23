@@ -438,3 +438,18 @@ def test_uniqueUsername_returnsTrue_whenUsernameIsUnique(mock_db):
     mock_db.query.assert_any_call(Professional.username)
     mock_db.query.assert_any_call(Company.username)
     assert result is True
+
+
+def test_uniqueUsername_returnsFalse_whenUsernameExistsInProfessional(mocker, mock_db):
+    # Arrange
+    username = "existing_username"
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.side_effect = [mocker.Mock(), None]
+
+    # Act
+    result = unique_username(username=username, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Professional.username)
+    assert result is False
