@@ -166,3 +166,24 @@ def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsF
     mock_db.query.assert_called_once_with(JobApplication)
     assert_filter_called_with(mock_query, JobApplication.id == td.VALID_JOB_APPLICATION_ID)
     assert result == job_application
+
+
+def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIsNotFound(
+    mock_db,
+):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_job_application_id(id=td.NON_EXISTENT_ID, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobApplication)
+    assert_filter_called_with(mock_query, JobApplication.id == td.NON_EXISTENT_ID)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail == f"Job Application with id {td.NON_EXISTENT_ID} not found"
+    )
