@@ -121,3 +121,29 @@ def test_ensureValidJobAdId_raisesApplicationError_whenJobAdIsNotFound(mock_db):
     assert_filter_called_with(mock_query, JobAd.id == td.NON_EXISTENT_ID)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert exc.value.data.detail == f"Job Ad with id {td.NON_EXISTENT_ID} not found"
+
+
+def test_ensureValidJobAdId_raisesApplicationError_whenJobAdDoesNotBelongToCompany(
+    mocker, mock_db
+):
+    # Arrange
+    job_ad = mocker.Mock(id=td.VALID_JOB_AD_ID, company_id=td.NON_EXISTENT_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = job_ad
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_job_ad_id(
+            job_ad_id=td.VALID_JOB_AD_ID, company_id=td.VALID_COMPANY_ID, db=mock_db
+        )
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobAd)
+    assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    assert (
+        exc.value.data.detail
+        == f"Job Ad with id {td.VALID_JOB_AD_ID} does not belong to company with id {td.VALID_COMPANY_ID}"
+    )
