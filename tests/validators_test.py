@@ -147,3 +147,22 @@ def test_ensureValidJobAdId_raisesApplicationError_whenJobAdDoesNotBelongToCompa
         exc.value.data.detail
         == f"Job Ad with id {td.VALID_JOB_AD_ID} does not belong to company with id {td.VALID_COMPANY_ID}"
     )
+
+
+def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsFound(
+    mocker, mock_db
+):
+    # Arrange
+    job_application = mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = job_application
+
+    # Act
+    result = ensure_valid_job_application_id(id=td.VALID_JOB_APPLICATION_ID, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobApplication)
+    assert_filter_called_with(mock_query, JobApplication.id == td.VALID_JOB_APPLICATION_ID)
+    assert result == job_application
