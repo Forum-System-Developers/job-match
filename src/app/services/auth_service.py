@@ -12,7 +12,7 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyResponse
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.token import AccessToken, Token
-from app.schemas.user import User, UserLogin, UserRole
+from app.schemas.user import User, UserLogin, UserResponse, UserRole
 from app.services import company_service, professional_service
 from app.sql_app.database import get_db
 from app.utils.password_utils import verify_password
@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
-def login(login_data: UserLogin, db: Session) -> Token:
+def login(username: str, password: str, db: Session) -> Token:
     """
     Authenticates a user based on their role and generates access and refresh tokens.
 
@@ -31,26 +31,27 @@ def login(login_data: UserLogin, db: Session) -> Token:
     Returns:
         dict: A dictionary containing the access and refresh tokens.
     """
-    if login_data.role == UserRole.COMPANY:
-        company = authenticate_user(login_data=login_data, db=db)
-        logger.info(f"Authenticated company {company.id}")
-        token = create_access_and_refresh_tokens(user=company, login_data=login_data)
-        logger.info(f"Created tokens for company {company.id}")
-    elif login_data.role == UserRole.PROFESSIONAL:
-        professional = authenticate_user(login_data=login_data, db=db)
-        logger.info(f"Authenticated professional {professional.id}")
-        token = create_access_and_refresh_tokens(
-            user=professional, login_data=login_data
-        )
-        logger.info(f"Created tokens for professional {professional.id}")
-    else:
-        logger.error(f"Invalid role {login_data.role}")
-        raise ApplicationError(
-            detail="Invalid role",
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
+    login_data = UserLogin(username=username, password=password)
+    user_role, user = authenticate_user(login_data=login_data, db=db)
+    logger.info(f"Authenticated user {user_role.value} {user.id}")
+    token = create_access_and_refresh_tokens(
+        user=user, login_data=login_data, user_role=user_role
+    )
+    logger.info(f"Created tokens for user {user_role.value} {user.id}")
 
     return token
+
+
+def _get_user_role(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
+    user = professional_service.get_by_username(username=login_data.username, db=db)
+    if user is not None:
+        logger.info(f"Fetched user with user_role {UserRole.PROFESSIONAL.value}")
+        return UserRole.PROFESSIONAL, user
+
+    user = company_service.get_by_username(username=login_data.username, db=db)
+    if user is not None:
+        logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
+        return UserRole.COMPANY, user
 
 
 def _create_access_token(data: dict) -> str:
@@ -116,7 +117,9 @@ def _create_token(data: dict, expires_delta: timedelta) -> str:
         )
 
 
-def create_access_and_refresh_tokens(user: User, login_data: UserLogin) -> Token:
+def create_access_and_refresh_tokens(
+    user: User, login_data: UserLogin, user_role: UserRole
+) -> Token:
     """
     Create access and refresh tokens for a given user.
 
@@ -126,7 +129,7 @@ def create_access_and_refresh_tokens(user: User, login_data: UserLogin) -> Token
     Returns:
         Token: An object containing the access token, refresh token, and token type.
     """
-    token_data = {"sub": str(user.id), "role": str(login_data.role)}
+    token_data = {"sub": str(user.id), "role": str(user_role.value)}
     logger.info(f"Created token data for user {user.id}")
     access_token = _create_access_token(token_data)
     logger.info(f"Created access token for user {user.id}")
@@ -140,7 +143,7 @@ def create_access_and_refresh_tokens(user: User, login_data: UserLogin) -> Token
     )
 
 
-def verify_token(token: str, db: Session) -> dict:
+def verify_token(token: str, db: Session) -> tuple[dict, str]:
     """
     Verifies the provided JWT and retrieves the associated user information.
 
@@ -148,7 +151,7 @@ def verify_token(token: str, db: Session) -> dict:
         token (str): The JWT token to be verified.
         db (Session): The database session to use for querying user information.
     Returns:
-        dict: The decoded token payload if verification is successful.
+        tuple[dict, str]: The decoded token payload if verification is successful, and the user_role.
     """
     try:
         payload = jwt.decode(
@@ -161,29 +164,52 @@ def verify_token(token: str, db: Session) -> dict:
             detail="Could not verify token", status_code=status.HTTP_401_UNAUTHORIZED
         )
 
-    if payload.get("role") == UserRole.COMPANY:
-        company = company_service.get_by_id(id=UUID(payload.get("sub")), db=db)
-        if not company:
-            logger.error(f"Company {payload.get('sub')} not found")
+    user_role = str(payload.get("role"))
+    user_id = UUID(payload.get("sub"))
+    user_role = _verify_user(user_role=user_role, user_id=user_id, db=db)
+
+    return payload, user_role
+
+
+def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
+    """
+    Verifies user exists.
+
+    Args:
+        user_role (str): The user role.
+        user_id (UUID): User identifier.
+        db (Session): Database dependency
+
+    Raises:
+        ApplicationError: If no such user is found.
+
+    Returns:
+        UserRole: The role of the current user.
+    """
+    if user_role == UserRole.COMPANY.value:
+        try:
+            company_service.get_by_id(id=user_id, db=db)
+        except ApplicationError:
+            logger.error(f"Company {user_id} not found")
             raise ApplicationError(
                 detail="Company not found",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
-    elif payload.get("role") == UserRole.PROFESSIONAL:
-        professional = professional_service.get_by_id(
-            professional_id=UUID(payload.get("sub")), db=db
-        )
-        if not professional:
-            logger.error(f"Professional {payload.get('sub')} not found")
+
+    elif user_role == UserRole.PROFESSIONAL.value:
+        try:
+            professional_service.get_by_id(professional_id=user_id, db=db)
+        except ApplicationError:
+            logger.error(f"Professional {user_id} not found")
             raise ApplicationError(
                 detail="Professional not found",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
-    return payload
+    return user_role
 
 
-def authenticate_user(login_data: UserLogin, db: Session) -> User:
+def authenticate_user(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
     """
     Authenticates a user based on their role and login credentials.
 
@@ -193,19 +219,12 @@ def authenticate_user(login_data: UserLogin, db: Session) -> User:
     Returns:
         User: The authenticated user object.
     """
-    user: User
+    user_role, user = _get_user_role(login_data=login_data, db=db)
+
     verified_password: bool = False
 
-    if login_data.role == UserRole.COMPANY:
-        user = company_service.get_by_username(username=login_data.username, db=db)
-        logger.info(f"Retrieved company {user.id}")
-        verified_password = verify_password(login_data.password, user.password)
-        logger.info(f"Password verified for company {user.id}")
-    elif login_data.role == UserRole.PROFESSIONAL:
-        user = professional_service.get_by_username(username=login_data.username, db=db)
-        logger.info(f"Retrieved professional {user.id}")
-        verified_password = verify_password(login_data.password, user.password)
-        logger.info(f"Password verified for professional {user.id}")
+    verified_password = verify_password(login_data.password, user.password)
+    logger.info(f"Password verified for {user_role.value} {user.id}")
 
     if not verified_password:
         logger.error("Invalid password")
@@ -214,10 +233,10 @@ def authenticate_user(login_data: UserLogin, db: Session) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    return user
+    return user_role, user
 
 
-def refresh_access_token(refresh_token: str, db: Session) -> AccessToken:
+def refresh_access_token(refresh_token: str, db: Session) -> Token:
     """
     Refreshes the access token using the provided refresh token.
 
@@ -228,51 +247,54 @@ def refresh_access_token(refresh_token: str, db: Session) -> AccessToken:
         AccessToken: A new access token for the user.
     """
 
-    payload = verify_token(token=refresh_token, db=db)
+    payload, user_role = verify_token(token=refresh_token, db=db)
     user_id = payload.get("sub")
-    user_role = payload.get("role")
     logger.info(f"Verified refresh token for user {user_id}")
     access_token = _create_access_token({"sub": user_id, "role": user_role})
     logger.info(f"Created new access token for user {user_id}")
 
-    return AccessToken(access_token=access_token)
+    return Token(
+        access_token=access_token, refresh_token=refresh_token, token_type="bearer"
+    )
 
 
-def get_current_company(
+def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> CompanyResponse:
+) -> UserResponse:
     """
-    Retrieve the current company based on the provided token.
+    Retrieve the current user based on the provided token.
 
     Args:
         token (str): The authentication token provided by the user.
         db (Session): The database session dependency.
     Returns:
-        CompanyResponse: The company information associated with the current user.
+        UserResponse: DTO for carrying information about the cirrent logged in user..
     """
-    token_data = verify_token(token=token, db=db)
+    token_data, user_role = verify_token(token=token, db=db)
     user_id = UUID(token_data.get("sub"))
-    company = company_service.get_by_id(id=user_id, db=db)
-    logger.info(f"Retrieved current user {user_id}")
 
-    return company
+    return UserResponse(id=user_id, user_role=UserRole(user_role))
 
 
-def get_current_professional(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+def require_professional_role(
+    user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ProfessionalResponse:
-    """
-    Retrieve the current professional user based on the provided token.
-
-    Args:
-        token (str): The OAuth2 token used for authentication.
-        db (Session): The database session dependency.
-    Returns:
-        ProfessionalResponse: The professional user information.
-    """
-    token_data = verify_token(token=token, db=db)
-    user_id = UUID(token_data.get("sub"))
-    professional = professional_service.get_by_id(professional_id=user_id, db=db)
-    logger.info(f"Retrieved current user {user_id}")
-
+    user_role = user.user_role
+    if user_role != UserRole.PROFESSIONAL:
+        raise ApplicationError(
+            detail="Requires Professional Role", status_code=status.HTTP_403_FORBIDDEN
+        )
+    professional = professional_service.get_by_id(professional_id=user.id, db=db)
     return professional
+
+
+def require_company_role(
+    user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)
+) -> CompanyResponse:
+    user_role = user.user_role
+    if user_role != UserRole.COMPANY:
+        raise ApplicationError(
+            detail="Requires Company Role", status_code=status.HTTP_403_FORBIDDEN
+        )
+    company = company_service.get_by_id(id=user.id, db=db)
+    return company
