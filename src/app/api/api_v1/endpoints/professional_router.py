@@ -11,7 +11,6 @@ from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalRequestBody,
-    ProfessionalResponse,
     ProfessionalUpdateRequestBody,
 )
 from app.services import professional_service
