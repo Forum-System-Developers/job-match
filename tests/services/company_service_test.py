@@ -44,3 +44,25 @@ def test_getAll_returnsCompanies_whenCompaniesAreFound(
     assert len(result) == 2
     assert result[0] == mock_company_response[0]
     assert result[1] == mock_company_response[1]
+
+
+def test_getAll_returnsEmptyList_whenNoCompaniesAreFound(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+
+    mock_query = mock_db.query.return_value
+    mock_offset = mock_query.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = []
+
+    # Act
+    result = company_service.get_all(filter_params=mock_filter_params, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_with(Company)
+    mock_query.offset.assert_called_with(mock_filter_params.offset)
+    mock_offset.limit.assert_called_with(mock_filter_params.limit)
+    assert len(result) == 0
