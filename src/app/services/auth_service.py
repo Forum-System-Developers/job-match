@@ -49,7 +49,7 @@ def logout(request: Request) -> dict:
     try:
         request.session.clear()
         return {"message": "Logged out successfully!"}
-    except Exception as e:
+    except KeyError as e:
         raise ApplicationError(
             detail=f"Exception occurred: {e}, unable to log you out",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
