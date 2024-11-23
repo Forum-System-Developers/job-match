@@ -83,3 +83,24 @@ def test_ensureValidJobAdId_returnsJobAd_whenJobAdIsFound(mocker, mock_db):
     mock_db.query.assert_called_once_with(JobAd)
     assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
     assert result == job_ad
+
+
+def test_ensureValidJobAdId_returnsJobAd_whenCompanyIsProvided(mocker, mock_db):
+    # Arrange
+    job_ad = mocker.Mock(id=td.VALID_JOB_AD_ID, company_id=td.VALID_COMPANY_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = job_ad
+
+    # Act
+    result = ensure_valid_job_ad_id(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        db=mock_db,
+        company_id=td.VALID_COMPANY_ID,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobAd)
+    assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
+    assert result == job_ad
