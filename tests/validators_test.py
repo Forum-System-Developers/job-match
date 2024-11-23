@@ -204,3 +204,20 @@ def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker, mock_db)
     mock_db.query.assert_called_once_with(Company)
     assert_filter_called_with(mock_query, Company.id == td.VALID_COMPANY_ID)
     assert result == company
+
+
+def test_ensureValidCompanyId_raisesApplicationError_whenCompanyIsNotFound(mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_company_id(id=td.NON_EXISTENT_ID, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Company)
+    assert_filter_called_with(mock_query, Company.id == td.NON_EXISTENT_ID)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert exc.value.data.detail == f"Company with id {td.NON_EXISTENT_ID} not found"
