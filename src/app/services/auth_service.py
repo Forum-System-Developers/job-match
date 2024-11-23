@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from fastapi import Depends, status
+from fastapi import Depends, Request, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyResponse
 from app.schemas.professional import ProfessionalResponse
-from app.schemas.token import AccessToken, Token
+from app.schemas.token import Token
 from app.schemas.user import User, UserLogin, UserResponse, UserRole
 from app.services import company_service, professional_service
 from app.sql_app.database import get_db
@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
-def login(username: str, password: str, db: Session) -> Token:
+def login(username: str, password: str, db: Session, request: Request) -> Token:
     """
     Authenticates a user based on their role and generates access and refresh tokens.
 
@@ -39,7 +39,21 @@ def login(username: str, password: str, db: Session) -> Token:
     )
     logger.info(f"Created tokens for user {user_role.value} {user.id}")
 
+    request.session["user_id"] = str(user.id)
+    request.session["user_role"] = user_role.value
+
     return token
+
+
+def logout(request: Request) -> dict:
+    try:
+        request.session.clear()
+        return {"message": "Logged out successfully!"}
+    except KeyError as e:
+        raise ApplicationError(
+            detail=f"Exception occurred: {e}, unable to log you out",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def _get_user_role(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
@@ -228,7 +242,7 @@ def authenticate_user(login_data: UserLogin, db: Session) -> tuple[UserRole, Use
 
     if not verified_password:
         logger.error("Invalid password")
-        raise ApplicationError(
+        raise HTTPException(
             detail="Could not authenticate user",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
@@ -259,7 +273,7 @@ def refresh_access_token(refresh_token: str, db: Session) -> Token:
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> UserResponse:
     """
     Retrieve the current user based on the provided token.
@@ -270,8 +284,15 @@ def get_current_user(
     Returns:
         UserResponse: DTO for carrying information about the cirrent logged in user..
     """
-    token_data, user_role = verify_token(token=token, db=db)
-    user_id = UUID(token_data.get("sub"))
+    user_id = request.session.get("user_id")
+    if user_id is None:
+        raise HTTPException(
+            detail="Could not authenticate you",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    payload, user_role = verify_token(token=token, db=db)
+    user_id = UUID(payload.get("sub"))
 
     return UserResponse(id=user_id, user_role=UserRole(user_role))
 
@@ -281,7 +302,7 @@ def require_professional_role(
 ) -> ProfessionalResponse:
     user_role = user.user_role
     if user_role != UserRole.PROFESSIONAL:
-        raise ApplicationError(
+        raise HTTPException(
             detail="Requires Professional Role", status_code=status.HTTP_403_FORBIDDEN
         )
     professional = professional_service.get_by_id(professional_id=user.id, db=db)
@@ -293,7 +314,7 @@ def require_company_role(
 ) -> CompanyResponse:
     user_role = user.user_role
     if user_role != UserRole.COMPANY:
-        raise ApplicationError(
+        raise HTTPException(
             detail="Requires Company Role", status_code=status.HTTP_403_FORBIDDEN
         )
     company = company_service.get_by_id(id=user.id, db=db)

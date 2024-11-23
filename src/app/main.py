@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 from ecs_logging import StdlibFormatter
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.api_v1.api import api_router
 from app.core.config import get_settings
@@ -31,6 +32,18 @@ def _setup_cors(p_app: FastAPI) -> None:
             allow_methods=list(["*"]),  # type: ignore[arg-type]
             allow_headers=list(["*"]),  # type: ignore[arg-type]
         )
+
+
+def _setup_session(p_app: FastAPI) -> None:
+    """
+    Configure session middleware with the provided secret key.
+    """
+    secret_key = get_settings().SECRET_KEY
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=secret_key,
+        max_age=3600,
+    )
 
 
 def _create_app() -> FastAPI:
@@ -62,6 +75,7 @@ def _setup_logger() -> None:
 
 app = _create_app()
 _setup_cors(app)
+_setup_session(app)
 _setup_logger()
 
 # initialize_database()
