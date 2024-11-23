@@ -395,3 +395,30 @@ def test_ensureValidRequirementId_returnsRequirement_whenRequirementIsFound(
         & (JobRequirement.company_id == td.VALID_COMPANY_ID),
     )
     assert result == requirement
+
+
+def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFound(
+    mock_db,
+):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_requirement_id(
+            requirement_id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID, db=mock_db
+        )
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobRequirement)
+    assert_filter_called_with(
+        mock_query,
+        (JobRequirement.id == td.VALID_REQUIREMENT_ID)
+        & (JobRequirement.company_id == td.VALID_COMPANY_ID),
+    )
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail == f"Requirement with id {td.VALID_REQUIREMENT_ID} not found"
+    )
