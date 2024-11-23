@@ -304,3 +304,35 @@ def test_ensureValidMatchRequest_doesNotRaiseApplicationError_whenMatchRequestIs
         & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
     )
     assert result == match
+
+
+def test_ensureValidMatchRequest_raisesApplicationError_whenMatchRequestIsNotFound(
+    mocker, mock_db
+):
+    # Arrange
+    match_status = mocker.Mock(name="REQUESTED")
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        ensure_valid_match_request(
+            job_ad_id=td.VALID_JOB_AD_ID,
+            job_application_id=td.VALID_JOB_APPLICATION_ID,
+            match_status=match_status,
+            db=mock_db,
+        )
+
+    # Assert
+    mock_db.query.assert_called_once()
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == td.VALID_JOB_AD_ID)
+        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    )
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail
+        == f"Match request with job ad id {td.VALID_JOB_AD_ID} and job application id {td.VALID_JOB_APPLICATION_ID} not found"
+    )
