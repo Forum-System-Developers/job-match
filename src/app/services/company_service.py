@@ -70,7 +70,7 @@ def get_by_username(username: str, db: Session) -> User:
     Raises:
         ApplicationError: If no company with the given username is found.
     """
-    company = _get_by_username(username=username, db=db)
+    company = db.query(Company).filter(Company.username == username).first()
     if company is None:
         logger.error(f"Company with username {username} not found")
         raise ApplicationError(
