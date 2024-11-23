@@ -14,24 +14,21 @@ from app.schemas.job_application import (
 )
 from app.schemas.professional import ProfessionalResponse
 from app.services import job_application_service
-from app.services.auth_service import get_current_company, get_current_professional
+from app.services.auth_service import (
+    get_current_user,
+    require_company_role,
+    require_professional_role,
+)
 from app.sql_app.database import get_db
 from app.utils.process_request import process_request
 
 router = APIRouter()
 
 
-def get_current_user():
-    try:
-        return get_current_professional()
-    except Exception:
-        return get_current_company()
-
-
 @router.post(
     "/{professional_id}",
     description="Create a Job Application.",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def create(
     professional_id: UUID,
@@ -57,7 +54,7 @@ def create(
 @router.put(
     "/{job_application_id}/{professional_id}",
     description="Update a Job Application.",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def update(
     job_application_id: UUID,
@@ -85,9 +82,9 @@ def update(
 @router.post(
     "/",
     description="Get all Job applications (filtered by indicated parameters)",
+    dependencies=[Depends(get_current_user)],
 )
 def get_all(
-    # current_user: ProfessionalResponse | CompanyResponse = Depends(get_current_user),
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
     db: Session = Depends(get_db),
@@ -95,7 +92,6 @@ def get_all(
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
-            # current_user=current_user,
             db=db,
             search_params=search_params,
         )
@@ -110,7 +106,7 @@ def get_all(
 @router.get(
     "/{job_application_id}",
     description="Fetch a Job Application by its ID",
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_by_id(
     job_application_id: UUID,
@@ -131,7 +127,7 @@ def get_by_id(
 @router.post(
     "/{job_application_id}/job-ads/{job_ad_id}",
     description="Send match request to a Job Application",
-    # dependencies=[Depends(get_current_company)],
+    dependencies=[Depends(require_company_role)],
 )
 def request_match(
     job_application_id: UUID,
@@ -153,7 +149,7 @@ def request_match(
 @router.put(
     "/{job_application_id}/{job_ad_id}/match-response",
     description="Accept or reject a Match request",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def handle_match_response(
     job_application_id: UUID,
@@ -179,7 +175,7 @@ def handle_match_response(
 @router.get(
     "/{job_application_id}/match-requests",
     description="View Match requests.",
-    # dependencies=[Depends(get_current_professional)],
+    dependencies=[Depends(require_professional_role)],
 )
 def view_match_requests(
     job_application_id: UUID,
