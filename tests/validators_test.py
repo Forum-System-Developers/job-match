@@ -275,3 +275,32 @@ def test_ensureNoMatchRequest_raisesApplicationError_whenMatchRequestExists(
         exc.value.data.detail
         == f"Match request between job ad with id {td.VALID_JOB_AD_ID} and job application with id {td.VALID_JOB_APPLICATION_ID} already exists"
     )
+
+
+def test_ensureValidMatchRequest_doesNotRaiseApplicationError_whenMatchRequestIsValid(
+    mocker, mock_db
+):
+    # Arrange
+    match_status = mocker.Mock(name="REQUESTED")
+    match = mocker.Mock(status=match_status)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = match
+
+    # Act
+    result = ensure_valid_match_request(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        job_application_id=td.VALID_JOB_APPLICATION_ID,
+        match_status=match_status,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once()
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == td.VALID_JOB_AD_ID)
+        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    )
+    assert result == match
