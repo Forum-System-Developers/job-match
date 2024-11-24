@@ -682,3 +682,24 @@ def test_ensureUniqueEmail_raisesApplicationError_whenEmailIsNotUnique(
     mock_filter.first.assert_called_once()
     assert exc.value.data.status == status.HTTP_409_CONFLICT
     assert exc.value.data.detail == f"Company with email {td.VALID_COMPANY_EMAIL} already exists"
+
+
+def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(
+    mock_db,
+) -> None:
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    company_service._ensure_unique_phone_number(
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER, db=mock_db
+    )
+
+    # Assert
+    mock_db.query.assert_called_with(Company)
+    assert_filter_called_with(
+        mock_query, Company.phone_number == td.VALID_COMPANY_PHONE_NUMBER
+    )
+    mock_filter.first.assert_called_once()
