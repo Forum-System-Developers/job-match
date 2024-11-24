@@ -28,8 +28,8 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.skill.skill import Skill
-from app.utils.database_utils import handle_database_operation
 from app.utils.password_utils import hash_password
+from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
         db.commit()
         return {"msg": "Photo successfully uploaded"}
 
-    return handle_database_operation(db_request=_handle_upload, db=db)
+    return process_db_transaction(transaction_func=_handle_upload, db=db)
 
 
 def download(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
@@ -351,7 +351,7 @@ def _update_attributes(
 
         return professional
 
-    return handle_database_operation(db_request=_handle_update, db=db)
+    return process_db_transaction(transaction_func=_handle_update, db=db)
 
 
 def set_matches_status(
@@ -367,7 +367,7 @@ def set_matches_status(
             "msg": f"Matches set as {'private' if private_matches.status else 'public'}"
         }
 
-    return handle_database_operation(db_request=_update_status, db=db)
+    return process_db_transaction(transaction_func=_update_status, db=db)
 
 
 def get_by_username(username: str, db: Session) -> User:
@@ -531,4 +531,4 @@ def _create(
         db.refresh(professional)
         return professional
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)

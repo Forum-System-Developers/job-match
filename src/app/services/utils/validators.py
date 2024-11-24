@@ -18,26 +18,26 @@ from app.sql_app.professional.professional import Professional
 logger = logging.getLogger(__name__)
 
 
-def ensure_valid_location(location: str, db: Session) -> City:
+def ensure_valid_city(name: str, db: Session) -> City:
     """
-    Ensures that the provided location exists in the database.
+    Ensure that a city with the given name exists in the database.
 
     Args:
-        location (str): The name of the city to validate.
+        name (str): The name of the city to validate.
         db (Session): The database session to use for querying.
 
     Returns:
-        City: The City object if the location is found in the database.
+        City: The City object if found.
 
     Raises:
-        ApplicationError: If the city with the given name is not found in the database.
+        ApplicationError: If no city with the given name is found, raises an error with status code 404.
     """
-    city = db.query(City).filter(City.name == location).first()
+    city = db.query(City).filter(City.name == name).first()
     if city is None:
-        logger.error(f"City with name {location} not found")
+        logger.error(f"City with name {name} not found")
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"City with name {location} not found",
+            detail=f"City with name {name} not found",
         )
     return city
 

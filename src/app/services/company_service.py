@@ -12,7 +12,13 @@ from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.schemas.user import User
 from app.services import city_service
-from app.services.utils.validators import ensure_valid_company_id
+from app.services.utils.file_utils import handle_file_upload
+from app.services.utils.validators import (
+    ensure_valid_city,
+    ensure_valid_company_id,
+    unique_email,
+    unique_username,
+)
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
@@ -94,7 +100,7 @@ def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
         CompanyResponse: The response object containing the created company details.
     """
     _ensure_valid_company_creation_data(company_data=company_data, db=db)
-    city = _ensure_valid_city(city_name=company_data.city, db=db)
+    city = ensure_valid_city(name=company_data.city, db=db)
 
     password_hash = hash_password(company_data.password)
 
@@ -151,8 +157,7 @@ def upload_logo(company_id: UUID, logo: UploadFile, db: Session) -> MessageRespo
         MessageResponse: A response message indicating the result of the upload operation.
     """
     company = ensure_valid_company_id(id=company_id, db=db)
-    upload_logo = logo.file.read()
-    company.logo = upload_logo
+    company.logo = handle_file_upload(logo)
     company.updated_at = datetime.now()
     db.commit()
     logger.info(f"Uploaded logo for company with id {company_id}")
@@ -181,62 +186,6 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     logger.info(f"Downloaded logo of company with id {company_id}")
 
     return StreamingResponse(io.BytesIO(logo), media_type="image/png")
-
-
-def _get_by_id(id: UUID, db: Session) -> Company | None:
-    """
-    Retrieve a company by its ID from the database.
-
-    Args:
-        id (UUID): The unique identifier of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.id == id).first()
-
-
-def _get_by_username(username: str, db: Session) -> Company | None:
-    """
-    Retrieve a company by its username from the database.
-
-    Args:
-        username (str): The username of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.username == username).first()
-
-
-def _get_by_email(email: str, db: Session) -> Company | None:
-    """
-    Retrieve a company by its email from the database.
-
-    Args:
-        email (str): The email of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.email == email).first()
-
-
-def _get_by_phone_number(phone_number: str, db: Session) -> Company | None:
-    """
-    Retrieve a company by its phone number from the database.
-
-    Args:
-        phone_number (str): The phone number of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.phone_number == phone_number).first()
 
 
 def _update_company(
@@ -270,7 +219,7 @@ def _update_company(
         )
 
     if company_data.city is not None:
-        city = _ensure_valid_city(city_name=company_data.city, db=db)
+        city = ensure_valid_city(name=company_data.city, db=db)
         company.city = city
         logger.info(f"Updated company (id: {company.id}) city to {city.name}")
 
@@ -286,27 +235,10 @@ def _update_company(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
         )
 
-    if any(value is None for value in vars(company_data).values()):
+    if any(value is not None for value in vars(company_data).values()):
         company.updated_at = datetime.now()
-        logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
 
     return company
-
-
-def _ensure_valid_city(city_name: str, db: Session) -> City:
-    """
-    Ensures that the given city name is valid by retrieving it from the database.
-
-    Args:
-        city_name (str): The name of the city to validate.
-        db (Session): The database session to use for the query.
-
-    Returns:
-        City: A City object containing the ID and name of the validated city.
-
-    """
-    city = city_service.get_by_name(city_name=city_name, db=db)
-    return City(**city.model_dump())
 
 
 def _ensure_unique_email(email: str, db: Session) -> None:
@@ -320,32 +252,12 @@ def _ensure_unique_email(email: str, db: Session) -> None:
     Raises:
         ApplicationError: If the email is not unique.
     """
-    company = _get_by_email(email=email, db=db)
+    company = db.query(Company).filter(Company.email == email).first()
     if company is not None:
         logger.error(f"Company with email {email} already exists")
         raise ApplicationError(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Company with email {email} already exists",
-        )
-
-
-def _ensure_unique_username(username: str, db: Session) -> None:
-    """
-    Ensure that the username is unique in the database.
-
-    Args:
-        username (str): The username to check.
-        db (Session): The database session used to query the company.
-
-    Raises:
-        ApplicationError: If the username is not unique.
-    """
-    company = _get_by_username(username=username, db=db)
-    if company is not None:
-        logger.error(f"Company with username {username} already exists")
-        raise ApplicationError(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Company with username {username} already exists",
         )
 
 
@@ -360,7 +272,7 @@ def _ensure_unique_phone_number(phone_number: str, db: Session) -> None:
     Raises:
         ApplicationError: If the phone number is not unique.
     """
-    company = _get_by_phone_number(phone_number=phone_number, db=db)
+    company = db.query(Company).filter(Company.phone_number == phone_number).first()
     if company is not None:
         logger.error(f"Company with phone number {phone_number} already exists")
         raise ApplicationError(
@@ -382,6 +294,6 @@ def _ensure_valid_company_creation_data(
     Raises:
         ApplicationError: If the company data is invalid.
     """
-    _ensure_unique_username(username=company_data.username, db=db)
-    _ensure_unique_email(email=company_data.email, db=db)
+    unique_username(username=company_data.username, db=db)
+    unique_email(email=company_data.email, db=db)
     _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)

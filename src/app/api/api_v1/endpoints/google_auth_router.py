@@ -3,7 +3,7 @@ from starlette.requests import Request
 
 from app.services.auth_service import get_current_user
 from app.services.google_auth_service import auth_callback, login, logout
-from app.utils.process_request import process_async_request
+from app.utils.processors import process_async_request
 
 router = APIRouter()
 
