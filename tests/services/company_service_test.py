@@ -7,6 +7,7 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import MessageResponse
+from app.schemas.company import CompanyUpdate
 from app.services import company_service
 from app.sql_app.company.company import Company
 from tests import test_data as td
@@ -22,7 +23,7 @@ def create_mock_company_dto(
     mocker,
     *,
     id: UUID | None = None,
-    name: str | None = None,
+    company_name: str | None = None,
     description: str | None = None,
     address_line: str | None = None,
     city: str | None = None,
@@ -31,7 +32,7 @@ def create_mock_company_dto(
 ):
     return mocker.Mock(
         id=id,
-        name=name,
+        company_name=company_name,
         description=description,
         address_line=address_line,
         city=city,
@@ -337,7 +338,7 @@ def test_updateCompany_updatesName_whenNameIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(mocker, name=td.VALID_COMPANY_NAME_2)
+    company_update_data = CompanyUpdate(name=td.VALID_COMPANY_NAME_2)
 
     mock_ensure_valid_city = mocker.patch(
         "app.services.company_service.ensure_valid_city"
@@ -351,14 +352,14 @@ def test_updateCompany_updatesName_whenNameIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
     mock_ensure_valid_city.assert_not_called()
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
-    assert result.name == mock_company_data.name
+    assert result.name == company_update_data.name
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
@@ -374,9 +375,7 @@ def test_updateCompany_updatesDescription_whenDescriptionIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(
-        mocker, description=td.VALID_COMPANY_DESCRIPTION_2
-    )
+    company_update_data = CompanyUpdate(description=td.VALID_COMPANY_DESCRIPTION_2)
 
     mock_ensure_valid_city = mocker.patch(
         "app.services.company_service.ensure_valid_city"
@@ -390,14 +389,14 @@ def test_updateCompany_updatesDescription_whenDescriptionIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
     mock_ensure_valid_city.assert_not_called()
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
-    assert result.description == mock_company_data.description
+    assert result.description == company_update_data.description
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
@@ -413,9 +412,7 @@ def test_updateCompany_updatesAddressLine_whenAddressLineIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(
-        mocker, address_line=td.VALID_COMPANY_ADDRESS_LINE_2
-    )
+    company_update_data = CompanyUpdate(address_line=td.VALID_COMPANY_ADDRESS_LINE_2)
 
     mock_ensure_valid_city = mocker.patch(
         "app.services.company_service.ensure_valid_city"
@@ -429,14 +426,14 @@ def test_updateCompany_updatesAddressLine_whenAddressLineIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
     mock_ensure_valid_city.assert_not_called()
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
-    assert result.address_line == mock_company_data.address_line
+    assert result.address_line == company_update_data.address_line
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
@@ -453,7 +450,7 @@ def test_updateCompany_updatesCity_whenCityIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(mocker, city=td.VALID_CITY_NAME_2)
+    update_company_data = CompanyUpdate(city=td.VALID_CITY_NAME_2)
 
     mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
     mock_ensure_valid_city = mocker.patch(
@@ -469,11 +466,11 @@ def test_updateCompany_updatesCity_whenCityIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=update_company_data, db=mock_db
     )
 
     # Assert
-    mock_ensure_valid_city.assert_called_with(name=mock_company_data.city, db=mock_db)
+    mock_ensure_valid_city.assert_called_with(name=update_company_data.city, db=mock_db)
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.city == mock_city
@@ -493,7 +490,7 @@ def test_updateCompany_updatesEmail_whenEmailIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(mocker, email=td.VALID_COMPANY_EMAIL_2)
+    company_update_data = CompanyUpdate(email=td.VALID_COMPANY_EMAIL_2)
 
     mock_ensure_valid_city = mocker.patch(
         "app.services.company_service.ensure_valid_city"
@@ -507,14 +504,14 @@ def test_updateCompany_updatesEmail_whenEmailIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
     mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_called_with(email=mock_company_data.email, db=mock_db)
+    mock_unique_email.assert_called_with(email=company_update_data.email, db=mock_db)
     mock_unique_phone_number.assert_not_called()
-    assert result.email == mock_company_data.email
+    assert result.email == company_update_data.email
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
@@ -531,9 +528,7 @@ def test_updateCompany_updatesPhoneNumber_whenPhoneNumberIsProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(
-        mocker, phone_number=td.VALID_COMPANY_PHONE_NUMBER_2
-    )
+    company_update_data = CompanyUpdate(phone_number=td.VALID_COMPANY_PHONE_NUMBER_2)
 
     mock_ensure_valid_city = mocker.patch(
         "app.services.company_service.ensure_valid_city"
@@ -547,16 +542,16 @@ def test_updateCompany_updatesPhoneNumber_whenPhoneNumberIsProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
     mock_ensure_valid_city.assert_not_called()
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_called_with(
-        phone_number=mock_company_data.phone_number, db=mock_db
+        phone_number=company_update_data.phone_number, db=mock_db
     )
-    assert result.phone_number == mock_company_data.phone_number
+    assert result.phone_number == company_update_data.phone_number
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
@@ -573,8 +568,7 @@ def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
 ) -> None:
     # Arrange
     mock_company = mocker.Mock(**td.COMPANY)
-    mock_company_data = create_mock_company_dto(
-        mocker,
+    company_update_data = CompanyUpdate(
         name=td.VALID_COMPANY_NAME_2,
         description=td.VALID_COMPANY_DESCRIPTION_2,
         address_line=td.VALID_COMPANY_ADDRESS_LINE_2,
@@ -597,21 +591,21 @@ def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
 
     # Act
     result = company_service._update_company(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+        company=mock_company, company_data=company_update_data, db=mock_db
     )
 
     # Assert
-    mock_ensure_valid_city.assert_called_with(name=mock_company_data.city, db=mock_db)
-    mock_unique_email.assert_called_with(email=mock_company_data.email, db=mock_db)
+    mock_ensure_valid_city.assert_called_with(name=company_update_data.city, db=mock_db)
+    mock_unique_email.assert_called_with(email=company_update_data.email, db=mock_db)
     mock_unique_phone_number.assert_called_with(
-        phone_number=mock_company_data.phone_number, db=mock_db
+        phone_number=company_update_data.phone_number, db=mock_db
     )
-    assert result.name == mock_company_data.name
-    assert result.description == mock_company_data.description
-    assert result.address_line == mock_company_data.address_line
+    assert result.name == company_update_data.name
+    assert result.description == company_update_data.description
+    assert result.address_line == company_update_data.address_line
     assert result.city == mock_city
-    assert result.email == mock_company_data.email
-    assert result.phone_number == mock_company_data.phone_number
+    assert result.email == company_update_data.email
+    assert result.phone_number == company_update_data.phone_number
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
