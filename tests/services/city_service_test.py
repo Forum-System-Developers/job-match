@@ -1,7 +1,9 @@
 from unittest.mock import ANY
 
 import pytest
+from fastapi import status
 
+from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
 from app.services.city_service import get_by_name
 from app.sql_app.city.city import City
@@ -34,3 +36,20 @@ def test_getByName_returns_city_when_city_is_found(mocker, mock_db):
     mock_query.filter.assert_called_once_with(ANY)
     assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
     assert result == expected_city_response
+
+
+def test_getByName_raises_error_when_city_is_not_found(mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        get_by_name(city_name=td.VALID_CITY_NAME, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(City)
+    assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert exc.value.data.detail == f"City with name {td.VALID_CITY_NAME} was not found"
