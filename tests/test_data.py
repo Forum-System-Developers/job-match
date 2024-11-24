@@ -8,8 +8,12 @@ VALID_COMPANY_ADDRESS_LINE = "Test Address Line"
 VALID_COMPANY_EMAIL = "test_company_email@example.com"
 VALID_COMPANY_PHONE_NUMBER = "1234567890"
 
+VALID_COMPANY_ID_2 = uuid.uuid4()
 VALID_COMPANY_NAME_2 = "Test Company 2"
 VALID_COMPANY_DESCRIPTION_2 = "Test Description 2"
+VALID_COMPANY_ADDRESS_LINE_2 = "Test Address Line 2"
+VALID_COMPANY_EMAIL_2 = "test_company_email2@example.com"
+VALID_COMPANY_PHONE_NUMBER_2 = "0987654321"
 
 VALID_PASSWORD = "test_password"
 HASHED_PASSWORD = "hashed_password"
