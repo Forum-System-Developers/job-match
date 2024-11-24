@@ -647,3 +647,18 @@ def test_updateCompany_updatesNothing_whenNoFieldsAreProvided(
     assert not isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
+
+
+def test_ensureUniqueEmail_doesNotRaiseError_whenEmailIsUnique(mock_db) -> None:
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    company_service._ensure_unique_email(email=td.VALID_COMPANY_EMAIL, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_with(Company)
+    assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
+    mock_filter.first.assert_called_once()
