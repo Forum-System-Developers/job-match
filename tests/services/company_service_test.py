@@ -662,3 +662,23 @@ def test_ensureUniqueEmail_doesNotRaiseError_whenEmailIsUnique(mock_db) -> None:
     mock_db.query.assert_called_with(Company)
     assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
     mock_filter.first.assert_called_once()
+
+
+def test_ensureUniqueEmail_raisesApplicationError_whenEmailIsNotUnique(
+    mocker, 
+    mock_db
+) -> None:
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = mocker.Mock()
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        company_service._ensure_unique_email(email=td.VALID_COMPANY_EMAIL, db=mock_db)
+
+    mock_db.query.assert_called_with(Company)
+    assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
+    mock_filter.first.assert_called_once()
+    assert exc.value.data.status == status.HTTP_409_CONFLICT
+    assert exc.value.data.detail == f"Company with email {td.VALID_COMPANY_EMAIL} already exists"
