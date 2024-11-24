@@ -19,28 +19,6 @@ def mock_db(mocker):
     return mocker.Mock()
 
 
-def create_mock_company_dto(
-    mocker,
-    *,
-    id: UUID | None = None,
-    company_name: str | None = None,
-    description: str | None = None,
-    address_line: str | None = None,
-    city: str | None = None,
-    email: str | None = None,
-    phone_number: str | None = None,
-):
-    return mocker.Mock(
-        id=id,
-        company_name=company_name,
-        description=description,
-        address_line=address_line,
-        city=city,
-        email=email,
-        phone_number=phone_number,
-    )
-
-
 def test_getAll_returnsCompanies_whenCompaniesAreFound(
     mocker,
     mock_db,
@@ -665,8 +643,7 @@ def test_ensureUniqueEmail_doesNotRaiseError_whenEmailIsUnique(mock_db) -> None:
 
 
 def test_ensureUniqueEmail_raisesApplicationError_whenEmailIsNotUnique(
-    mocker, 
-    mock_db
+    mocker, mock_db
 ) -> None:
     # Arrange
     mock_query = mock_db.query.return_value
@@ -681,7 +658,10 @@ def test_ensureUniqueEmail_raisesApplicationError_whenEmailIsNotUnique(
     assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
     mock_filter.first.assert_called_once()
     assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert exc.value.data.detail == f"Company with email {td.VALID_COMPANY_EMAIL} already exists"
+    assert (
+        exc.value.data.detail
+        == f"Company with email {td.VALID_COMPANY_EMAIL} already exists"
+    )
 
 
 def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(
@@ -729,4 +709,37 @@ def test_ensureUniquePhoneNumber_raisesApplicationError_whenPhoneNumberIsNotUniq
     assert (
         exc.value.data.detail
         == f"Company with phone number {td.VALID_COMPANY_PHONE_NUMBER} already exists"
+    )
+
+
+def test_ensureValidCompanyCreationData_doesNotRaiseError_whenDataIsValid(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company_data = mocker.Mock(
+        username=td.VALID_COMPANY_USERNAME,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
+
+    mock_unique_username = mocker.patch("app.services.company_service.unique_username")
+
+    mock_unique_email = mocker.patch("app.services.company_service.unique_email")
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    company_service._ensure_valid_company_creation_data(
+        company_data=mock_company_data, db=mock_db
+    )
+
+    # Assert
+    mock_unique_username.assert_called_with(
+        username=mock_company_data.username, db=mock_db
+    )
+    mock_unique_email.assert_called_with(email=mock_company_data.email, db=mock_db)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=mock_company_data.phone_number, db=mock_db
     )
