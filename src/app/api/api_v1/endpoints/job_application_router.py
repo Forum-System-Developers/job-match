@@ -20,7 +20,7 @@ from app.services.auth_service import (
     require_professional_role,
 )
 from app.sql_app.database import get_db
-from app.utils.process_request import process_request
+from app.utils.processors import process_request
 
 router = APIRouter()
 
