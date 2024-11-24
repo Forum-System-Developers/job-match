@@ -27,10 +27,10 @@ NON_EXISTENT_USERNAME = "non_existent_username"
 
 COMPANY = {
     "id": VALID_COMPANY_ID,
-    "name": VALID_COMPANY_NAME, 
-    "description": VALID_COMPANY_DESCRIPTION, 
-    "address_line": VALID_COMPANY_ADDRESS_LINE, 
-    "city": VALID_CITY_NAME, 
+    "name": VALID_COMPANY_NAME,
+    "description": VALID_COMPANY_DESCRIPTION,
+    "address_line": VALID_COMPANY_ADDRESS_LINE,
+    "city": VALID_CITY_NAME,
     "email": VALID_COMPANY_EMAIL,
     "phone_number": VALID_COMPANY_PHONE_NUMBER,
 }
