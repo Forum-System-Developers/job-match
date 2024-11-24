@@ -122,10 +122,10 @@ def test_getId_raises_error_when_city_is_not_found(mock_db):
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        get_by_name(city_name=td.VALID_CITY_NAME, db=mock_db)
+        get_id(db=mock_db, city_name=td.VALID_CITY_NAME)
 
     # Assert
     mock_db.query.assert_called_once_with(City)
     assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"City with name {td.VALID_CITY_NAME} was not found"
+    assert exc.value.data.detail == f"City with name {td.VALID_CITY_NAME} not found."
