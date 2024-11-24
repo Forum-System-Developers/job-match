@@ -12,7 +12,12 @@ from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.schemas.user import User
 from app.services import city_service
-from app.services.utils.validators import ensure_valid_company_id
+from app.services.utils.file_utils import handle_file_upload
+from app.services.utils.validators import (
+    ensure_valid_company_id,
+    unique_email,
+    unique_username,
+)
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
@@ -151,8 +156,7 @@ def upload_logo(company_id: UUID, logo: UploadFile, db: Session) -> MessageRespo
         MessageResponse: A response message indicating the result of the upload operation.
     """
     company = ensure_valid_company_id(id=company_id, db=db)
-    upload_logo = logo.file.read()
-    company.logo = upload_logo
+    company.logo = handle_file_upload(logo)
     company.updated_at = datetime.now()
     db.commit()
     logger.info(f"Uploaded logo for company with id {company_id}")
@@ -382,6 +386,6 @@ def _ensure_valid_company_creation_data(
     Raises:
         ApplicationError: If the company data is invalid.
     """
-    _ensure_unique_username(username=company_data.username, db=db)
-    _ensure_unique_email(email=company_data.email, db=db)
+    unique_username(username=company_data.username, db=db)
+    unique_email(email=company_data.email, db=db)
     _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)
