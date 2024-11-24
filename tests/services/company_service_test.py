@@ -1,4 +1,4 @@
-import io
+from datetime import datetime
 from unittest.mock import ANY
 from uuid import UUID
 
@@ -359,6 +359,7 @@ def test_updateCompany_updatesName_whenNameIsProvided(
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.name == mock_company_data.name
+    assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
     assert result.description == mock_company.description
@@ -397,6 +398,7 @@ def test_updateCompany_updatesDescription_whenDescriptionIsProvided(
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.description == mock_company_data.description
+    assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
     assert result.name == mock_company.name
@@ -435,6 +437,7 @@ def test_updateCompany_updatesAddressLine_whenAddressLineIsProvided(
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.address_line == mock_company_data.address_line
+    assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
     assert result.name == mock_company.name
@@ -474,6 +477,7 @@ def test_updateCompany_updatesCity_whenCityIsProvided(
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.city == mock_city
+    assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
     assert result.name == mock_company.name
@@ -511,6 +515,7 @@ def test_updateCompany_updatesEmail_whenEmailIsProvided(
     mock_unique_email.assert_called_with(email=mock_company_data.email, db=mock_db)
     mock_unique_phone_number.assert_not_called()
     assert result.email == mock_company_data.email
+    assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id
     assert result.name == mock_company.name
