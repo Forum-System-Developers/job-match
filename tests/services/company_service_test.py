@@ -182,3 +182,41 @@ def test_create_createsCompany_whenDataIsValid(
     mock_db.refresh.assert_called_once_with(ANY)
     mock_create.assert_called_with(ANY)
     assert result == mock_response
+
+
+def test_update_updatesCompany_whenDataIsValid(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company_data = mocker.Mock()
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID)
+    mock_response = mocker.Mock()
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_update_company = mocker.patch(
+        "app.services.company_service._update_company",
+        return_value=mock_company,
+    )
+    mock_create = mocker.patch(
+        "app.schemas.company.CompanyResponse.create",
+        return_value=mock_response,
+    )
+
+    # Act
+    result = company_service.update(
+        id=mock_company.id, company_data=mock_company_data, db=mock_db
+    )
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
+    mock_update_company.assert_called_with(
+        company=mock_company, company_data=mock_company_data, db=mock_db
+    )
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_company)
+    mock_create.assert_called_with(mock_company)
+    assert result == mock_response
