@@ -4,6 +4,7 @@ import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import MessageResponse
 from app.services import company_service
 from app.sql_app.company.company import Company
 from tests import test_data as td
@@ -220,3 +221,30 @@ def test_update_updatesCompany_whenDataIsValid(
     mock_db.refresh.assert_called_once_with(mock_company)
     mock_create.assert_called_with(mock_company)
     assert result == mock_response
+
+
+def test_uploadLogo_uploadsLogo_whenDataIsValid(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_logo = mocker.Mock()
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_handle_file_upload = mocker.patch(
+        "app.services.company_service.handle_file_upload",
+        return_value=b"mock_logo_data",
+    )
+
+    # Act
+    result = company_service.upload_logo(company_id=mock_company.id, logo=mock_logo, db=mock_db)
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    mock_handle_file_upload.assert_called_with(mock_logo)
+    mock_db.commit.assert_called_once()
+    assert isinstance(result, MessageResponse)
