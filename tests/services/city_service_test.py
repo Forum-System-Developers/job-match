@@ -5,7 +5,7 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.address import CityResponse
-from app.services.city_service import get_by_name
+from app.services.city_service import get_by_id, get_by_name
 from app.sql_app.city.city import City
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
@@ -68,12 +68,12 @@ def test_getById_returns_city_when_city_is_found(mocker, mock_db):
     expected_city_response = CityResponse(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME)
 
     # Act
-    result = get_by_name(city_name=td.VALID_CITY_NAME, db=mock_db)
+    result = get_by_id(city_id=td.VALID_CITY_ID, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(City)
     mock_query.filter.assert_called_once_with(ANY)
-    assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
+    assert_filter_called_with(mock_query, City.id == td.VALID_CITY_ID)
     assert result == expected_city_response
 
 
