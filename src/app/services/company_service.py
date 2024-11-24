@@ -187,20 +187,6 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     return StreamingResponse(io.BytesIO(logo), media_type="image/png")
 
 
-def _get_by_id(id: UUID, db: Session) -> Company | None:
-    """
-    Retrieve a company by its ID from the database.
-
-    Args:
-        id (UUID): The unique identifier of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.id == id).first()
-
-
 def _get_by_username(username: str, db: Session) -> Company | None:
     """
     Retrieve a company by its username from the database.
