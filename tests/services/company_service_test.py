@@ -270,7 +270,9 @@ def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
         return_value=mock_company,
     )
     mock_bytes_io = mocker.patch("app.services.company_service.io.BytesIO")
-    mock_streaming_response = mocker.patch("app.services.company_service.StreamingResponse")
+    mock_streaming_response = mocker.patch(
+        "app.services.company_service.StreamingResponse"
+    )
 
     # Act
     result = company_service.download_logo(company_id=mock_company.id, db=mock_db)
@@ -278,5 +280,31 @@ def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
     # Assert
     mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
     mock_bytes_io.assert_called_with(mock_logo_data)
-    mock_streaming_response.assert_called_with(mock_bytes_io.return_value, media_type="image/png")
+    mock_streaming_response.assert_called_with(
+        mock_bytes_io.return_value, media_type="image/png"
+    )
     assert result == mock_streaming_response.return_value
+
+
+def test_downloadLogo_raisesApplicationError_whenCompanyHasNoLogo(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=None)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        company_service.download_logo(company_id=mock_company.id, db=mock_db)
+
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail
+        == f"Company with id {mock_company.id} does not have a logo"
+    )
