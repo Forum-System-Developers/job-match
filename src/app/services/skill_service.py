@@ -9,7 +9,7 @@ from app.schemas.skill import SkillBase, SkillResponse
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.skill.skill import Skill
-from app.utils.database_utils import handle_database_operation
+from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def create_skill(db: Session, skill_schema: SkillBase) -> UUID:
 
         return skill_model.id
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def create_job_application_skill(
@@ -69,7 +69,7 @@ def create_job_application_skill(
         logger.info(f"Job Application skill id {skill_id} created")
         return skill_id
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def exists(db: Session, skill_name: str) -> bool:
