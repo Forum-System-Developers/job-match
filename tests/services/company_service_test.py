@@ -156,7 +156,7 @@ def test_create_createsCompany_whenDataIsValid(
         "app.services.company_service._ensure_valid_company_creation_data"
     )
     mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service._ensure_valid_city",
+        "app.services.company_service.ensure_valid_city",
         return_value=mock_city,
     )
     mock_hash_password = mocker.patch(
@@ -176,7 +176,7 @@ def test_create_createsCompany_whenDataIsValid(
         company_data=mock_company_data, db=mock_db
     )
     mock_ensure_valid_city.assert_called_with(
-        city_name=mock_company_data.city, db=mock_db
+        name=mock_company_data.city, db=mock_db
     )
     mock_hash_password.assert_called_with(mock_company_data.password)
     mock_db.add.assert_called_once_with(ANY)
