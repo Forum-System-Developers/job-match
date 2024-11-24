@@ -17,14 +17,15 @@ from tests.utils import assert_filter_called_with
 def mock_db(mocker):
     return mocker.Mock()
 
+
 def create_mock_company_dto(
     mocker,
     *,
     id: UUID | None = None,
-    name: str | None = None, 
-    description: str | None = None, 
-    address_line: str | None = None, 
-    city: str | None = None, 
+    name: str | None = None,
+    description: str | None = None,
+    address_line: str | None = None,
+    city: str | None = None,
     email: str | None = None,
     phone_number: str | None = None,
 ):
@@ -197,9 +198,7 @@ def test_create_createsCompany_whenDataIsValid(
     mock_ensure_valid_company_creation_data.assert_called_with(
         company_data=mock_company_data, db=mock_db
     )
-    mock_ensure_valid_city.assert_called_with(
-        name=mock_company_data.city, db=mock_db
-    )
+    mock_ensure_valid_city.assert_called_with(name=mock_company_data.city, db=mock_db)
     mock_hash_password.assert_called_with(mock_company_data.password)
     mock_db.add.assert_called_once_with(ANY)
     mock_db.commit.assert_called_once()
@@ -360,9 +359,47 @@ def test_updateCompany_updatesName_whenNameIsProvided(
     mock_unique_email.assert_not_called()
     mock_unique_phone_number.assert_not_called()
     assert result.name == mock_company_data.name
-    
+
     assert result.id == mock_company.id
     assert result.description == mock_company.description
+    assert result.city == mock_company.city
+    assert result.email == mock_company.email
+    assert result.phone_number == mock_company.phone_number
+
+
+def test_updateCompany_updatesDescription_whenDescriptionIsProvided(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(**td.COMPANY)
+    mock_company_data = create_mock_company_dto(
+        mocker, description=td.VALID_COMPANY_DESCRIPTION_2
+    )
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city"
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._update_company(
+        company=mock_company, company_data=mock_company_data, db=mock_db
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    mock_unique_email.assert_not_called()
+    mock_unique_phone_number.assert_not_called()
+    assert result.description == mock_company_data.description
+
+    assert result.id == mock_company.id
+    assert result.name == mock_company.name
     assert result.city == mock_company.city
     assert result.email == mock_company.email
     assert result.phone_number == mock_company.phone_number
