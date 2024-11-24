@@ -1,9 +1,11 @@
 import logging
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 from fastapi import status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 
@@ -51,6 +53,37 @@ def process_request(
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": {"error": str(ex)}},
+        )
+
+
+def process_db_transaction(transaction_func: Callable, db: Session) -> Any:
+    """
+    Executes a database transaction function and handles exceptions.
+
+    Args:
+        transaction_func (Callable): The function to execute within the transaction.
+        db (Session): The SQLAlchemy database session.
+
+    Returns:
+        Any: The result of the transaction function if successful.
+
+    Raises:
+        ApplicationError: If an IntegrityError or SQLAlchemyError occurs during the transaction.
+    """
+    try:
+        return transaction_func()
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error: {str(e)}")
+        raise ApplicationError(
+            detail="Database conflict occurred", status_code=status.HTTP_409_CONFLICT
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Unexpected DB error: {str(e)}")
+        raise ApplicationError(
+            detail="Internal server error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
