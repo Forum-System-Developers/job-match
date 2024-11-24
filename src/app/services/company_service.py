@@ -187,20 +187,6 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     return StreamingResponse(io.BytesIO(logo), media_type="image/png")
 
 
-def _get_by_username(username: str, db: Session) -> Company | None:
-    """
-    Retrieve a company by its username from the database.
-
-    Args:
-        username (str): The username of the company.
-        db (Session): The database session used to query the company.
-
-    Returns:
-        Company: The company object if found, otherwise None.
-    """
-    return db.query(Company).filter(Company.username == username).first()
-
-
 def _get_by_email(email: str, db: Session) -> Company | None:
     """
     Retrieve a company by its email from the database.
@@ -316,26 +302,6 @@ def _ensure_unique_email(email: str, db: Session) -> None:
         raise ApplicationError(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Company with email {email} already exists",
-        )
-
-
-def _ensure_unique_username(username: str, db: Session) -> None:
-    """
-    Ensure that the username is unique in the database.
-
-    Args:
-        username (str): The username to check.
-        db (Session): The database session used to query the company.
-
-    Raises:
-        ApplicationError: If the username is not unique.
-    """
-    company = _get_by_username(username=username, db=db)
-    if company is not None:
-        logger.error(f"Company with username {username} already exists")
-        raise ApplicationError(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Company with username {username} already exists",
         )
 
 
