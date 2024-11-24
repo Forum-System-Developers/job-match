@@ -1,3 +1,4 @@
+import io
 from unittest.mock import ANY
 
 import pytest
@@ -239,12 +240,43 @@ def test_uploadLogo_uploadsLogo_whenDataIsValid(
         "app.services.company_service.handle_file_upload",
         return_value=b"mock_logo_data",
     )
+    mock_message_response = mocker.patch(
+        "app.services.company_service.MessageResponse",
+        return_value=mocker.Mock(),
+    )
 
     # Act
-    result = company_service.upload_logo(company_id=mock_company.id, logo=mock_logo, db=mock_db)
+    result = company_service.upload_logo(
+        company_id=mock_company.id, logo=mock_logo, db=mock_db
+    )
 
     # Assert
     mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
     mock_handle_file_upload.assert_called_with(mock_logo)
     mock_db.commit.assert_called_once()
-    assert isinstance(result, MessageResponse)
+    assert result == mock_message_response.return_value
+
+
+def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_logo_data = b"mock_logo_data"
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=mock_logo_data)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_bytes_io = mocker.patch("app.services.company_service.io.BytesIO")
+    mock_streaming_response = mocker.patch("app.services.company_service.StreamingResponse")
+
+    # Act
+    result = company_service.download_logo(company_id=mock_company.id, db=mock_db)
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    mock_bytes_io.assert_called_with(mock_logo_data)
+    mock_streaming_response.assert_called_with(mock_bytes_io.return_value, media_type="image/png")
+    assert result == mock_streaming_response.return_value
