@@ -1,8 +1,9 @@
+import asyncio
 import logging
 from typing import Callable, Union
 
 from fastapi import status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -35,6 +36,40 @@ def process_request(
     try:
         response = get_entities_fn()
         return JSONResponse(status_code=status_code, content=format_response(response))
+    except ApplicationError as ex:
+        logger.exception(str(ex))
+        return JSONResponse(
+            status_code=ex.data.status,
+            content={"detail": {"error": ex.data.detail}},
+        )
+    except TypeError as ex:
+        logger.exception(not_found_err_msg)
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": {"error": str(ex)}},
+        )
+    except SyntaxError as ex:
+        logger.exception("Pers thrown an exception")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": {"error": str(ex)}},
+        )
+
+
+async def process_async_request(
+    get_entities_fn: Callable,
+    status_code: int,
+    not_found_err_msg: str,
+) -> JSONResponse | RedirectResponse:
+    try:
+        response = await get_entities_fn()
+
+        if isinstance(response, RedirectResponse):
+            return response
+
+        formatted_response = format_response(response)
+
+        return JSONResponse(status_code=status_code, content=formatted_response)
     except ApplicationError as ex:
         logger.exception(str(ex))
         return JSONResponse(
