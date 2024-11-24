@@ -235,7 +235,7 @@ def _update_company(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
         )
 
-    if any(value is None for value in vars(company_data).values()):
+    if any(value is not None for value in vars(company_data).values()):
         company.updated_at = datetime.now()
         logger.info(f"Updated job ad (id: {id}) updated_at to job_ad.updated_at")
 
