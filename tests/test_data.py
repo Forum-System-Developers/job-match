@@ -22,6 +22,9 @@ VALID_REQUIREMENT_ID = uuid.uuid4()
 VALID_CITY_ID = uuid.uuid4()
 VALID_CITY_NAME = "Test City"
 
+VALID_CITY_ID_2 = uuid.uuid4()
+VALID_CITY_NAME_2 = "Test City 2"
+
 NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
 
