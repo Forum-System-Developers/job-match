@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
-from app.services import job_ad_service
+from app.services import job_ad_service, match_service
 from app.services.auth_service import require_company_role
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
@@ -123,13 +123,13 @@ def add_job_ad_requirement(
     "/{job_ad_id}/match-requests",
     description="Retrieve all match requests for a job advertisement.",
 )
-def get_job_ad_match_requests(
+def view_received_match_requests(
     job_ad_id: UUID,
     company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_job_ad_requests():
-        return job_ad_service.view_received_match_requests(
+        return match_service.view_received_job_application_match_requests(
             job_ad_id=job_ad_id,
             company_id=company.id,
             db=db,
@@ -146,14 +146,14 @@ def get_job_ad_match_requests(
     "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
     description="Accept a match request for a job advertisement.",
 )
-def accept_job_ad_match_request(
+def accept_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
     company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _accept_job_ad_request():
-        return job_ad_service.accept_match_request(
+        return match_service.accept_job_application_match_request(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
             company_id=company.id,
@@ -169,16 +169,16 @@ def accept_job_ad_match_request(
 
 @router.post(
     "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
-    description="Send a match request to a job advertisement.",
+    description="Send a match request to a job application.",
 )
-def send_job_ad_match_request(
+def send_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
     company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _send_job_ad_request():
-        return job_ad_service.send_match_request(
+        return match_service.send_job_application_match_request(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
             company_id=company.id,
@@ -202,7 +202,7 @@ def view_sent_match_requests(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_sent_requests():
-        return job_ad_service.view_sent_match_requests(
+        return match_service.view_sent_job_application_match_requests(
             job_ad_id=job_ad_id,
             company_id=company.id,
             db=db,

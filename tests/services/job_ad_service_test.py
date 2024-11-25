@@ -4,7 +4,13 @@ import pytest
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
-from app.services.job_ad_service import add_requirement, create, get_all, get_by_id, update
+from app.services.job_ad_service import (
+    add_requirement,
+    create,
+    get_all,
+    get_by_id,
+    update,
+)
 from tests import test_data as td
 
 
