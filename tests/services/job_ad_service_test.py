@@ -1,7 +1,7 @@
 import pytest
 
 from app.schemas.common import FilterParams, JobAdSearchParams
-from app.services.job_ad_service import get_all
+from app.services.job_ad_service import get_all, get_by_id
 from tests import test_data as td
 
 
@@ -25,7 +25,6 @@ def test_getAll_returnsJobAds_whenJobAdsExist(mocker, mock_db) -> None:
     mock_search_job_ads = mocker.patch(
         "app.services.job_ad_service._search_job_ads", return_value=mock_query
     )
-
     mock_create = mocker.patch(
         "app.schemas.job_ad.JobAdResponse.create",
         side_effect=job_ad_responses,
@@ -67,3 +66,29 @@ def test_getAll_returnsEmptyList_whenNoJobAdsExist(mocker, mock_db) -> None:
     mock_query.offset.assert_called_with(filter_params.offset)
     mock_offset.limit.assert_called_with(filter_params.limit)
     assert result == []
+
+
+def test_getById_returnsJobAd_whenJobAdExists(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_ad_response = mocker.Mock()
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_job_ad_id",
+        return_value=job_ad,
+    )
+    mock_create = mocker.patch(
+        "app.schemas.job_ad.JobAdResponse.create",
+        return_value=job_ad_response,
+    )
+
+    # Act
+    result = get_by_id(td.VALID_JOB_AD_ID, mock_db)
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        db=mock_db,
+    )
+    mock_create.assert_called_with(job_ad)
+    assert result == job_ad_response
