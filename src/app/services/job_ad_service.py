@@ -93,9 +93,8 @@ def create(
     company = ensure_valid_company_id(id=company_id, db=db)
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
-    if company is not None:
-        company.job_ads.append(job_ad)
-        company.active_job_count += 1
+    company.job_ads.append(job_ad)
+    company.active_job_count += 1
 
     db.add(job_ad)
     db.commit()
