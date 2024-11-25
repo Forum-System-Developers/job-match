@@ -253,7 +253,9 @@ def test_updateJobAd_updatesTitle_whenTitleIsProvided(mocker, mock_db) -> None:
     assert result.status == mock_job_ad.status
 
 
-def test_updateJobAd_updatesDescription_whenDescriptionIsProvided(mocker, mock_db) -> None:
+def test_updateJobAd_updatesDescription_whenDescriptionIsProvided(
+    mocker, mock_db
+) -> None:
     # Arrange
     mock_job_ad = mocker.Mock(**td.JOB_AD)
     job_ad_update_data = JobAdUpdate(description=td.VALID_JOB_AD_DESCRIPTION_2)
