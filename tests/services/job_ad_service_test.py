@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services.job_ad_service import (
+    _update_job_ad,
     add_requirement,
     create,
     get_all,
@@ -221,3 +223,31 @@ def test_addRequirement_addsRequirement_whenValidData(mocker, mock_db) -> None:
     mock_db.commit.assert_called()
     mock_db.refresh.assert_called_with(ANY)
     assert result == message_response
+
+
+def test_updateJobAd_updatesTitle_whenTitleIsProvided(mocker, mock_db) -> None:
+    # Arrange
+    mock_job_ad = mocker.Mock(**td.JOB_AD)
+    job_ad_update_data = JobAdUpdate(title=td.VALID_JOB_AD_TITLE_2)
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_city"
+    )
+
+    # Act
+    result = _update_job_ad(
+        job_ad_data=job_ad_update_data,
+        job_ad=mock_job_ad,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    assert result.title == job_ad_update_data.title
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.description == mock_job_ad.description
+    assert result.location == mock_job_ad.location
+    assert result.min_salary == mock_job_ad.min_salary
+    assert result.max_salary == mock_job_ad.max_salary
+    assert result.status == mock_job_ad.status
