@@ -1,17 +1,8 @@
-import uuid
-from unittest.mock import MagicMock
-
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.professional import (
-    ProfessionalCreate,
-    ProfessionalRequestBody,
-    ProfessionalResponse,
-)
 from app.services import professional_service
-from app.sql_app.professional.professional_status import ProfessionalStatus
 from tests import test_data as td
 
 
