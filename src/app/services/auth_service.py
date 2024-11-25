@@ -302,9 +302,7 @@ def refresh_access_token(refresh_token: str, db: Session) -> Token:
     )
 
 
-def get_current_user(
-    request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> UserResponse:
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> UserResponse:
     """
     Retrieve the current user based on the provided token.
 
@@ -314,14 +312,14 @@ def get_current_user(
     Returns:
         UserResponse: DTO for carrying information about the cirrent logged in user..
     """
-    user_id = request.session.get("user_id")
-    if user_id is None:
+    access_token = request.cookies.get("access_token")
+    if access_token is None:
         raise HTTPException(
             detail="Could not authenticate you",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    payload, user_role = verify_token(token=token, db=db)
+    payload, user_role = verify_token(token=access_token, db=db)
     user_id = UUID(payload.get("sub"))
 
     return UserResponse(id=user_id, user_role=UserRole(user_role))
