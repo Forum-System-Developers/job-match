@@ -1,12 +1,10 @@
 from datetime import datetime
 from unittest.mock import ANY
-from uuid import UUID
 
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import MessageResponse
 from app.schemas.company import CompanyUpdate
 from app.services import company_service
 from app.sql_app.company.company import Company
