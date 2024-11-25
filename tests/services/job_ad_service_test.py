@@ -314,3 +314,31 @@ def test_updateJobAd_updatesLocation_whenLocationIsProvided(mocker, mock_db) -> 
     assert result.min_salary == mock_job_ad.min_salary
     assert result.max_salary == mock_job_ad.max_salary
     assert result.status == mock_job_ad.status
+
+
+def test_updateJobAd_updatesMinSalary_whenMinSalaryIsProvided(mocker, mock_db) -> None:
+    # Arrange
+    mock_job_ad = mocker.Mock(**td.JOB_AD)
+    job_ad_update_data = JobAdUpdate(min_salary=1000.00)
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_city"
+    )
+
+    # Act
+    result = _update_job_ad(
+        job_ad_data=job_ad_update_data,
+        job_ad=mock_job_ad,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    assert result.min_salary == job_ad_update_data.min_salary
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.title == mock_job_ad.title
+    assert result.description == mock_job_ad.description
+    assert result.location == mock_job_ad.location
+    assert result.max_salary == mock_job_ad.max_salary
+    assert result.status == mock_job_ad.status
