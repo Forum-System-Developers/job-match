@@ -536,6 +536,39 @@ def test_searchJobAds_filtersByStatus(mocker, mock_db) -> None:
     assert result.all() == job_ads
 
 
+def test_searchJobAds_filtersByTitle(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(title=td.VALID_JOB_AD_TITLE)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.all.return_value = job_ads
+
+    mock_filter_by_salary = mocker.patch(
+        "app.services.job_ad_service._filter_by_salary",
+        return_value=mock_filter,
+    )
+    mock_filter_by_skills = mocker.patch(
+        "app.services.job_ad_service._filter_by_skills",
+        return_value=mock_filter,
+    )
+    mock_order_by = mocker.patch(
+        "app.services.job_ad_service._order_by",
+        return_value=mock_filter,
+    )
+
+    # Act
+    result = _search_job_ads(search_params=search_params, db=mock_db)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query=mock_query,
+        expected_expression=JobAd.title.ilike(f"%{search_params.title}%"),
+    )
+    assert result.all() == job_ads
+
+
 def test_searchJobAds_filtersByLocation(mocker, mock_db) -> None:
     # Arrange
     search_params = JobAdSearchParams(location_id=td.VALID_CITY_ID)
