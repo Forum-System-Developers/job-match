@@ -125,9 +125,6 @@ def update(
     job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     job_ad = _update_job_ad(job_ad_data=job_ad_data, job_ad=job_ad, db=db)
 
-    if any(value is None for value in vars(job_ad_data).values()):
-        job_ad.updated_at = datetime.now(timezone.utc)
-
     db.commit()
     db.refresh(job_ad)
     logger.info(f"Job ad with id: {job_ad_id} updated.")
@@ -378,6 +375,9 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
     if job_ad_data.status is not None:
         job_ad.status = job_ad_data.status
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
+
+    if any(value is None for value in vars(job_ad_data).values()):
+        job_ad.updated_at = datetime.now(timezone.utc)
 
     return job_ad
 
