@@ -260,19 +260,7 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
 
     job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
     job_ads = _filter_by_skills(job_ads=job_ads, search_params=search_params, db=db)
-    order_by_column = getattr(JobAd, search_params.order_by, None)
-
-    if order_by_column is not None:
-        if search_params.order == "asc":
-            job_ads = job_ads.order_by(asc(order_by_column))
-            logger.info(
-                f"Ordering job ads by {search_params.order_by} in ascending order"
-            )
-        else:
-            job_ads = job_ads.order_by(desc(order_by_column))
-            logger.info(
-                f"Ordering job ads by {search_params.order_by} in descending order"
-            )
+    job_ads = _order_by(job_ads=job_ads, search_params=search_params)
 
     return job_ads
 
@@ -362,5 +350,36 @@ def _filter_by_skills(
         logger.info(
             f"Searching for job ads with at least {required_matches} skills from the provided skill list: {search_params.skills}"
         )
+
+    return job_ads
+
+
+def _order_by(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+) -> Query[JobAd]:
+    """
+    Orders job advertisements based on the provided search parameters.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to order the job advertisements.
+
+    Returns:
+        Query[JobAd]: The ordered query object containing the job advertisements.
+    """
+    order_by_column = getattr(JobAd, search_params.order_by, None)
+
+    if order_by_column is not None:
+        if search_params.order == "asc":
+            job_ads = job_ads.order_by(asc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in ascending order"
+            )
+        else:
+            job_ads = job_ads.order_by(desc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in descending order"
+            )
 
     return job_ads
