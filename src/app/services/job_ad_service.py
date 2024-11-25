@@ -12,10 +12,10 @@ from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
+    ensure_valid_city,
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
-    ensure_valid_location,
     ensure_valid_match_request,
     ensure_valid_requirement_id,
 )
@@ -355,7 +355,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         JobAd: The updated job advertisement object.
     """
     if job_ad_data.location is not None:
-        ensure_valid_location(location=job_ad_data.location, db=db)
+        ensure_valid_city(name=job_ad_data.location, db=db)
         logger.info(f"Updated job ad (id: {id}) location to {job_ad_data.location}")
 
     if job_ad_data.title is not None:

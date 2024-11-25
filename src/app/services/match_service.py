@@ -12,7 +12,7 @@ from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
-from app.utils.database_utils import handle_database_operation
+from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def create_if_not_exists(
         )
         return {"msg": "Match Request successfully sent"}
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match | None:
@@ -162,7 +162,7 @@ def reject_match_request(
         )
         return {"msg": "Match Request rejected"}
 
-    return handle_database_operation(db_request=_handle_reject, db=db)
+    return process_db_transaction(transaction_func=_handle_reject, db=db)
 
 
 def accept_match_request(
@@ -195,7 +195,7 @@ def accept_match_request(
         )
         return {"msg": "Match Request accepted"}
 
-    return handle_database_operation(db_request=_handle_accept, db=db)
+    return process_db_transaction(transaction_func=_handle_accept, db=db)
 
 
 def get_match_requests_for_job_application(

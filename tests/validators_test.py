@@ -4,10 +4,10 @@ from fastapi import status
 from app.exceptions.custom_exceptions import ApplicationError
 from app.services.utils.validators import (
     ensure_no_match_request,
+    ensure_valid_city,
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
-    ensure_valid_location,
     ensure_valid_match_request,
     ensure_valid_professional_id,
     ensure_valid_requirement_id,
@@ -32,7 +32,7 @@ def mock_db(mocker):
     return mocker.Mock()
 
 
-def test_ensureValidLocation_returnsCity_whenLocationIsFound(mocker, mock_db):
+def test_ensureValidCity_returnsCity_whenCityIsFound(mocker, mock_db):
     # Arrange
     city = mocker.Mock(name=td.VALID_CITY_NAME)
 
@@ -41,7 +41,7 @@ def test_ensureValidLocation_returnsCity_whenLocationIsFound(mocker, mock_db):
     mock_filter.first.return_value = city
 
     # Act
-    result = ensure_valid_location(location=td.VALID_CITY_NAME, db=mock_db)
+    result = ensure_valid_city(name=td.VALID_CITY_NAME, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(City)
@@ -49,7 +49,7 @@ def test_ensureValidLocation_returnsCity_whenLocationIsFound(mocker, mock_db):
     assert result == city
 
 
-def test_ensureValidLocation_raisesApplicationError_whenLocationIsNotFound(mock_db):
+def test_ensureValidCity_raisesApplicationError_whenCityIsNotFound(mock_db):
     # Arrange
     mock_query = mock_db.query.return_value
     mock_filter = mock_query.filter.return_value
@@ -57,7 +57,7 @@ def test_ensureValidLocation_raisesApplicationError_whenLocationIsNotFound(mock_
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_location(location=td.VALID_CITY_NAME, db=mock_db)
+        ensure_valid_city(name=td.VALID_CITY_NAME, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(City)

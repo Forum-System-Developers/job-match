@@ -58,12 +58,12 @@ class CompanyCreate(BaseModel):
 
 
 class CompanyUpdate(BaseModel):
-    name: str | None
-    address_line: str | None
-    city: str | None
-    description: str | None
-    email: EmailStr | None
-    phone_number: str | None
+    name: str | None = None
+    address_line: str | None = None
+    city: str | None = None
+    description: str | None = None
+    email: EmailStr | None = None
+    phone_number: str | None = None
 
 
 class CompanyResponse(CompanyBase):

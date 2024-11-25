@@ -24,7 +24,7 @@ from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
-from app.utils.database_utils import handle_database_operation
+from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +289,7 @@ def _update_attributes(
 
         return job_application_model
 
-    return handle_database_operation(db_request=_handle_update, db=db)
+    return process_db_transaction(transaction_func=_handle_update, db=db)
 
 
 def _update_skillset(
@@ -328,7 +328,7 @@ def _update_skillset(
         db.flush()
         logger.info(f"Job Application id {job_application_model.id} skillset updated")
 
-    return handle_database_operation(db_request=_handle_update, db=db)
+    return process_db_transaction(transaction_func=_handle_update, db=db)
 
 
 def _create_skillset(
@@ -370,7 +370,7 @@ def _create_skillset(
 
         return skillset
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
@@ -482,7 +482,7 @@ def _create(
 
         return job_application
 
-    return handle_database_operation(db_request=_handle_create, db=db)
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def get_skills(job_application: JobApplication, db: Session) -> list[SkillResponse]:
