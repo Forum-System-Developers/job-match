@@ -1,7 +1,10 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.schemas.common import FilterParams, JobAdSearchParams
-from app.services.job_ad_service import get_all, get_by_id
+from app.schemas.job_ad import JobAdCreate
+from app.services.job_ad_service import create, get_all, get_by_id
 from tests import test_data as td
 
 
@@ -92,3 +95,38 @@ def test_getById_returnsJobAd_whenJobAdExists(mocker, mock_db) -> None:
     )
     mock_create.assert_called_with(job_ad)
     assert result == job_ad_response
+
+
+def test_create_createsJobAd_whenValidJobAd(mocker, mock_db) -> None:
+    # Arrange
+    job_ad_data = JobAdCreate(**td.JOB_AD_CREATE)
+    mock_company = mocker.Mock(
+        id=td.VALID_COMPANY_ID,
+        job_ads=list(),
+        active_job_count=0,
+    )
+    mock_job_ad_response = mocker.Mock()
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_create_response = mocker.patch(
+        "app.schemas.job_ad.JobAdResponse.create",
+        return_value=mock_job_ad_response,
+    )
+
+    # Act
+    result = create(company_id=mock_company.id, job_ad_data=job_ad_data, db=mock_db)
+
+    # Assert
+    mock_db.add.assert_called_with(ANY)
+    mock_db.commit.assert_called()
+    mock_db.refresh.assert_called_with(ANY)
+    mock_ensure_valid_company_id.assert_called_with(
+        id=mock_company.id,
+        db=mock_db,
+    )
+    assert mock_company.active_job_count == 1
+    assert len(mock_company.job_ads) == 1
+    assert result == mock_job_ad_response
