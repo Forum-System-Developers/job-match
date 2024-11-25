@@ -51,7 +51,7 @@ def get_all(
     job_ads_list = job_ads.all()
     logger.info(f"Retrieved {len(job_ads_list)} job ads")
 
-    return [JobAdResponse.create(job_ad) for job_ad in job_ads]
+    return [JobAdResponse.create(job_ad) for job_ad in job_ads_list]
 
 
 def get_by_id(id: UUID, db: Session) -> JobAdResponse:
