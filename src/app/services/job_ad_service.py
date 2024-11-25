@@ -221,7 +221,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         job_ad.status = job_ad_data.status
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
 
-    if any(value is None for value in vars(job_ad_data).values()):
+    if any(value is not None for value in vars(job_ad_data).values()):
         job_ad.updated_at = datetime.now(timezone.utc)
 
     return job_ad
