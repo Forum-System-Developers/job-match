@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from fastapi import Depends, Request, status, HTTPException
+from fastapi import Depends, Request, Response, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
-def login(username: str, password: str, db: Session, request: Request) -> Token:
+def login(username: str, password: str, db: Session, response: Response) -> Token:
     """
     Authenticates a user based on their role and generates access and refresh tokens.
 
@@ -39,16 +39,38 @@ def login(username: str, password: str, db: Session, request: Request) -> Token:
     )
     logger.info(f"Created tokens for user {user_role.value} {user.id}")
 
-    request.session["user_id"] = str(user.id)
-    request.session["user_role"] = user_role.value
-
+    response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+    )
     return token
 
 
-def logout(request: Request) -> dict:
+def logout(response: Response) -> Response:
     try:
-        request.session.clear()
-        return {"message": "Logged out successfully!"}
+        response.delete_cookie(
+            key="access_token",
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
+        return response
     except KeyError as e:
         raise ApplicationError(
             detail=f"Exception occurred: {e}, unable to log you out",
@@ -57,15 +79,23 @@ def logout(request: Request) -> dict:
 
 
 def _get_user_role(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
-    user = professional_service.get_by_username(username=login_data.username, db=db)
-    if user is not None:
-        logger.info(f"Fetched user with user_role {UserRole.PROFESSIONAL.value}")
-        return UserRole.PROFESSIONAL, user
-
-    user = company_service.get_by_username(username=login_data.username, db=db)
-    if user is not None:
-        logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
-        return UserRole.COMPANY, user
+    try:
+        user = professional_service.get_by_username(username=login_data.username, db=db)
+        if user is not None:
+            logger.info(f"Fetched user with user_role {UserRole.PROFESSIONAL.value}")
+            return UserRole.PROFESSIONAL, user
+    except ApplicationError:
+        pass
+    try:
+        user = company_service.get_by_username(username=login_data.username, db=db)
+        if user is not None:
+            logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
+            return UserRole.COMPANY, user
+    except ApplicationError:
+        raise HTTPException(
+            detail="Could not authenticate user",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
 
 
 def _create_access_token(data: dict) -> str:
