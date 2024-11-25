@@ -3,8 +3,8 @@ from unittest.mock import ANY
 import pytest
 
 from app.schemas.common import FilterParams, JobAdSearchParams
-from app.schemas.job_ad import JobAdCreate
-from app.services.job_ad_service import create, get_all, get_by_id
+from app.schemas.job_ad import JobAdCreate, JobAdUpdate
+from app.services.job_ad_service import create, get_all, get_by_id, update
 from tests import test_data as td
 
 
@@ -129,4 +129,49 @@ def test_create_createsJobAd_whenValidJobAd(mocker, mock_db) -> None:
     )
     assert mock_company.active_job_count == 1
     assert len(mock_company.job_ads) == 1
+    assert result == mock_job_ad_response
+
+
+def test_update_updatesJobAd_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_ad_data = JobAdUpdate(**td.JOB_AD_UPDATE)
+    job_ad = mocker.Mock(**td.JOB_AD)
+    updated_job_ad = mocker.Mock()
+    mock_job_ad_response = mocker.Mock()
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_job_ad_id",
+        return_value=job_ad,
+    )
+    mock_update_job_ad = mocker.patch(
+        "app.services.job_ad_service._update_job_ad",
+        return_value=updated_job_ad,
+    )
+    mock_create_response = mocker.patch(
+        "app.schemas.job_ad.JobAdResponse.create",
+        return_value=mock_job_ad_response,
+    )
+
+    # Act
+    result = update(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        company_id=td.VALID_COMPANY_ID,
+        job_ad_data=job_ad_data,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=td.VALID_JOB_AD_ID,
+        db=mock_db,
+        company_id=td.VALID_COMPANY_ID,
+    )
+    mock_update_job_ad.assert_called_with(
+        job_ad_data=job_ad_data,
+        job_ad=job_ad,
+        db=mock_db,
+    )
+    mock_db.commit.assert_called()
+    mock_db.refresh.assert_called_with(updated_job_ad)
+    mock_create_response.assert_called_with(updated_job_ad)
     assert result == mock_job_ad_response

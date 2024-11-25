@@ -1,5 +1,7 @@
 import uuid
 
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
+
 VALID_COMPANY_ID = uuid.uuid4()
 VALID_COMPANY_NAME = "Test Company"
 VALID_COMPANY_USERNAME = "test_username"
@@ -69,6 +71,15 @@ JOB_AD_CREATE = {
     "description": VALID_JOB_AD_DESCRIPTION,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
+}
+
+JOB_AD_UPDATE = {
+    "title": VALID_JOB_AD_TITLE,
+    "description": VALID_JOB_AD_DESCRIPTION,
+    "location": VALID_CITY_NAME,
+    "min_salary": 1000.00,
+    "max_salary": 2000.00,
+    "status": JobAdStatus.ACTIVE,
 }
 
 JOB_AD_2 = {
