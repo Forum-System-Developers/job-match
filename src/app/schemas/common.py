@@ -138,7 +138,7 @@ class JobAdSearchParams(SearchParams):
     location_id: UUID | None = Field(description="The location ID", default=None)
     job_ad_status: JobAdStatus | None = Field(
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
-        default=JobAdStatus.ACTIVE,
+        default=None,
     )
     skills_threshold: int = Field(description="The skills threshold", ge=0, default=0)
 
