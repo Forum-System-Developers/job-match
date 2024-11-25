@@ -6,6 +6,7 @@ import pytest
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services.job_ad_service import (
+    _search_job_ads,
     _update_job_ad,
     add_requirement,
     create,
@@ -13,8 +14,10 @@ from app.services.job_ad_service import (
     get_by_id,
     update,
 )
+from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from tests import test_data as td
+from tests.utils import assert_filter_called_with
 
 
 @pytest.fixture
@@ -465,3 +468,36 @@ def test_updateJobAd_updatesNothing_whenNoFieldsAreProvided(mocker, mock_db) -> 
     assert result.max_salary == mock_job_ad.max_salary
     assert result.status == mock_job_ad.status
     assert not isinstance(result.updated_at, datetime)
+
+
+def test_searchJobAds_filtersByCompanyId(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(company_id=td.VALID_COMPANY_ID)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.all.return_value = job_ads
+
+    mock_filter_by_salary = mocker.patch(
+        "app.services.job_ad_service._filter_by_salary",
+        return_value=mock_filter,
+    )
+    mock_filter_by_skills = mocker.patch(
+        "app.services.job_ad_service._filter_by_skills",
+        return_value=mock_filter,
+    )
+    mock_order_by = mocker.patch(
+        "app.services.job_ad_service._order_by",
+        return_value=mock_filter,
+    )
+
+    # Act
+    result = _search_job_ads(search_params=search_params, db=mock_db)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query=mock_query,
+        expected_expression=JobAd.company_id == search_params.company_id,
+    )
+    assert result.all() == job_ads
