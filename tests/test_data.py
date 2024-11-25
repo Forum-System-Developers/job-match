@@ -62,6 +62,15 @@ JOB_AD = {
     "max_salary": 2000.00,
 }
 
+JOB_AD_CREATE = {
+    "category_id": VALID_CATEGORY_ID,
+    "location_id": VALID_CITY_ID,
+    "title": VALID_JOB_AD_TITLE,
+    "description": VALID_JOB_AD_DESCRIPTION,
+    "min_salary": 1000.00,
+    "max_salary": 2000.00,
+}
+
 JOB_AD_2 = {
     "id": VALID_JOB_AD_ID_2,
     "company_id": VALID_COMPANY_ID,
