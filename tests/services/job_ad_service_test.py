@@ -13,6 +13,7 @@ from app.services.job_ad_service import (
     get_by_id,
     update,
 )
+from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from tests import test_data as td
 
 
@@ -370,3 +371,31 @@ def test_updateJobAd_updatesMaxSalary_whenMaxSalaryIsProvided(mocker, mock_db) -
     assert result.location == mock_job_ad.location
     assert result.min_salary == mock_job_ad.min_salary
     assert result.status == mock_job_ad.status
+
+
+def test_updateJobAd_updatesStatus_whenStatusIsProvided(mocker, mock_db) -> None:
+    # Arrange
+    mock_job_ad = mocker.Mock(**td.JOB_AD)
+    job_ad_update_data = JobAdUpdate(status=JobAdStatus.ARCHIVED)
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_city"
+    )
+
+    # Act
+    result = _update_job_ad(
+        job_ad_data=job_ad_update_data,
+        job_ad=mock_job_ad,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    assert result.status == job_ad_update_data.status
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.title == mock_job_ad.title
+    assert result.description == mock_job_ad.description
+    assert result.location == mock_job_ad.location
+    assert result.min_salary == mock_job_ad.min_salary
+    assert result.max_salary == mock_job_ad.max_salary
