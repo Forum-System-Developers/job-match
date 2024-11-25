@@ -1,5 +1,8 @@
 import uuid
 
+from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
+from app.sql_app.professional.professional_status import ProfessionalStatus
+
 VALID_COMPANY_ID = uuid.uuid4()
 VALID_COMPANY_NAME = "Test Company"
 VALID_COMPANY_USERNAME = "test_username"
@@ -54,3 +57,29 @@ VALID_PROFESSIONAL_FIRST_NAME = "Test"
 VALID_PROFESSIONAL_LAST_NAME = "Professional"
 VALID_PROFESSIONAL_DESCRIPTION = "Test Description"
 VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT = 0
+
+PROFESSIONAL = {
+    "id": VALID_PROFESSIONAL_ID,
+    "first_name": VALID_PROFESSIONAL_FIRST_NAME,
+    "last_name": VALID_PROFESSIONAL_LAST_NAME,
+    "email": VALID_PROFESSIONAL_EMAIL,
+    "city": VALID_CITY_NAME,
+    "description": VALID_PROFESSIONAL_DESCRIPTION,
+    "photo": None,
+    "status": ProfessionalStatus.ACTIVE,
+    "active_application_count": VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
+    "matched_ads": None,
+}
+
+PROFESSIONAL_REQUEST = ProfessionalRequestBody(
+    professional=ProfessionalCreate(
+        username=VALID_PROFESSIONAL_USERNAME,
+        password=VALID_PROFESSIONAL_PASSWORD,
+        email=VALID_PROFESSIONAL_EMAIL,
+        first_name=VALID_PROFESSIONAL_FIRST_NAME,
+        last_name=VALID_PROFESSIONAL_LAST_NAME,
+        description=VALID_PROFESSIONAL_DESCRIPTION,
+        city=VALID_CITY_NAME,
+    ),
+    status=ProfessionalStatus.ACTIVE,
+)
