@@ -2,12 +2,21 @@ import logging
 from uuid import UUID
 
 from fastapi import status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams
+from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import MatchResponseRequest
+from app.schemas.match import MatchResponse
+from app.services.utils.validators import (
+    ensure_no_match_request,
+    ensure_valid_job_ad_id,
+    ensure_valid_job_application_id,
+    ensure_valid_match_request,
+)
+from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
@@ -237,3 +246,158 @@ def get_match_requests_for_job_application(
         )
         for job_ad in job_ads
     ]
+
+
+def accept_job_application_match_request(
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> MessageResponse:
+    """
+    Accepts a match request between a job advertisement and a job application.
+
+    This function ensures that the provided job advertisement ID and job application ID
+    are valid, and that there is a valid match request between them. It then updates the
+    statuses of the job advertisement, job application, and match request accordingly,
+    commits the changes to the database, and logs the operation.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        AcceptRequestMatchResponse: The response indicating successful match acceptance.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
+    match = ensure_valid_match_request(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        match_status=MatchStatus.REQUESTED_BY_JOB_APP,
+        db=db,
+    )
+
+    job_ad.status = JobAdStatus.ARCHIVED
+    job_application.status = JobStatus.MATCHED
+    match.status = MatchStatus.ACCEPTED
+
+    job_ad.company.successfull_matches_count += 1
+
+    db.commit()
+    logger.info(
+        f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return MessageResponse(message="Match request accepted")
+
+
+def send_job_application_match_request(
+    job_ad_id: UUID,
+    job_application_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> MessageResponse:
+    """
+    Sends a match request from a job advertisement to a job application.
+
+    This function ensures that the provided job advertisement ID and job application ID
+    are valid, and that there is no existing match request between them. It then creates
+    a new match request between the job advertisement and job application, commits the
+    changes to the database, and logs the operation.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        job_application_id (UUID): The unique identifier of the job application.
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session to use for the operation.
+
+    Returns:
+        MessageResponse: The response indicating successful match request.
+    """
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    ensure_valid_job_application_id(id=job_application_id, db=db)
+    ensure_no_match_request(
+        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
+    )
+
+    match = Match(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        status=MatchStatus.REQUESTED_BY_JOB_AD,
+    )
+
+    db.add(match)
+    db.commit()
+    logger.info(
+        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
+    )
+
+    return MessageResponse(message="Match request sent")
+
+
+def view_received_job_application_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
+    """
+    Retrieve match requests for a given job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    requests = requests = (
+        db.query(Match)
+        .join(Match.job_ad)
+        .filter(
+            and_(
+                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
+            )
+        )
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
+
+    return [MatchResponse.create(request) for request in requests]
+
+
+def view_sent_job_application_match_requests(
+    job_ad_id: UUID,
+    company_id: UUID,
+    db: Session,
+) -> list[MatchResponse]:
+    """
+    Retrieve sent match requests for a given job advertisement.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified job advertisement.
+    """
+    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    requests = (
+        db.query(Match)
+        .filter(
+            and_(
+                Match.job_ad_id == job_ad.id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+            )
+        )
+        .all()
+    )
+
+    logger.info(
+        f"Retrieved {len(requests)} sent requests for job ad with id {job_ad_id}"
+    )
+
+    return [MatchResponse.create(request) for request in requests]
