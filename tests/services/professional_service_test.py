@@ -6,6 +6,7 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_application import JobSearchStatus
 from app.schemas.user import User
 from app.services import professional_service
 from app.sql_app.professional.professional import Professional
@@ -686,3 +687,31 @@ def test_get_by_username_raises_error_when_user_not_found(mocker, mock_db):
     )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     mock_db.query.assert_called_once_with(Professional)
+
+
+def test_get_applications_private_matches_error(mocker, mock_db):
+    # Arrange
+    mock_professional = mocker.Mock(
+        id=td.VALID_PROFESSIONAL_ID,
+        has_private_matches=True,
+    )
+    
+    mock_application_status = JobSearchStatus.MATCHED
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    
+    # Act & Assert
+    with pytest.raises(ApplicationError, match="Professional has set their Matches to Private") as exc:
+        professional_service.get_applications(
+            professional_id=td.VALID_PROFESSIONAL_ID,
+            db=mock_db,
+            application_status=mock_application_status,
+            filter_params=mock_filter_params,
+        )
+    
+    mock_get_by_id.assert_called_once()
+    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
+    assert exc.value.data.detail == "Professional has set their Matches to Private"
