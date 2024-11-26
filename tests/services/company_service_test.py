@@ -2,9 +2,10 @@ from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
-from fastapi import status
+from fastapi import HTTPException, status
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.common import MessageResponse
 from app.schemas.company import CompanyUpdate
 from app.services import company_service
 from app.sql_app.company.company import Company
@@ -284,7 +285,51 @@ def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
     assert result == mock_streaming_response.return_value
 
 
-def test_downloadLogo_raisesApplicationError_whenCompanyHasNoLogo(
+def test_downloadLogo_raisesHTTPException_whenCompanyHasNoLogo(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=None)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+
+    # Act & Assert
+    with pytest.raises(HTTPException) as exc:
+        company_service.download_logo(company_id=mock_company.id, db=mock_db)
+
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.detail == f"Company with id {mock_company.id} does not have a logo"
+
+
+def test_deleteLogo_deletesLogo_whenCompanyHasLogo(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=b"mock_logo_data")
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+
+    # Act
+    result = company_service.delete_logo(company_id=mock_company.id, db=mock_db)
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    mock_db.commit.assert_called_once()
+    assert mock_company.logo is None
+    assert isinstance(mock_company.updated_at, datetime)
+    assert isinstance(result, MessageResponse)
+
+
+def test_deleteLogo_raisesApplicationError_whenCompanyHasNoLogo(
     mocker,
     mock_db,
 ) -> None:
@@ -298,7 +343,7 @@ def test_downloadLogo_raisesApplicationError_whenCompanyHasNoLogo(
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        company_service.download_logo(company_id=mock_company.id, db=mock_db)
+        company_service.delete_logo(company_id=mock_company.id, db=mock_db)
 
     mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
