@@ -47,14 +47,14 @@ def login(username: str, password: str, db: Session, response: Response) -> Toke
         value=token.access_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
+        samesite="strict",
     )
     response.set_cookie(
         key="refresh_token",
         value=token.refresh_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
+        samesite="strict",
     )
     return token
 
@@ -74,13 +74,13 @@ def logout(response: Response) -> Response:
             key="access_token",
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="strict",
         )
         response.delete_cookie(
             key="refresh_token",
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="strict",
         )
         return response
     except KeyError as e:
