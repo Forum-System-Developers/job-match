@@ -333,7 +333,9 @@ def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
 def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
     # Arrange
     mock_filter_params = mocker.Mock(offset=0, limit=10)
-    mock_search_params = mocker.Mock(skills=["Python", "Django"], order="asc", order_by="first_name")
+    mock_search_params = mocker.Mock(
+        skills=["Python", "Django"], order="asc", order_by="first_name"
+    )
     mock_professionals = [mocker.Mock(), mocker.Mock()]
     mock_professional_response = [mocker.Mock(), mocker.Mock()]
 
