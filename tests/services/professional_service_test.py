@@ -556,3 +556,28 @@ def test_update_attributes_updatesFirstName(mocker, mock_db):
     # Assert
     assert result.first_name == "New Name"
     mock_process_transaction.assert_called_once()
+
+
+def test_update_attributes_updatesLastName(mocker, mock_db):
+    # Arrange
+    mock_professional_request = mocker.Mock(
+        professional=mocker.Mock(last_name="New Last Name", city=None),
+        status=None,
+    )
+    mock_professional = mocker.Mock(last_name="Old Last Name")
+
+    mock_process_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    # Act
+    result = professional_service._update_attributes(
+        professional_request=mock_professional_request,
+        professional=mock_professional,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result.last_name == "New Last Name"
+    mock_process_transaction.assert_called_once()
