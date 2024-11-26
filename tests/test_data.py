@@ -67,7 +67,7 @@ VALID_PROFESSIONAL_LAST_NAME = "Professional"
 VALID_PROFESSIONAL_DESCRIPTION = "Test Description"
 VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT = 0
 
-PROFESSIONAL = {
+PROFESSIONAL_RESPONSE = {
     "id": VALID_PROFESSIONAL_ID,
     "first_name": VALID_PROFESSIONAL_FIRST_NAME,
     "last_name": VALID_PROFESSIONAL_LAST_NAME,
@@ -93,20 +93,16 @@ PROFESSIONAL_REQUEST = ProfessionalRequestBody(
     status=ProfessionalStatus.ACTIVE,
 )
 
-UPDATED_PROFESSIONAL = {
-    **PROFESSIONAL,
-    "description": "Updated description",
-}
-
-UPDATED_PROFESSIONAL_RESPONSE = {
-    "id": PROFESSIONAL["id"],
-    "first_name": PROFESSIONAL["first_name"],
-    "last_name": PROFESSIONAL["last_name"],
-    "email": PROFESSIONAL["email"],
-    "city": PROFESSIONAL["city"],
-    "description": UPDATED_PROFESSIONAL["description"],
-    "photo": None,
-    "status": ProfessionalStatus.ACTIVE,
-    "active_application_count": 2,
-    "matched_ads": MATCHED_ADS,
+PROFESSIONAL_MODEL = {
+        "id": VALID_PROFESSIONAL_ID,
+        "city_id": VALID_CITY_ID,
+        "username": VALID_PROFESSIONAL_USERNAME,
+        "password": VALID_PROFESSIONAL_PASSWORD,
+        "description": VALID_PROFESSIONAL_DESCRIPTION,
+        "email": VALID_PROFESSIONAL_EMAIL,
+        "photo": None,
+        "status": ProfessionalStatus.ACTIVE,
+        "active_application_count": VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
+        "first_name": VALID_PROFESSIONAL_FIRST_NAME,
+        "last_name": VALID_PROFESSIONAL_LAST_NAME,
 }
