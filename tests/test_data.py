@@ -35,6 +35,11 @@ VALID_CITY_NAME_2 = "Test City 2"
 NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
 
+MATCHED_ADS = [
+    {"id": uuid.uuid4(), "title": "Backend Developer", "description": "FastAPI project"},
+    {"id": uuid.uuid4(), "title": "Frontend Developer", "description": "React project"},
+]
+
 COMPANY = {
     "id": VALID_COMPANY_ID,
     "name": VALID_COMPANY_NAME,
@@ -83,3 +88,21 @@ PROFESSIONAL_REQUEST = ProfessionalRequestBody(
     ),
     status=ProfessionalStatus.ACTIVE,
 )
+
+UPDATED_PROFESSIONAL = {
+    **PROFESSIONAL,
+    "description": "Updated description",
+}
+
+UPDATED_PROFESSIONAL_RESPONSE = {
+    "id": PROFESSIONAL["id"],
+    "first_name": PROFESSIONAL["first_name"],
+    "last_name": PROFESSIONAL["last_name"],
+    "email": PROFESSIONAL["email"],
+    "city": PROFESSIONAL["city"],
+    "description": UPDATED_PROFESSIONAL["description"],
+    "photo": None,
+    "status": ProfessionalStatus.ACTIVE,
+    "active_application_count": 2,
+    "matched_ads": MATCHED_ADS,
+}
