@@ -325,7 +325,12 @@ def refresh_access_token(request: Request, db: Session) -> Token:
     Returns:
         Token: A new access token for the user.
     """
-    refresh_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token is None:
+        raise HTTPException(
+            detail="Could not authenticate you",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
     payload, user_role = verify_token(token=refresh_token, db=db)
     user_id = payload.get("sub")
     logger.info(f"Verified refresh token for user {user_id}")
