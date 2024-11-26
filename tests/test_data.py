@@ -34,15 +34,7 @@ VALID_CITY_NAME_2 = "Test City 2"
 
 NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
-
-MATCHED_ADS = [
-    {
-        "id": uuid.uuid4(),
-        "title": "Backend Developer",
-        "description": "FastAPI project",
-    },
-    {"id": uuid.uuid4(), "title": "Frontend Developer", "description": "React project"},
-]
+VALID_CATEGORY_ID = uuid.uuid4()
 
 COMPANY = {
     "id": VALID_COMPANY_ID,
@@ -94,15 +86,73 @@ PROFESSIONAL_REQUEST = ProfessionalRequestBody(
 )
 
 PROFESSIONAL_MODEL = {
-        "id": VALID_PROFESSIONAL_ID,
-        "city_id": VALID_CITY_ID,
-        "username": VALID_PROFESSIONAL_USERNAME,
-        "password": VALID_PROFESSIONAL_PASSWORD,
-        "description": VALID_PROFESSIONAL_DESCRIPTION,
-        "email": VALID_PROFESSIONAL_EMAIL,
-        "photo": None,
-        "status": ProfessionalStatus.ACTIVE,
-        "active_application_count": VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
-        "first_name": VALID_PROFESSIONAL_FIRST_NAME,
-        "last_name": VALID_PROFESSIONAL_LAST_NAME,
+    "id": VALID_PROFESSIONAL_ID,
+    "city_id": VALID_CITY_ID,
+    "username": VALID_PROFESSIONAL_USERNAME,
+    "password": VALID_PROFESSIONAL_PASSWORD,
+    "description": VALID_PROFESSIONAL_DESCRIPTION,
+    "email": VALID_PROFESSIONAL_EMAIL,
+    "photo": None,
+    "status": ProfessionalStatus.ACTIVE,
+    "active_application_count": VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
+    "first_name": VALID_PROFESSIONAL_FIRST_NAME,
+    "last_name": VALID_PROFESSIONAL_LAST_NAME,
+}
+
+#     # title: str
+#     # description: str
+#     # location_id: UUID
+#     # category_id: UUID
+#     # min_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
+#     # max_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
+
+VALID_JOB_AD_ID_2 = uuid.uuid4()
+
+VALID_JOB_AD_TITLE = "TestJobAd"
+VALID_JOB_AD_DESCRIPTION = "Test Description"
+VALID_JOB_AD_MIN_SALARY = 1000.00
+VALID_JOB_AD_MAX_SALARY = 2000.00
+
+VALID_JOB_AD_TITLE_2 = "TestJobAd2"
+VALID_JOB_AD_DESCRIPTION_2 = "Test Description 2"
+VALID_JOB_AD_MIN_SALARY_2 = 2000.00
+VALID_JOB_AD_MAX_SALARY_2 = 3000.00
+
+
+JOB_AD_1 = {
+    "id": VALID_JOB_AD_ID,
+    "title": VALID_JOB_AD_TITLE,
+    "description": VALID_JOB_AD_DESCRIPTION,
+    "location_id": VALID_CITY_ID,
+    "category_id": VALID_CATEGORY_ID,
+    "min_salary": VALID_JOB_AD_MIN_SALARY,
+    "max_salary": VALID_JOB_AD_MAX_SALARY,
+}
+
+JOB_AD_2 = {
+    "id": VALID_JOB_AD_ID_2,
+    "title": VALID_JOB_AD_TITLE_2,
+    "description": VALID_JOB_AD_DESCRIPTION_2,
+    "location_id": VALID_CITY_ID,
+    "category_id": VALID_CATEGORY_ID,
+    "min_salary": VALID_JOB_AD_MIN_SALARY_2,
+    "max_salary": VALID_JOB_AD_MAX_SALARY_2,
+}
+
+JOB_AD_RESPONSE_1 = {
+    "title": VALID_JOB_AD_TITLE,
+    "description": VALID_JOB_AD_DESCRIPTION,
+    "location_id": VALID_CITY_ID,
+    "category_id": VALID_CATEGORY_ID,
+    "min_salary": VALID_JOB_AD_MIN_SALARY,
+    "max_salary": VALID_JOB_AD_MAX_SALARY,
+}
+
+JOB_AD_RESPONSE_2 = {
+    "title": VALID_JOB_AD_TITLE_2,
+    "description": VALID_JOB_AD_DESCRIPTION_2,
+    "location_id": VALID_CITY_ID,
+    "category_id": VALID_CATEGORY_ID,
+    "min_salary": VALID_JOB_AD_MIN_SALARY_2,
+    "max_salary": VALID_JOB_AD_MAX_SALARY_2,
 }
