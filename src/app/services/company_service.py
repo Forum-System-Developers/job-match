@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import UploadFile, status
+from fastapi import HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -179,7 +179,7 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     company = ensure_valid_company_id(id=company_id, db=db)
     logo = company.logo
     if logo is None:
-        raise ApplicationError(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Company with id {company_id} does not have a logo",
         )

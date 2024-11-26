@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.schemas.common import FilterParams
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services import company_service
-from app.services.auth_service import require_company_role
+from app.services.auth_service import get_current_user, require_company_role
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
@@ -103,9 +103,10 @@ def upload_logo(
     )
 
 
-@router.post(
+@router.get(
     "/{company_id}/download-logo",
     description="Download the logo of the current company",
+    dependencies=[Depends(get_current_user)],
 )
 def download_logo(
     company_id: UUID,
