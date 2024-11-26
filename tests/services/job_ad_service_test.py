@@ -2,10 +2,14 @@ from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
+from sqlalchemy import asc, desc
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services.job_ad_service import (
+    _filter_by_salary,
+    _filter_by_skills,
+    _order_by,
     _search_job_ads,
     _update_job_ad,
     add_requirement,
@@ -16,8 +20,9 @@ from app.services.job_ad_service import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_requirement.job_requirement import JobRequirement
 from tests import test_data as td
-from tests.utils import assert_filter_called_with
+from tests.utils import assert_called_with, assert_filter_called_with
 
 
 @pytest.fixture
@@ -599,4 +604,154 @@ def test_searchJobAds_filtersByLocation(mocker, mock_db) -> None:
         mock_query=mock_query,
         expected_expression=JobAd.location_id == search_params.location_id,
     )
+    assert result.all() == job_ads
+
+
+def test_filterBySalary_filtersByMinSalary(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(min_salary=1000.00)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_first_filter = mock_query.filter.return_value
+    mock_second_filter = mock_first_filter.filter.return_value
+    mock_second_filter.all.return_value = job_ads
+
+    # Act
+    result = _filter_by_salary(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query, (JobAd.min_salary - search_params.salary_threshold) <= float("inf")
+    )
+    assert_filter_called_with(
+        mock_first_filter,
+        (JobAd.max_salary + search_params.salary_threshold) >= search_params.min_salary,
+    )
+    assert result.all() == job_ads
+
+
+def test_filterBySalary_filtersByMaxSalary(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(max_salary=2000.00)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_first_filter = mock_query.filter.return_value
+    mock_second_filter = mock_first_filter.filter.return_value
+    mock_second_filter.all.return_value = job_ads
+
+    # Act
+    result = _filter_by_salary(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query,
+        (JobAd.min_salary - search_params.salary_threshold) <= search_params.max_salary,
+    )
+    assert_filter_called_with(
+        mock_first_filter,
+        (JobAd.max_salary + search_params.salary_threshold) >= float("-inf"),
+    )
+    assert result.all() == job_ads
+
+
+def test_filterBySalary_filtersByMinAndMaxSalary(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(min_salary=1000.00, max_salary=2000.00)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_first_filter = mock_query.filter.return_value
+    mock_second_filter = mock_first_filter.filter.return_value
+    mock_second_filter.all.return_value = job_ads
+
+    # Act
+    result = _filter_by_salary(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query,
+        (JobAd.min_salary - search_params.salary_threshold) <= search_params.max_salary,
+    )
+    assert_filter_called_with(
+        mock_first_filter,
+        (JobAd.max_salary + search_params.salary_threshold) >= search_params.min_salary,
+    )
+    assert result.all() == job_ads
+
+
+def test_orderBy_ordersByCreatedAtAsc_whenCreatedAtAscIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="created_at", order="asc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, asc(JobAd.created_at))
+    assert result.all() == job_ads
+
+
+def test_orderBy_ordersByCreatedAtDesc_whenCreatedAtDescIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="created_at", order="desc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, desc(JobAd.created_at))
+    assert result.all() == job_ads
+
+
+def test_orderBy_ordersByUpdatedAtAsc_whenUpdatedAtAscIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="updated_at", order="asc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, asc(JobAd.updated_at))
+    assert result.all() == job_ads
+
+
+def test_orderBy_ordersByUpdatedAtDesc_whenUpdatedAtDescIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="updated_at", order="desc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, desc(JobAd.updated_at))
     assert result.all() == job_ads

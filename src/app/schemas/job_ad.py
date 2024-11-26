@@ -23,6 +23,7 @@ class BaseJobAd(BaseModel):
 
 class JobAdResponse(BaseJobAd):
     id: UUID
+    company_id: UUID
     status: JobAdStatus
     requirements: list[Requirement] = []
     created_at: datetime
@@ -36,10 +37,11 @@ class JobAdResponse(BaseJobAd):
         ]
         return cls(
             id=job_ad.id,
+            company_id=job_ad.company_id,
+            category_id=job_ad.category_id,
+            location_id=job_ad.location_id,
             title=job_ad.title,
             description=job_ad.description,
-            location_id=job_ad.location_id,
-            category_id=job_ad.category_id,
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
             status=job_ad.status,
