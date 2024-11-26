@@ -36,7 +36,11 @@ NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
 
 MATCHED_ADS = [
-    {"id": uuid.uuid4(), "title": "Backend Developer", "description": "FastAPI project"},
+    {
+        "id": uuid.uuid4(),
+        "title": "Backend Developer",
+        "description": "FastAPI project",
+    },
     {"id": uuid.uuid4(), "title": "Frontend Developer", "description": "React project"},
 ]
 
