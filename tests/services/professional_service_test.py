@@ -1,12 +1,11 @@
 import json
-from uuid import UUID
 
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.services import professional_service
-from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 
 
@@ -227,7 +226,7 @@ def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock(**td.PROFESSIONAL)
-    
+
     mock_get_by_id = mocker.patch(
         "app.services.professional_service._get_by_id", return_value=mock_professional
     )
@@ -235,14 +234,59 @@ def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
         "app.services.professional_service._get_matches", return_value=["ad1", "ad2"]
     )
     mock_professional_response = mocker.patch(
-        "app.services.professional_service.ProfessionalResponse.create", return_value="professional_response"
+        "app.services.professional_service.ProfessionalResponse.create",
+        return_value="professional_response",
     )
 
     # Act
-    response = professional_service.get_by_id(professional_id=professional_id, db=mock_db)
+    response = professional_service.get_by_id(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
-    mock_professional_response.assert_called_once_with(professional=mock_professional, matched_ads=["ad1", "ad2"])
+    mock_professional_response.assert_called_once_with(
+        professional=mock_professional, matched_ads=["ad1", "ad2"]
+    )
     assert response == "professional_response"
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_get_matches.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_get_matches.assert_called_once_with(
+        professional_id=professional_id, db=mock_db
+    )
+
+
+def test_get_all_whenProfessionalsExist(mocker, mock_db):
+    # Arrange
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+    mock_search_params = mocker.Mock(skills=[], order="asc", order_by="created_at")
+    mock_professionals = [mocker.Mock(), mocker.Mock()]
+    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+
+    mock_query = mock_db.query.return_value
+    mock_options = mock_query.options.return_value
+    mock_filtered = mock_options.filter.return_value
+    mock_offset = mock_filtered.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = mock_professionals
+
+    mocker.patch(
+        "app.schemas.professional.ProfessionalResponse.create",
+        side_effect=mock_professional_response,
+    )
+
+    # Act
+    response = professional_service.get_all(
+        filter_params=mock_filter_params,
+        search_params=mock_search_params,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once_with(Professional)
+    mock_query.options.assert_called_once()
+    mock_options.filter.assert_called_once()
+    mock_filtered.offset.assert_called_once_with(mock_filter_params.offset)
+    mock_offset.limit.assert_called_once_with(mock_filter_params.limit)
+    mock_limit.all.assert_called_once()
+    assert len(response) == 2
+    assert response[0] == mock_professional_response[0]
+    assert response[1] == mock_professional_response[1]
