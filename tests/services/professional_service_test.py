@@ -97,9 +97,49 @@ def test_update_update_professional_whenDataIsValid(mocker, mock_db):
     )
 
     # Assert
-    mock_get_by_id.assert_called_once_with(professional_id=mock_professional.id, db=mock_db)
-    mock_update_attributes.assert_called_once_with(
-        professional=mock_professional, professional_request=mock_professional_data, db=mock_db
+    mock_get_by_id.assert_called_once_with(
+        professional_id=mock_professional.id, db=mock_db
     )
-    mock_create.assert_called_once_with(professional=mock_professional, matched_ads=None)
+    mock_update_attributes.assert_called_once_with(
+        professional=mock_professional,
+        professional_request=mock_professional_data,
+        db=mock_db,
+    )
+    mock_create.assert_called_once_with(
+        professional=mock_professional, matched_ads=None
+    )
     assert result == mock_response
+
+
+def test_upload_whenFileIsValid(mocker, mock_db):
+    # Arrange
+    mock_professional = mocker.Mock(photo=None)
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mock_professional,
+    )
+
+    mock_process_db_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    mock_file_content = b"valid_file_content"
+    mock_upload_file = mocker.Mock()
+    mock_upload_file.file.read.return_value = mock_file_content
+    mock_upload_file.file.seek.return_value = None
+
+    # Act
+    result = professional_service.upload(
+        professional_id=professional_id, photo=mock_upload_file, db=mock_db
+    )
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_upload_file.file.read.assert_called_once()
+    mock_upload_file.file.seek.assert_called_once_with(0)
+    mock_process_db_transaction.assert_called_once()
+    assert mock_professional.photo == mock_file_content
+    assert result == {"msg": "Photo successfully uploaded"}
