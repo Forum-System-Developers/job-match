@@ -159,7 +159,7 @@ JOB_AD_RESPONSE_2 = {
     "category_id": VALID_CATEGORY_ID,
     "min_salary": VALID_JOB_AD_MIN_SALARY_2,
     "max_salary": VALID_JOB_AD_MAX_SALARY_2,
-=======
+}
 
 JOB_AD = {
     "id": VALID_JOB_AD_ID,
