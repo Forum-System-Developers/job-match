@@ -736,3 +736,22 @@ def test_orderBy_ordersByUpdatedAtAsc_whenUpdatedAtAscIsProvided(
     # Assert
     assert_called_with(mock_query.order_by, asc(JobAd.updated_at))
     assert result.all() == job_ads
+
+
+def test_orderBy_ordersByUpdatedAtDesc_whenUpdatedAtDescIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="updated_at", order="desc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, desc(JobAd.updated_at))
+    assert result.all() == job_ads
