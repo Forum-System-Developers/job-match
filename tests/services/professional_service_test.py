@@ -506,3 +506,28 @@ def test_update_attributes_updatesCity(mocker, mock_db):
     assert result.city_id == td.VALID_CITY_ID
     mock_get_by_name.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
     mock_process_transaction.assert_called_once()
+
+
+def test_update_attributes_updatesDescription(mocker, mock_db):
+    # Arrange
+    mock_professional_request = mocker.Mock(
+        professional=mocker.Mock(description="New Description", city=None),
+        status=None,
+    )
+    mock_professional = mocker.Mock(description="Old Description")
+
+    mock_process_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    # Act
+    result = professional_service._update_attributes(
+        professional_request=mock_professional_request,
+        professional=mock_professional,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result.description == "New Description"
+    mock_process_transaction.assert_called_once()
