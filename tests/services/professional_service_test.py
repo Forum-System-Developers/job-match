@@ -143,3 +143,30 @@ def test_upload_whenFileIsValid(mocker, mock_db):
     mock_process_db_transaction.assert_called_once()
     assert mock_professional.photo == mock_file_content
     assert result == {"msg": "Photo successfully uploaded"}
+
+
+def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
+    # Arrange
+    mock_professional = mocker.Mock()
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mock_professional,
+    )
+    mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func()
+    )
+
+    oversized_content = b"a" * (5 * 1024 * 1024 + 1)
+    mock_upload_file = mocker.Mock()
+    mock_upload_file.file.read.return_value = oversized_content
+    mock_upload_file.file.seek.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        professional_service.upload(professional_id=professional_id, photo=mock_upload_file, db=mock_db)
+
+    assert exc.value.data.detail == "File size exceeds the allowed limit of 5.0MB."
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
