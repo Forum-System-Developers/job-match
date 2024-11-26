@@ -1,8 +1,9 @@
+from uuid import UUID
 from pydantic import BaseModel
 
 
 class CategoryResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     description: str
     job_ads_count: int
