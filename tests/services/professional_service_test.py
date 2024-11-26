@@ -789,3 +789,29 @@ def test_get_applications_empty_list(mocker, mock_db):
     mock_get_by_id.assert_called_once()
     mock_db.query.assert_called_once_with(JobApplication)
     mock_query.filter.assert_called_once()
+
+
+def test_register_professional_username_taken(mocker, mock_db):
+    # Arrange
+    mock_professional_create = mocker.Mock(
+        username=td.VALID_PROFESSIONAL_USERNAME,
+        email=td.VALID_PROFESSIONAL_EMAIL, 
+        password=td.VALID_PROFESSIONAL_PASSWORD
+    )
+    mock_professional_status = mocker.Mock()
+    mock_city_id = mocker.Mock()
+    
+    mock_unique_username = mocker.patch("app.services.professional_service.unique_username", return_value=False)
+    
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        professional_service._register_professional(
+            professional_create=mock_professional_create,
+            professional_status=mock_professional_status,
+            city_id=mock_city_id,
+            db=mock_db,
+        )
+
+    mock_unique_username.assert_called_once_with(username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db)
+    assert exc.value.data.status == status.HTTP_409_CONFLICT
+    assert exc.value.data.detail == "Username already taken"
