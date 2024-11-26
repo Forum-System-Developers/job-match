@@ -77,7 +77,7 @@ PROFESSIONAL = {
     "photo": None,
     "status": ProfessionalStatus.ACTIVE,
     "active_application_count": VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
-    "matched_ads": None,
+    "has_private_matches": False,
 }
 
 PROFESSIONAL_REQUEST = ProfessionalRequestBody(
