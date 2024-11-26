@@ -1,3 +1,4 @@
+import json
 import pytest
 from fastapi import status
 
@@ -190,4 +191,24 @@ def test_download_whenPhotoExists(mocker, mock_db):
     # Assert
     assert response.status_code == 200
     assert response.media_type == "image/png"
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+
+
+def test_download_whenPhotoIsNone(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.photo = None
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mock_professional,
+    )
+
+    # Act
+    response = professional_service.download(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert response.status_code == 200
+    assert json.loads(response.body) == {"msg": "No available photo"}
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
