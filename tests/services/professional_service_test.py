@@ -9,6 +9,7 @@ from app.schemas.job_ad import BaseJobAd
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.user import User
 from app.services import professional_service
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
@@ -715,3 +716,44 @@ def test_get_applications_private_matches_error(mocker, mock_db):
     mock_get_by_id.assert_called_once()
     assert exc.value.data.status == status.HTTP_403_FORBIDDEN
     assert exc.value.data.detail == "Professional has set their Matches to Private"
+
+
+def test_get_applications_returns_list_of_applications(mocker, mock_db):
+    # Arrange
+    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
+    mock_application_status = JobSearchStatus.ACTIVE
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.offset.return_value = mock_filter
+    mock_filter.limit.return_value = mock_filter
+    mock_filter.all.return_value = [
+        mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)
+    ]
+    
+    mock_application_response = mocker.Mock()
+    mocker.patch(
+        "app.services.professional_service.JobApplicationResponse.create", return_value=mock_application_response
+    )
+
+    # Act
+    result = professional_service.get_applications(
+        professional_id=td.VALID_PROFESSIONAL_ID,
+        db=mock_db,
+        application_status=mock_application_status,
+        filter_params=mock_filter_params,
+    )
+
+    # Assert
+    assert len(result) == 1
+    assert result[0] == mock_application_response
+    mock_get_by_id.assert_called_once()
+    mock_db.query.assert_called_once_with(JobApplication)
+    mock_query.filter.assert_called_once()
+    mock_filter.offset.assert_called_once_with(0)
+    mock_filter.limit.assert_called_once_with(10)
