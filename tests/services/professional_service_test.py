@@ -7,6 +7,7 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.services import professional_service
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
+from tests.utils import assert_filter_called_with
 
 
 @pytest.fixture
@@ -36,8 +37,8 @@ def test_create_creates_professional_when_city_found(mocker, mock_db) -> None:
     # Arrange
     city_mock = mocker.Mock(id=1, name="Sofia")
     professional_request = td.PROFESSIONAL_REQUEST
-    professional_mock = mocker.Mock(**td.PROFESSIONAL)
-    response_mock = mocker.Mock(**td.PROFESSIONAL)
+    professional_mock = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
+    response_mock = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
 
     mock_city_service = mocker.patch(
         "app.services.city_service.get_by_name", return_value=city_mock
@@ -225,7 +226,7 @@ def test_download_whenPhotoIsNone(mocker, mock_db):
 def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock(**td.PROFESSIONAL)
+    mock_professional = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
 
     mock_get_by_id = mocker.patch(
         "app.services.professional_service._get_by_id", return_value=mock_professional
@@ -363,3 +364,32 @@ def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
     assert len(response) == 2
     assert response[0] == mock_professional_response[0]
     assert response[1] == mock_professional_response[1]
+
+
+def test_get_by_id_whenDataIsValid(mocker, mock_db):
+    # Arrange
+    professional = mocker.Mock(**td.PROFESSIONAL_MODEL)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = professional
+
+    expected_professional = Professional(**td.PROFESSIONAL_MODEL)
+
+    # Act
+    response = professional_service._get_by_id(
+        professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
+    )
+
+    # Assert
+    assert response.id == expected_professional.id
+    assert response.city_id == expected_professional.city_id
+    assert response.username == expected_professional.username
+    assert response.password == expected_professional.password
+    assert response.description == expected_professional.description
+    assert response.email == expected_professional.email
+    assert response.photo == expected_professional.photo
+    assert response.status == expected_professional.status
+    assert response.active_application_count == expected_professional.active_application_count
+    assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
+    mock_db.query.assert_called_once_with(Professional)
