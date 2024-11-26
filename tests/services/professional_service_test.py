@@ -68,3 +68,38 @@ def test_create_creates_professional_when_city_found(mocker, mock_db) -> None:
     assert response.last_name == td.VALID_PROFESSIONAL_LAST_NAME
     assert response.email == td.VALID_PROFESSIONAL_EMAIL
     assert response.city == td.VALID_CITY_NAME
+
+
+def test_update_update_professional_whenDataIsValid(mocker, mock_db):
+    # Arrange
+    mock_professional_data = mocker.Mock()
+    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
+    mock_response = mocker.Mock()
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mock_professional,
+    )
+    mock_update_attributes = mocker.patch(
+        "app.services.professional_service._update_attributes",
+        return_value=mock_professional,
+    )
+    mock_create = mocker.patch(
+        "app.schemas.professional.ProfessionalResponse.create",
+        return_value=mock_response,
+    )
+
+    # Act
+    result = professional_service.update(
+        professional_id=mock_professional.id,
+        professional_request=mock_professional_data,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=mock_professional.id, db=mock_db)
+    mock_update_attributes.assert_called_once_with(
+        professional=mock_professional, professional_request=mock_professional_data, db=mock_db
+    )
+    mock_create.assert_called_once_with(professional=mock_professional, matched_ads=None)
+    assert result == mock_response
