@@ -451,3 +451,28 @@ def test_get_matches_whenDataIsValid(mocker, mock_db):
     assert response[0] == mock_job_ad_response_1
     assert response[1] == mock_job_ad_response_2
     mock_filter.all.assert_called_once()
+
+
+def test_update_attributes_updatesStatus(mocker, mock_db):
+    # Arrange
+    mock_professional_request = mocker.Mock(
+        professional=mocker.Mock(city=None),
+        status="new_status",
+    )
+    mock_professional = mocker.Mock(status="old_status")
+
+    mock_process_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    # Act
+    result = professional_service._update_attributes(
+        professional_request=mock_professional_request,
+        professional=mock_professional,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result.status == "new_status"
+    mock_process_transaction.assert_called_once()

@@ -99,13 +99,6 @@ PROFESSIONAL_MODEL = {
     "last_name": VALID_PROFESSIONAL_LAST_NAME,
 }
 
-#     # title: str
-#     # description: str
-#     # location_id: UUID
-#     # category_id: UUID
-#     # min_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
-#     # max_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
-
 VALID_JOB_AD_ID_2 = uuid.uuid4()
 
 VALID_JOB_AD_TITLE = "TestJobAd"
