@@ -170,3 +170,24 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
 
     assert exc.value.data.detail == "File size exceeds the allowed limit of 5.0MB."
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+
+
+def test_download_whenPhotoExists(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    photo_data = b"somebinarydata"
+    mock_professional.photo = photo_data
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mock_professional,
+    )
+
+    # Act
+    response = professional_service.download(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert response.status_code == 200
+    assert response.media_type == "image/png"
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
