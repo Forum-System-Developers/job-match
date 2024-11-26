@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -33,10 +33,10 @@ def login_user(
     description="Refresh the access token.",
 )
 def refresh_token(
-    refresh_token: str = Depends(auth_service.oauth2_scheme),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> Token:
-    return auth_service.refresh_access_token(refresh_token=refresh_token, db=db)
+    return auth_service.refresh_access_token(request=request, db=db)
 
 
 @router.post(
@@ -58,5 +58,10 @@ def get_current_user(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={"detail": {"role": user.user_role.value}},
+        content={
+            "detail": {
+                "role": user.user_role.value,
+                "id": str(user.id),
+            }
+        },
     )
