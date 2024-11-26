@@ -329,6 +329,30 @@ def test_deleteLogo_deletesLogo_whenCompanyHasLogo(
     assert isinstance(result, MessageResponse)
 
 
+def test_deleteLogo_raisesApplicationError_whenCompanyHasNoLogo(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=None)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        company_service.delete_logo(company_id=mock_company.id, db=mock_db)
+
+    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail
+        == f"Company with id {mock_company.id} does not have a logo"
+    )
+
+
 def test_updateCompany_updatesName_whenNameIsProvided(
     mocker,
     mock_db,
