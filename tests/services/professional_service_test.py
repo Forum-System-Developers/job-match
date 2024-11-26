@@ -6,6 +6,7 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.job_ad import BaseJobAd
+from app.schemas.user import User
 from app.services import professional_service
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
@@ -635,3 +636,31 @@ def test_set_matches_status_public(mocker, mock_db):
     assert mock_professional.has_private_matches is False
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
     mock_process_transaction.assert_called_once()
+
+
+def test_get_by_username_returns_user(mocker, mock_db):
+    # Arrange
+    mock_professional = mocker.Mock(
+        id=td.VALID_PROFESSIONAL_ID,
+        username=td.VALID_PROFESSIONAL_USERNAME,
+        password=td.VALID_PROFESSIONAL_PASSWORD,
+    )
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = mock_professional
+
+    expected_user = User(
+        id=td.VALID_PROFESSIONAL_ID,
+        username=td.VALID_PROFESSIONAL_USERNAME,
+        password=td.VALID_PROFESSIONAL_PASSWORD
+        )
+
+    # Act
+    result = professional_service.get_by_username(username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db)
+
+    # Assert
+    assert result.id == expected_user.id
+    assert result.username == expected_user.username
+    assert result.password == expected_user.password
+    mock_db.query.assert_called_once_with(Professional)
