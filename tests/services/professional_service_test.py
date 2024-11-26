@@ -653,14 +653,36 @@ def test_get_by_username_returns_user(mocker, mock_db):
     expected_user = User(
         id=td.VALID_PROFESSIONAL_ID,
         username=td.VALID_PROFESSIONAL_USERNAME,
-        password=td.VALID_PROFESSIONAL_PASSWORD
-        )
+        password=td.VALID_PROFESSIONAL_PASSWORD,
+    )
 
     # Act
-    result = professional_service.get_by_username(username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db)
+    result = professional_service.get_by_username(
+        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
+    )
 
     # Assert
     assert result.id == expected_user.id
     assert result.username == expected_user.username
     assert result.password == expected_user.password
+    mock_db.query.assert_called_once_with(Professional)
+
+
+def test_get_by_username_raises_error_when_user_not_found(mocker, mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        professional_service.get_by_username(
+            username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
+        )
+
+    assert (
+        exc.value.data.detail
+        == f"User with username {td.VALID_PROFESSIONAL_USERNAME} does not exist"
+    )
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     mock_db.query.assert_called_once_with(Professional)
