@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
@@ -681,7 +681,9 @@ def test_filterBySalary_filtersByMinAndMaxSalary(mocker, mock_db) -> None:
     assert result.all() == job_ads
 
 
-def test_orderBy_ordersByTitleAsc_whenTitleAscIsProvided(mocker, mock_db) -> None:
+def test_orderBy_ordersByCreatedAtAsc_whenCreatedAtAscIsProvided(
+    mocker, mock_db
+) -> None:
     # Arrange
     search_params = JobAdSearchParams(order_by="created_at", order="asc")
     job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
@@ -695,4 +697,23 @@ def test_orderBy_ordersByTitleAsc_whenTitleAscIsProvided(mocker, mock_db) -> Non
 
     # Assert
     assert_called_with(mock_query.order_by, asc(JobAd.created_at))
+    assert result.all() == job_ads
+
+
+def test_orderBy_ordersByCreatedAtDesc_whenCreatedAtDescIsProvided(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(order_by="created_at", order="desc")
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_order_by = mock_query.order_by.return_value
+    mock_order_by.all.return_value = job_ads
+
+    # Act
+    result = _order_by(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_called_with(mock_query.order_by, desc(JobAd.created_at))
     assert result.all() == job_ads
