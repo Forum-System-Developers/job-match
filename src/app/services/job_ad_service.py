@@ -51,7 +51,7 @@ def get_all(
     job_ads_list = job_ads.all()
     logger.info(f"Retrieved {len(job_ads_list)} job ads")
 
-    return [JobAdResponse.create(job_ad) for job_ad in job_ads]
+    return [JobAdResponse.create(job_ad) for job_ad in job_ads_list]
 
 
 def get_by_id(id: UUID, db: Session) -> JobAdResponse:
@@ -93,9 +93,8 @@ def create(
     company = ensure_valid_company_id(id=company_id, db=db)
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
-    if company is not None:
-        company.job_ads.append(job_ad)
-        company.active_job_count += 1
+    company.job_ads.append(job_ad)
+    company.active_job_count += 1
 
     db.add(job_ad)
     db.commit()
@@ -125,9 +124,6 @@ def update(
     """
     job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
     job_ad = _update_job_ad(job_ad_data=job_ad_data, job_ad=job_ad, db=db)
-
-    if any(value is None for value in vars(job_ad_data).values()):
-        job_ad.updated_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(job_ad)
@@ -187,161 +183,6 @@ def add_requirement(
     return MessageResponse(message="Requirement added to job ad")
 
 
-def accept_match_request(
-    job_ad_id: UUID,
-    job_application_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> MessageResponse:
-    """
-    Accepts a match request between a job advertisement and a job application.
-
-    This function ensures that the provided job advertisement ID and job application ID
-    are valid, and that there is a valid match request between them. It then updates the
-    statuses of the job advertisement, job application, and match request accordingly,
-    commits the changes to the database, and logs the operation.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        job_application_id (UUID): The unique identifier of the job application.
-        db (Session): The database session to use for the operation.
-
-    Returns:
-        AcceptRequestMatchResponse: The response indicating successful match acceptance.
-    """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
-    match = ensure_valid_match_request(
-        job_ad_id=job_ad_id,
-        job_application_id=job_application_id,
-        match_status=MatchStatus.REQUESTED_BY_JOB_APP,
-        db=db,
-    )
-
-    job_ad.status = JobAdStatus.ARCHIVED
-    job_application.status = JobStatus.MATCHED
-    match.status = MatchStatus.ACCEPTED
-
-    job_ad.company.successfull_matches_count += 1
-
-    db.commit()
-    logger.info(
-        f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
-    )
-
-    return MessageResponse(message="Match request accepted")
-
-
-def send_match_request(
-    job_ad_id: UUID,
-    job_application_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> MessageResponse:
-    """
-    Sends a match request from a job advertisement to a job application.
-
-    This function ensures that the provided job advertisement ID and job application ID
-    are valid, and that there is no existing match request between them. It then creates
-    a new match request between the job advertisement and job application, commits the
-    changes to the database, and logs the operation.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        job_application_id (UUID): The unique identifier of the job application.
-        company_id (UUID): The unique identifier of the company.
-        db (Session): The database session to use for the operation.
-
-    Returns:
-        MessageResponse: The response indicating successful match request.
-    """
-    ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    ensure_valid_job_application_id(id=job_application_id, db=db)
-    ensure_no_match_request(
-        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
-    )
-
-    match = Match(
-        job_ad_id=job_ad_id,
-        job_application_id=job_application_id,
-        status=MatchStatus.REQUESTED_BY_JOB_AD,
-    )
-
-    db.add(match)
-    db.commit()
-    logger.info(
-        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
-    )
-
-    return MessageResponse(message="Match request sent")
-
-
-def view_received_match_requests(
-    job_ad_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> list[MatchResponse]:
-    """
-    Retrieve match requests for a given job advertisement.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
-
-    Returns:
-        list[MatchResponse]: A list of match responses for the specified job advertisement.
-    """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = requests = (
-        db.query(Match)
-        .join(Match.job_ad)
-        .filter(
-            and_(
-                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
-            )
-        )
-        .all()
-    )
-
-    logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
-
-    return [MatchResponse.create(request) for request in requests]
-
-
-def view_sent_match_requests(
-    job_ad_id: UUID,
-    company_id: UUID,
-    db: Session,
-) -> list[MatchResponse]:
-    """
-    Retrieve sent match requests for a given job advertisement.
-
-    Args:
-        job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
-
-    Returns:
-        list[MatchResponse]: A list of match responses for the specified job advertisement.
-    """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = (
-        db.query(Match)
-        .filter(
-            and_(
-                Match.job_ad_id == job_ad.id,
-                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
-            )
-        )
-        .all()
-    )
-
-    logger.info(
-        f"Retrieved {len(requests)} sent requests for job ad with id {job_ad_id}"
-    )
-
-    return [MatchResponse.create(request) for request in requests]
-
-
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
     """
     Updates the fields of a job advertisement based on the provided job_ad_data.
@@ -355,7 +196,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         JobAd: The updated job advertisement object.
     """
     if job_ad_data.location is not None:
-        ensure_valid_city(name=job_ad_data.location, db=db)
+        job_ad.location = ensure_valid_city(name=job_ad_data.location, db=db)
         logger.info(f"Updated job ad (id: {id}) location to {job_ad_data.location}")
 
     if job_ad_data.title is not None:
@@ -379,6 +220,9 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
     if job_ad_data.status is not None:
         job_ad.status = job_ad_data.status
         logger.info(f"Updated job ad (id: {id}) status to {job_ad_data.status}")
+
+    if any(value is not None for value in vars(job_ad_data).values()):
+        job_ad.updated_at = datetime.now(timezone.utc)
 
     return job_ad
 
@@ -416,19 +260,7 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
 
     job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
     job_ads = _filter_by_skills(job_ads=job_ads, search_params=search_params, db=db)
-    order_by_column = getattr(JobAd, search_params.order_by, None)
-
-    if order_by_column is not None:
-        if search_params.order == "asc":
-            job_ads = job_ads.order_by(asc(order_by_column))
-            logger.info(
-                f"Ordering job ads by {search_params.order_by} in ascending order"
-            )
-        else:
-            job_ads = job_ads.order_by(desc(order_by_column))
-            logger.info(
-                f"Ordering job ads by {search_params.order_by} in descending order"
-            )
+    job_ads = _order_by(job_ads=job_ads, search_params=search_params)
 
     return job_ads
 
@@ -518,5 +350,36 @@ def _filter_by_skills(
         logger.info(
             f"Searching for job ads with at least {required_matches} skills from the provided skill list: {search_params.skills}"
         )
+
+    return job_ads
+
+
+def _order_by(
+    job_ads: Query[JobAd],
+    search_params: JobAdSearchParams,
+) -> Query[JobAd]:
+    """
+    Orders job advertisements based on the provided search parameters.
+
+    Args:
+        job_ads (Query[JobAd]): The query object containing the job advertisements.
+        search_params (JobAdSearchParams): The search parameters to order the job advertisements.
+
+    Returns:
+        Query[JobAd]: The ordered query object containing the job advertisements.
+    """
+    order_by_column = getattr(JobAd, search_params.order_by, None)
+
+    if order_by_column is not None:
+        if search_params.order == "asc":
+            job_ads = job_ads.order_by(asc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in ascending order"
+            )
+        else:
+            job_ads = job_ads.order_by(desc(order_by_column))
+            logger.info(
+                f"Ordering job ads by {search_params.order_by} in descending order"
+            )
 
     return job_ads
