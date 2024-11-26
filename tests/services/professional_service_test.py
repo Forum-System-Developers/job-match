@@ -328,3 +328,36 @@ def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
     assert len(response) == 2
     assert response[0] == mock_professional_response[0]
     assert response[1] == mock_professional_response[1]
+
+
+def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
+    # Arrange
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+    mock_search_params = mocker.Mock(skills=["Python", "Django"], order="asc", order_by="first_name")
+    mock_professionals = [mocker.Mock(), mocker.Mock()]
+    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+
+    mock_query = mock_db.query.return_value
+    mock_options = mock_query.options.return_value
+    mock_filtered_by_status = mock_options.filter.return_value
+    mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
+    mock_offset = mock_filtered_by_skills.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = mock_professionals
+
+    mocker.patch(
+        "app.schemas.professional.ProfessionalResponse.create",
+        side_effect=mock_professional_response,
+    )
+
+    # Act
+    response = professional_service.get_all(
+        filter_params=mock_filter_params,
+        search_params=mock_search_params,
+        db=mock_db,
+    )
+
+    # Assert
+    assert len(response) == 2
+    assert response[0] == mock_professional_response[0]
+    assert response[1] == mock_professional_response[1]
