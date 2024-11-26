@@ -608,3 +608,30 @@ def test_set_matches_status_private(mocker, mock_db):
     assert mock_professional.has_private_matches is True
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
     mock_process_transaction.assert_called_once()
+
+
+def test_set_matches_status_public(mocker, mock_db):
+    # Arrange
+    professional_id = mocker.Mock()
+    mock_professional = mocker.Mock(has_private_matches=True)
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_process_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    private_matches = mocker.Mock(status=False)
+
+    # Act
+    result = professional_service.set_matches_status(
+        professional_id=professional_id, db=mock_db, private_matches=private_matches
+    )
+
+    # Assert
+    assert result == {"msg": "Matches set as public"}
+    assert mock_professional.has_private_matches is False
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_process_transaction.assert_called_once()
