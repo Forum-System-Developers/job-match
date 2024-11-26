@@ -476,3 +476,33 @@ def test_update_attributes_updatesStatus(mocker, mock_db):
     # Assert
     assert result.status == "new_status"
     mock_process_transaction.assert_called_once()
+
+
+def test_update_attributes_updatesCity(mocker, mock_db):
+    # Arrange
+    mock_professional_request = mocker.Mock(
+        professional=mocker.Mock(city=td.VALID_CITY_NAME),
+        status=None,
+    )
+    mock_professional = mocker.Mock(city=mocker.Mock(name="Old City"))
+
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME)
+    mock_get_by_name = mocker.patch(
+        "app.services.city_service.get_by_name", return_value=mock_city
+    )
+    mock_process_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=lambda transaction_func, db: transaction_func(),
+    )
+
+    # Act
+    result = professional_service._update_attributes(
+        professional_request=mock_professional_request,
+        professional=mock_professional,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result.city_id == td.VALID_CITY_ID
+    mock_get_by_name.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
+    mock_process_transaction.assert_called_once()
