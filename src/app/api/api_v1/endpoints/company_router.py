@@ -113,3 +113,21 @@ def download_logo(
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
     return company_service.download_logo(company_id=company_id, db=db)
+
+
+@router.delete(
+    "/delete-logo",
+    description="Delete the logo of the current company.",
+)
+def delete_logo(
+    company: CompanyResponse = Depends(require_company_role),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _delete_logo():
+        return company_service.delete_logo(company_id=company.id, db=db)
+
+    return process_request(
+        get_entities_fn=_delete_logo,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg="Could not delete logo",
+    )
