@@ -1,9 +1,8 @@
 import uuid
 
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
-from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
-
+from app.sql_app.professional.professional_status import ProfessionalStatus
 
 VALID_COMPANY_ID = uuid.uuid4()
 VALID_COMPANY_NAME = "Test Company"
