@@ -1,9 +1,11 @@
 import json
+import uuid
 
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.job_ad import BaseJobAd
 from app.services import professional_service
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
@@ -390,7 +392,10 @@ def test_get_by_id_whenDataIsValid(mocker, mock_db):
     assert response.email == expected_professional.email
     assert response.photo == expected_professional.photo
     assert response.status == expected_professional.status
-    assert response.active_application_count == expected_professional.active_application_count
+    assert (
+        response.active_application_count
+        == expected_professional.active_application_count
+    )
     assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
     mock_db.query.assert_called_once_with(Professional)
 
@@ -410,4 +415,39 @@ def test_get_by_id_whenProfessionalNotFound(mock_db):
     # Assert
     assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"Professional with id {td.VALID_PROFESSIONAL_ID} not found"
+    assert (
+        exc.value.data.detail
+        == f"Professional with id {td.VALID_PROFESSIONAL_ID} not found"
+    )
+
+
+def test_get_matches_whenDataIsValid(mocker, mock_db):
+    # Arrange
+    mock_job_ad_1 = mocker.Mock(**td.JOB_AD_1)
+    mock_job_ad_2 = mocker.Mock(**td.JOB_AD_2)
+    mock_job_ads = [mock_job_ad_1, mock_job_ad_2]
+
+    mock_query = mock_db.query.return_value
+    mock_join_1 = mock_query.join.return_value
+    mock_join_2 = mock_join_1.join.return_value
+    mock_filter = mock_join_2.filter.return_value
+    mock_filter.all.return_value = mock_job_ads
+
+    mock_job_ad_response_1 = BaseJobAd(**td.JOB_AD_1)
+    mock_job_ad_response_2 = BaseJobAd(**td.JOB_AD_2)
+
+    mocker.patch(
+        "app.services.professional_service.BaseJobAd.model_validate",
+        side_effect=[mock_job_ad_response_1, mock_job_ad_response_2],
+    )
+
+    # Act
+    response = professional_service._get_matches(
+        professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
+    )
+
+    # Assert
+    assert len(response) == 2
+    assert response[0] == mock_job_ad_response_1
+    assert response[1] == mock_job_ad_response_2
+    mock_filter.all.assert_called_once()
