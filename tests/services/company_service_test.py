@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
-from fastapi import status
+from fastapi import HTTPException, status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.company import CompanyUpdate
@@ -284,7 +284,7 @@ def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
     assert result == mock_streaming_response.return_value
 
 
-def test_downloadLogo_raisesApplicationError_whenCompanyHasNoLogo(
+def test_downloadLogo_raisesHTTPException_whenCompanyHasNoLogo(
     mocker,
     mock_db,
 ) -> None:
@@ -297,15 +297,12 @@ def test_downloadLogo_raisesApplicationError_whenCompanyHasNoLogo(
     )
 
     # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
+    with pytest.raises(HTTPException) as exc:
         company_service.download_logo(company_id=mock_company.id, db=mock_db)
 
     mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail
-        == f"Company with id {mock_company.id} does not have a logo"
-    )
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.detail == f"Company with id {mock_company.id} does not have a logo"
 
 
 def test_updateCompany_updatesName_whenNameIsProvided(
