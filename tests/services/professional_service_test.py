@@ -1,10 +1,12 @@
 import json
+from uuid import UUID
 
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.services import professional_service
+from app.sql_app.professional.professional_status import ProfessionalStatus
 from tests import test_data as td
 
 
@@ -219,3 +221,28 @@ def test_download_whenPhotoIsNone(mocker, mock_db):
     assert response.status_code == 200
     assert json.loads(response.body) == {"msg": "No available photo"}
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+
+
+def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock(**td.PROFESSIONAL)
+    
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_get_matches = mocker.patch(
+        "app.services.professional_service._get_matches", return_value=["ad1", "ad2"]
+    )
+    mock_professional_response = mocker.patch(
+        "app.services.professional_service.ProfessionalResponse.create", return_value="professional_response"
+    )
+
+    # Act
+    response = professional_service.get_by_id(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    mock_professional_response.assert_called_once_with(professional=mock_professional, matched_ads=["ad1", "ad2"])
+    assert response == "professional_response"
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_get_matches.assert_called_once_with(professional_id=professional_id, db=mock_db)
