@@ -201,7 +201,7 @@ def delete_logo(company_id: UUID, db: Session) -> MessageResponse:
     """
     company = ensure_valid_company_id(id=company_id, db=db)
     if company.logo is None:
-        raise HTTPException(
+        raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Company with id {company_id} does not have a logo",
         )
