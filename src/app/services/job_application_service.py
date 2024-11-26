@@ -486,7 +486,7 @@ def _create(
 
 
 def get_skills(job_application: JobApplication, db: Session) -> list[SkillResponse]:
-    skills_ids = [_.skill_id for _ in job_application.skills]
+    skills_ids = [s.skill_id for s in job_application.skills]
     skills = []
     for skill_id in skills_ids:
         skill = skill_service.get_by_id(skill_id=skill_id, db=db)
