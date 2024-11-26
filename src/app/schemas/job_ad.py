@@ -54,9 +54,9 @@ class JobAdCreate(BaseJobAd):
 
 
 class JobAdUpdate(BaseModel):
-    title: str | None
-    description: str | None
-    location: str | None
-    min_salary: Salary | None  # type: ignore
-    max_salary: Salary | None  # type: ignore
-    status: JobAdStatus | None
+    title: str | None = None
+    description: str | None = None
+    location: str | None = None
+    min_salary: Salary | None = None  # type: ignore
+    max_salary: Salary | None = None  # type: ignore
+    status: JobAdStatus | None = None

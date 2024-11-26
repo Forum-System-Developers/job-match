@@ -11,6 +11,7 @@ from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalRequestBody,
+    ProfessionalResponse,
     ProfessionalUpdateRequestBody,
 )
 from app.services import professional_service
@@ -89,18 +90,17 @@ def private_matches(
 
 
 @router.post(
-    "/{professional_id}/upload-photo",
+    "/upload-photo",
     description="Upload a photo",
-    dependencies=[Depends(require_professional_role)],
 )
 def upload(
-    professional_id: UUID,
+    professional: ProfessionalResponse = Depends(require_professional_role),
     photo: UploadFile = File(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload(
-            professional_id=professional_id,
+            professional_id=professional.id,
             photo=photo,
             db=db,
         )

@@ -26,12 +26,11 @@ router = APIRouter()
 
 
 @router.post(
-    "/{professional_id}",
+    "/",
     description="Create a Job Application.",
-    dependencies=[Depends(require_professional_role)],
 )
 def create(
-    professional_id: UUID,
+    professional: ProfessionalResponse = Depends(require_professional_role),
     application_create: JobApplicationCreate = Body(
         description="Job Application creation form"
     ),
@@ -39,7 +38,7 @@ def create(
 ) -> JSONResponse:
     def _create():
         return job_application_service.create(
-            professional_id=professional_id,
+            professional_id=professional.id,
             application_create=application_create,
             db=db,
         )

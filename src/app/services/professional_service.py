@@ -1,5 +1,6 @@
 import io
 import logging
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import UploadFile, status
@@ -144,6 +145,7 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
             )
 
         profesional.photo = upload_photo
+        profesional.updated_at = datetime.now()
         db.commit()
         return {"msg": "Photo successfully uploaded"}
 

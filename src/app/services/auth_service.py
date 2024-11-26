@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -21,15 +21,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 logger = logging.getLogger(__name__)
 
 
-def login(username: str, password: str, db: Session, request: Request) -> Token:
+def login(username: str, password: str, db: Session, response: Response) -> Token:
     """
     Authenticates a user based on their role and generates access and refresh tokens.
 
     Args:
-        login_data (UserLogin): The login data containing user credentials and role.
+        username (str): The username of the user.
+        password (str): The password of the user.
         db (Session): The database session for querying user information.
+        response (Response): The HTTP response object to set cookies.
+
     Returns:
-        dict: A dictionary containing the access and refresh tokens.
+        Token: An object containing the access token, refresh token, and token type.
     """
     login_data = UserLogin(username=username, password=password)
     user_role, user = authenticate_user(login_data=login_data, db=db)
@@ -39,33 +42,85 @@ def login(username: str, password: str, db: Session, request: Request) -> Token:
     )
     logger.info(f"Created tokens for user {user_role.value} {user.id}")
 
-    request.session["user_id"] = str(user.id)
-    request.session["user_role"] = user_role.value
-
+    response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+    )
     return token
 
 
-def logout(request: Request) -> dict:
+def logout(response: Response) -> Response:
+    """
+    Logs out the user by deleting the access and refresh tokens from cookies.
+
+    Args:
+        response (Response): The HTTP response object to delete cookies.
+
+    Returns:
+        Response: The HTTP response object with cookies deleted.
+    """
     try:
-        request.session.clear()
-        return {"message": "Logged out successfully!"}
+        response.delete_cookie(
+            key="access_token",
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
+        return response
     except KeyError as e:
-        raise ApplicationError(
+        raise HTTPException(
             detail=f"Exception occurred: {e}, unable to log you out",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 def _get_user_role(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
-    user = professional_service.get_by_username(username=login_data.username, db=db)
-    if user is not None:
-        logger.info(f"Fetched user with user_role {UserRole.PROFESSIONAL.value}")
-        return UserRole.PROFESSIONAL, user
+    """
+    Retrieves the user role and user information based on the login data.
 
-    user = company_service.get_by_username(username=login_data.username, db=db)
-    if user is not None:
-        logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
-        return UserRole.COMPANY, user
+    Args:
+        login_data (UserLogin): The login data containing username and password.
+        db (Session): The database session for querying user information.
+
+    Returns:
+        tuple[UserRole, User]: A tuple containing the user role and user information.
+
+    Raises:
+        HTTPException: If the user cannot be authenticated.
+    """
+    try:
+        user = professional_service.get_by_username(username=login_data.username, db=db)
+        if user is not None:
+            logger.info(f"Fetched user with user_role {UserRole.PROFESSIONAL.value}")
+            return UserRole.PROFESSIONAL, user
+    except ApplicationError:
+        pass
+    try:
+        user = company_service.get_by_username(username=login_data.username, db=db)
+        if user is not None:
+            logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
+            return UserRole.COMPANY, user
+    except ApplicationError:
+        raise HTTPException(
+            detail="Could not authenticate user",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
 
 
 def _create_access_token(data: dict) -> str:
@@ -74,6 +129,7 @@ def _create_access_token(data: dict) -> str:
 
     Args:
         data (dict): A dictionary containing user information.
+
     Returns:
         str: The generated access token as a string.
     """
@@ -92,6 +148,7 @@ def _create_refresh_token(data: dict) -> str:
 
     Args:
         data (dict): A dictionary containing user information.
+
     Returns:
         str: The generated refresh token.
     """
@@ -140,6 +197,8 @@ def create_access_and_refresh_tokens(
     Args:
         user (User): The user for whom the tokens are being created.
         login_data (UserLogin): The login data containing user role information.
+        user_role (UserRole): The role of the user.
+
     Returns:
         Token: An object containing the access token, refresh token, and token type.
     """
@@ -164,6 +223,7 @@ def verify_token(token: str, db: Session) -> tuple[dict, str]:
     Args:
         token (str): The JWT token to be verified.
         db (Session): The database session to use for querying user information.
+
     Returns:
         tuple[dict, str]: The decoded token payload if verification is successful, and the user_role.
     """
@@ -230,8 +290,12 @@ def authenticate_user(login_data: UserLogin, db: Session) -> tuple[UserRole, Use
     Args:
         login_data (UserLogin): The login data containing user credentials.
         db (Session): The database session used to query the user information.
+
     Returns:
-        User: The authenticated user object.
+        tuple[UserRole, User]: A tuple containing the user role and the authenticated user object.
+
+    Raises:
+        HTTPException: If the user cannot be authenticated.
     """
     user_role, user = _get_user_role(login_data=login_data, db=db)
 
@@ -250,17 +314,18 @@ def authenticate_user(login_data: UserLogin, db: Session) -> tuple[UserRole, Use
     return user_role, user
 
 
-def refresh_access_token(refresh_token: str, db: Session) -> Token:
+def refresh_access_token(request: Request, db: Session) -> Token:
     """
     Refreshes the access token using the provided refresh token.
 
     Args:
-        refresh_token (str): The refresh token used to verify the user.
+        request (Request): The HTTP request object containing cookies.
         db (Session): The database session used for token verification.
-    Returns:
-        AccessToken: A new access token for the user.
-    """
 
+    Returns:
+        Token: A new access token for the user.
+    """
+    refresh_token = request.cookies.get("access_token")
     payload, user_role = verify_token(token=refresh_token, db=db)
     user_id = payload.get("sub")
     logger.info(f"Verified refresh token for user {user_id}")
@@ -272,26 +337,28 @@ def refresh_access_token(refresh_token: str, db: Session) -> Token:
     )
 
 
-def get_current_user(
-    request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> UserResponse:
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> UserResponse:
     """
     Retrieve the current user based on the provided token.
 
     Args:
-        token (str): The authentication token provided by the user.
+        request (Request): The HTTP request object containing cookies.
         db (Session): The database session dependency.
+
     Returns:
-        UserResponse: DTO for carrying information about the cirrent logged in user..
+        UserResponse: DTO for carrying information about the current logged-in user.
+
+    Raises:
+        HTTPException: If the user cannot be authenticated.
     """
-    user_id = request.session.get("user_id")
-    if user_id is None:
+    access_token = request.cookies.get("access_token")
+    if access_token is None:
         raise HTTPException(
             detail="Could not authenticate you",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    payload, user_role = verify_token(token=token, db=db)
+    payload, user_role = verify_token(token=access_token, db=db)
     user_id = UUID(payload.get("sub"))
 
     return UserResponse(id=user_id, user_role=UserRole(user_role))
@@ -300,6 +367,19 @@ def get_current_user(
 def require_professional_role(
     user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ProfessionalResponse:
+    """
+    Ensures the current user has a professional role.
+
+    Args:
+        user (UserResponse): The current user.
+        db (Session): The database session dependency.
+
+    Returns:
+        ProfessionalResponse: The professional user information.
+
+    Raises:
+        HTTPException: If the user does not have a professional role.
+    """
     user_role = user.user_role
     if user_role != UserRole.PROFESSIONAL:
         raise HTTPException(
@@ -312,6 +392,19 @@ def require_professional_role(
 def require_company_role(
     user: UserResponse = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> CompanyResponse:
+    """
+    Ensures the current user has a company role.
+
+    Args:
+        user (UserResponse): The current user.
+        db (Session): The database session dependency.
+
+    Returns:
+        CompanyResponse: The company user information.
+
+    Raises:
+        HTTPException: If the user does not have a company role.
+    """
     user_role = user.user_role
     if user_role != UserRole.COMPANY:
         raise HTTPException(
