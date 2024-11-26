@@ -254,10 +254,48 @@ def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
     )
 
 
-def test_get_all_whenProfessionalsExist(mocker, mock_db):
+def test_get_all_whenProfessionalsExist_withOrderByAsc(mocker, mock_db):
     # Arrange
     mock_filter_params = mocker.Mock(offset=0, limit=10)
     mock_search_params = mocker.Mock(skills=[], order="asc", order_by="created_at")
+    mock_professionals = [mocker.Mock(), mocker.Mock()]
+    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+
+    mock_query = mock_db.query.return_value
+    mock_options = mock_query.options.return_value
+    mock_filtered = mock_options.filter.return_value
+    mock_offset = mock_filtered.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = mock_professionals
+
+    mocker.patch(
+        "app.schemas.professional.ProfessionalResponse.create",
+        side_effect=mock_professional_response,
+    )
+
+    # Act
+    response = professional_service.get_all(
+        filter_params=mock_filter_params,
+        search_params=mock_search_params,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once_with(Professional)
+    mock_query.options.assert_called_once()
+    mock_options.filter.assert_called_once()
+    mock_filtered.offset.assert_called_once_with(mock_filter_params.offset)
+    mock_offset.limit.assert_called_once_with(mock_filter_params.limit)
+    mock_limit.all.assert_called_once()
+    assert len(response) == 2
+    assert response[0] == mock_professional_response[0]
+    assert response[1] == mock_professional_response[1]
+
+
+def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
+    # Arrange
+    mock_filter_params = mocker.Mock(offset=0, limit=10)
+    mock_search_params = mocker.Mock(skills=[], order="desc", order_by="created_at")
     mock_professionals = [mocker.Mock(), mocker.Mock()]
     mock_professional_response = [mocker.Mock(), mocker.Mock()]
 
