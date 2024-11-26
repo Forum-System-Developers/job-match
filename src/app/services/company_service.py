@@ -188,6 +188,31 @@ def download_logo(company_id: UUID, db: Session) -> StreamingResponse:
     return StreamingResponse(io.BytesIO(logo), media_type="image/png")
 
 
+def delete_logo(company_id: UUID, db: Session) -> MessageResponse:
+    """
+    Deletes the logo of a company.
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session.
+    Returns:
+        MessageResponse: A response message indicating the result of the delete operation.
+    Raises:
+        ApplicationError: If the company does not have a logo or does not exist.
+    """
+    company = ensure_valid_company_id(id=company_id, db=db)
+    if company.logo is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Company with id {company_id} does not have a logo",
+        )
+    company.logo = None
+    company.updated_at = datetime.now()
+    db.commit()
+    logger.info(f"Deleted logo of company with id {company_id}")
+
+    return MessageResponse(message="Logo deleted successfully")
+
+
 def _update_company(
     company: Company,
     company_data: CompanyUpdate,
