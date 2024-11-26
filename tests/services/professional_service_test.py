@@ -393,3 +393,21 @@ def test_get_by_id_whenDataIsValid(mocker, mock_db):
     assert response.active_application_count == expected_professional.active_application_count
     assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
     mock_db.query.assert_called_once_with(Professional)
+
+
+def test_get_by_id_whenProfessionalNotFound(mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        professional_service._get_by_id(
+            professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
+        )
+
+    # Assert
+    assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert exc.value.data.detail == f"Professional with id {td.VALID_PROFESSIONAL_ID} not found"
