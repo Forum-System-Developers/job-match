@@ -905,3 +905,55 @@ def test_register_professional_successful(mocker, mock_db):
         hashed_password="hashed_password",
         db=mock_db,
     )
+
+
+def test_create_professional_success(mocker, mock_db):
+    # Arrange
+    mock_professional_create = mocker.MagicMock()
+    mock_professional_create.username = td.VALID_PROFESSIONAL_USERNAME
+    mock_professional_create.email = td.VALID_PROFESSIONAL_EMAIL
+    mock_professional_create.password = td.VALID_PROFESSIONAL_PASSWORD
+    mock_professional_create.model_dump.return_value = {
+        "username": td.VALID_PROFESSIONAL_USERNAME,
+        "email": td.VALID_PROFESSIONAL_EMAIL,
+    }
+
+    mock_professional_status = mocker.Mock()
+    mock_city_id = mocker.Mock()
+    mock_hashed_password = "hashed_password"
+
+    mock_professional = mocker.MagicMock(spec=Professional)
+    mock_professional.id = td.VALID_PROFESSIONAL_ID
+
+    mock_db.add = mocker.MagicMock()
+    mock_db.commit = mocker.MagicMock()
+    mock_db.refresh = mocker.MagicMock()
+
+    def mock_process_db_transaction(transaction_func, db):
+        print("Inside mock_process_db_transaction")
+        return transaction_func()
+
+    mock_process_db_transaction = mocker.patch(
+        "app.services.professional_service.process_db_transaction",
+        side_effect=mock_process_db_transaction,
+    )
+
+    mocker.patch(
+        "app.services.professional_service.Professional", return_value=mock_professional
+    )
+
+    # Act
+    result = professional_service._create(
+        professional_create=mock_professional_create,
+        city_id=mock_city_id,
+        professional_status=mock_professional_status,
+        hashed_password=mock_hashed_password,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_process_db_transaction.assert_called_once()
+    mock_db.add.assert_called_once_with(mock_professional)
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_professional)
+    assert result == mock_professional
