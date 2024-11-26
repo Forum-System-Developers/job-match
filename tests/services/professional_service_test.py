@@ -1,4 +1,5 @@
 import json
+
 import pytest
 from fastapi import status
 
@@ -157,7 +158,7 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
     )
     mocker.patch(
         "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func()
+        side_effect=lambda transaction_func, db: transaction_func(),
     )
 
     oversized_content = b"a" * (5 * 1024 * 1024 + 1)
@@ -167,7 +168,9 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        professional_service.upload(professional_id=professional_id, photo=mock_upload_file, db=mock_db)
+        professional_service.upload(
+            professional_id=professional_id, photo=mock_upload_file, db=mock_db
+        )
 
     assert exc.value.data.detail == "File size exceeds the allowed limit of 5.0MB."
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
@@ -186,7 +189,9 @@ def test_download_whenPhotoExists(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(professional_id=professional_id, db=mock_db)
+    response = professional_service.download(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert response.status_code == 200
@@ -206,7 +211,9 @@ def test_download_whenPhotoIsNone(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(professional_id=professional_id, db=mock_db)
+    response = professional_service.download(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert response.status_code == 200
