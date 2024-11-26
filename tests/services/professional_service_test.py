@@ -795,14 +795,16 @@ def test_register_professional_username_taken(mocker, mock_db):
     # Arrange
     mock_professional_create = mocker.Mock(
         username=td.VALID_PROFESSIONAL_USERNAME,
-        email=td.VALID_PROFESSIONAL_EMAIL, 
-        password=td.VALID_PROFESSIONAL_PASSWORD
+        email=td.VALID_PROFESSIONAL_EMAIL,
+        password=td.VALID_PROFESSIONAL_PASSWORD,
     )
     mock_professional_status = mocker.Mock()
     mock_city_id = mocker.Mock()
-    
-    mock_unique_username = mocker.patch("app.services.professional_service.unique_username", return_value=False)
-    
+
+    mock_unique_username = mocker.patch(
+        "app.services.professional_service.unique_username", return_value=False
+    )
+
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
         professional_service._register_professional(
@@ -812,7 +814,9 @@ def test_register_professional_username_taken(mocker, mock_db):
             db=mock_db,
         )
 
-    mock_unique_username.assert_called_once_with(username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db)
+    mock_unique_username.assert_called_once_with(
+        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
+    )
     assert exc.value.data.status == status.HTTP_409_CONFLICT
     assert exc.value.data.detail == "Username already taken"
 
@@ -821,15 +825,19 @@ def test_register_professional_email_taken(mocker, mock_db):
     # Arrange
     mock_professional_create = mocker.Mock(
         username=td.VALID_PROFESSIONAL_USERNAME,
-        email=td.VALID_PROFESSIONAL_EMAIL, 
-        password=td.VALID_PROFESSIONAL_PASSWORD
+        email=td.VALID_PROFESSIONAL_EMAIL,
+        password=td.VALID_PROFESSIONAL_PASSWORD,
     )
     mock_professional_status = mocker.Mock()
     mock_city_id = mocker.Mock()
-    
-    mock_unique_username = mocker.patch("app.services.professional_service.unique_username", return_value=True)
-    mock_unique_email = mocker.patch("app.services.professional_service.unique_email", return_value=False)
-    
+
+    mock_unique_username = mocker.patch(
+        "app.services.professional_service.unique_username", return_value=True
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.professional_service.unique_email", return_value=False
+    )
+
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
         professional_service._register_professional(
@@ -838,8 +846,62 @@ def test_register_professional_email_taken(mocker, mock_db):
             city_id=mock_city_id,
             db=mock_db,
         )
-    
-    mock_unique_username.assert_called_once_with(username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db)
-    mock_unique_email.assert_called_once_with(email=td.VALID_PROFESSIONAL_EMAIL, db=mock_db)
+
+    mock_unique_username.assert_called_once_with(
+        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
+    )
+    mock_unique_email.assert_called_once_with(
+        email=td.VALID_PROFESSIONAL_EMAIL, db=mock_db
+    )
     assert exc.value.data.status == status.HTTP_409_CONFLICT
     assert exc.value.data.detail == "Email already taken"
+
+
+def test_register_professional_successful(mocker, mock_db):
+    # Arrange
+    mock_professional_create = mocker.Mock(
+        username=td.VALID_PROFESSIONAL_USERNAME,
+        email=td.VALID_PROFESSIONAL_EMAIL,
+        password=td.VALID_PROFESSIONAL_PASSWORD,
+    )
+    mock_professional_status = mocker.Mock()
+    mock_city_id = mocker.Mock()
+
+    mock_unique_username = mocker.patch(
+        "app.services.professional_service.unique_username", return_value=True
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.professional_service.unique_email", return_value=True
+    )
+    mock_hash_password = mocker.patch(
+        "app.services.professional_service.hash_password",
+        return_value="hashed_password",
+    )
+    mock_create = mocker.patch(
+        "app.services.professional_service._create", return_value="new_professional"
+    )
+
+    # Act
+    result = professional_service._register_professional(
+        professional_create=mock_professional_create,
+        professional_status=mock_professional_status,
+        city_id=mock_city_id,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result == "new_professional"
+    mock_unique_username.assert_called_once_with(
+        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
+    )
+    mock_unique_email.assert_called_once_with(
+        email=td.VALID_PROFESSIONAL_EMAIL, db=mock_db
+    )
+    mock_hash_password.assert_called_once_with(password=td.VALID_PROFESSIONAL_PASSWORD)
+    mock_create.assert_called_once_with(
+        professional_create=mock_professional_create,
+        city_id=mock_city_id,
+        professional_status=mock_professional_status,
+        hashed_password="hashed_password",
+        db=mock_db,
+    )
