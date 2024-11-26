@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import logging
 from uuid import UUID
@@ -144,6 +145,7 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
             )
 
         profesional.photo = upload_photo
+        profesional.updated_at = datetime.now()
         db.commit()
         return {"msg": "Photo successfully uploaded"}
 
