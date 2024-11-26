@@ -625,3 +625,27 @@ def test_filterBySalary_filtersByMinSalary(mocker, mock_db) -> None:
         (JobAd.max_salary + search_params.salary_threshold) >= search_params.min_salary,
     )
     assert result.all() == job_ads
+
+
+def test_filterBySalary_filtersByMaxSalary(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(max_salary=2000.00)
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_first_filter = mock_query.filter.return_value
+    mock_second_filter = mock_first_filter.filter.return_value
+    mock_second_filter.all.return_value = job_ads
+
+    # Act
+    result = _filter_by_salary(job_ads=mock_query, search_params=search_params)
+
+    # Assert
+    assert_filter_called_with(
+        mock_query, (JobAd.min_salary - search_params.salary_threshold) <= search_params.max_salary
+    )
+    assert_filter_called_with(
+        mock_first_filter,
+        (JobAd.max_salary + search_params.salary_threshold) >= float("-inf"),
+    )
+    assert result.all() == job_ads
