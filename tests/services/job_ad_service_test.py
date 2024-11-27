@@ -698,6 +698,26 @@ def test_filterBySkills_returnsJobAds_whenNoSkillsProvided(mocker, mock_db) -> N
     assert result.all() == job_ads
 
 
+def test_filterBySkills_filtersBySkills_whenSkillsProvided(mocker, mock_db) -> None:
+    # Arrange
+    search_params = JobAdSearchParams(
+        skills=[td.VALID_SKILL_NAME, td.VALID_SKILL_NAME_2]
+    )
+    job_ads = [mocker.Mock(**td.JOB_AD), mocker.Mock(**td.JOB_AD_2)]
+
+    mock_query = mock_db.query.return_value
+    mock_join = mock_query.join.return_value
+    mock_join.all.return_value = job_ads
+
+    # Act
+    result = _filter_by_skills(
+        job_ads=mock_query, search_params=search_params, db=mock_db
+    )
+
+    # Assert
+    assert result.all() == job_ads
+
+
 def test_orderBy_ordersByCreatedAtAsc_whenCreatedAtAscIsProvided(
     mocker, mock_db
 ) -> None:
