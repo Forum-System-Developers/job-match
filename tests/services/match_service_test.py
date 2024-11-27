@@ -8,11 +8,15 @@ from app.services.match_service import (
     accept_job_application_match_request,
     send_job_application_match_request,
     view_received_job_application_match_requests,
+    view_sent_job_application_match_requests,
 )
+from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 from tests import test_data as td
+from tests.utils import assert_filter_called_with
 
 
 @pytest.fixture
@@ -121,7 +125,7 @@ def test_sendJobApplicationMatchRequest_sendsMatchRequest_whenValidData(
     assert isinstance(result, MessageResponse)
 
 
-def test_viewReceivedJobApplicationMatchRequest_viewsMatchRequest_whenValidData(
+def test_viewReceivedJobApplicationMatchRequests_viewsMatchRequests_whenValidData(
     mocker, mock_db
 ) -> None:
     # Arrange
@@ -156,6 +160,11 @@ def test_viewReceivedJobApplicationMatchRequest_viewsMatchRequest_whenValidData(
         job_ad_id=job_ad.id,
         db=mock_db,
         company_id=job_ad.company_id,
+    )
+    assert_filter_called_with(
+        mock_join,
+        (JobAd.id == str(job_ad.id))
+        & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
     )
     mock_match_response_create.assert_has_calls([call(td.MATCH), call(td.MATCH_2)])
     assert isinstance(result, list)
