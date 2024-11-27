@@ -171,3 +171,50 @@ def test_viewReceivedJobApplicationMatchRequests_viewsMatchRequests_whenValidDat
     assert isinstance(result[0], MatchResponse)
     assert isinstance(result[1], MatchResponse)
     assert len(result) == 2
+
+
+def test_viewSentJobApplicationMatchRequests_viewsSentMatchRequests_whenValidData(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.all.return_value = [td.MATCH, td.MATCH_2]
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+        return_value=job_ad,
+    )
+    mock_match_response_create = mocker.patch(
+        "app.services.match_service.MatchResponse.create",
+        side_effect=[
+            MatchResponse(**td.MATCH),
+            MatchResponse(**td.MATCH_2),
+        ],
+    )
+
+    # Act
+    result = view_sent_job_application_match_requests(
+        job_ad_id=job_ad.id,
+        company_id=job_ad.company_id,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=job_ad.id,
+        db=mock_db,
+        company_id=job_ad.company_id,
+    )
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == str(job_ad.id))
+        & (Match.status == MatchStatus.REQUESTED_BY_JOB_AD),
+    )
+    mock_match_response_create.assert_has_calls([call(td.MATCH), call(td.MATCH_2)])
+    assert isinstance(result, list)
+    assert isinstance(result[0], MatchResponse)
+    assert isinstance(result[1], MatchResponse)
+    assert len(result) == 2
