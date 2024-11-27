@@ -2,6 +2,8 @@ import uuid
 
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
 VALID_COMPANY_ID = uuid.uuid4()
@@ -201,4 +203,18 @@ JOB_AD_2 = {
     "description": VALID_JOB_AD_DESCRIPTION_2,
     "min_salary": 1200.00,
     "max_salary": 2300.00,
+}
+
+
+JOB_APPLICATION = {
+    "id": VALID_JOB_APPLICATION_ID,
+    "professional_id": VALID_PROFESSIONAL_ID,
+    "status": JobStatus.ACTIVE,
+}
+
+MATCH = {
+    "id": uuid.uuid4(),
+    "job_ad_id": VALID_JOB_AD_ID,
+    "job_application_id": VALID_JOB_APPLICATION_ID,
+    "status": MatchStatus.REQUESTED_BY_JOB_APP,
 }
