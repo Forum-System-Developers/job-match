@@ -1,7 +1,10 @@
 import pytest
 
 from app.schemas.common import MessageResponse
-from app.services.match_service import accept_job_application_match_request
+from app.services.match_service import (
+    accept_job_application_match_request,
+    send_job_application_match_request,
+)
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match_status import MatchStatus
@@ -63,5 +66,52 @@ def test_acceptJobApplicationMatchRequest_acceptsMatchRequest_whenValidData(
     assert job_application.status == JobStatus.MATCHED
     assert match.status == MatchStatus.ACCEPTED
     assert job_ad.company.successfull_matches_count == 1
+    mock_db.commit.assert_called()
+    assert isinstance(result, MessageResponse)
+
+
+def test_sendJobApplicationMatchRequest_sendsMatchRequest_whenValidData(
+    mocker, mock_db
+) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+        return_value=job_ad,
+    )
+    mock_ensure_valid_job_application_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_application_id",
+        return_value=job_application,
+    )
+    mock_ensure_no_match_request = mocker.patch(
+        "app.services.match_service.ensure_no_match_request",
+    )
+
+    # Act
+    result = send_job_application_match_request(
+        job_ad_id=job_ad.id,
+        job_application_id=job_application.id,
+        company_id=td.VALID_COMPANY_ID,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=job_ad.id,
+        db=mock_db,
+        company_id=job_ad.company_id,
+    )
+    mock_ensure_valid_job_application_id.assert_called_with(
+        id=job_application.id,
+        db=mock_db,
+    )
+    mock_ensure_no_match_request.assert_called_with(
+        job_ad_id=job_ad.id,
+        job_application_id=job_application.id,
+        db=mock_db,
+    )
+    mock_db.add.assert_called()
     mock_db.commit.assert_called()
     assert isinstance(result, MessageResponse)
