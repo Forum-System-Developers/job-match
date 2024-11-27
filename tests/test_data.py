@@ -41,6 +41,9 @@ VALID_CITY_NAME = "Test City"
 VALID_CITY_ID_2 = uuid.uuid4()
 VALID_CITY_NAME_2 = "Test City 2"
 
+VALID_SKILL_NAME = "Test Skill"
+VALID_SKILL_NAME_2 = "Test Skill 2"
+
 NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
 VALID_CATEGORY_ID = uuid.uuid4()
