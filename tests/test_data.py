@@ -33,6 +33,7 @@ HASHED_PASSWORD = "hashed_password"
 VALID_PASSWORD = "test_password"
 
 VALID_JOB_APPLICATION_ID = uuid.uuid4()
+VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_PROFESSIONAL_ID = uuid.uuid4()
 VALID_CATEGORY_ID = uuid.uuid4()
 VALID_REQUIREMENT_ID = uuid.uuid4()
@@ -216,5 +217,12 @@ MATCH = {
     "id": uuid.uuid4(),
     "job_ad_id": VALID_JOB_AD_ID,
     "job_application_id": VALID_JOB_APPLICATION_ID,
+    "status": MatchStatus.REQUESTED_BY_JOB_APP,
+}
+
+MATCH_2 = {
+    "id": uuid.uuid4(),
+    "job_ad_id": VALID_JOB_AD_ID,
+    "job_application_id": VALID_JOB_APPLICATION_ID_2,
     "status": MatchStatus.REQUESTED_BY_JOB_APP,
 }
