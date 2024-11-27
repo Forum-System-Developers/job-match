@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
     auth_router,
+    category_router,
     company_router,
     google_auth_router,
     job_ad_router,
@@ -41,4 +42,8 @@ api_router.include_router(auth_router.router, prefix="/auth", tags=["Authenticat
 
 api_router.include_router(
     google_auth_router.router, prefix="/google-auth", tags=["Google Authentication"]
+)
+
+api_router.include_router(
+    category_router.router, prefix="/categories", tags=["Categories"]
 )
