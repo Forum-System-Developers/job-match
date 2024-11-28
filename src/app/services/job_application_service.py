@@ -436,7 +436,7 @@ def view_match_requests(
         db (Session): Database dependency.
 
     Returns:
-        list[BaseJobAd]: A list of Pydantic Job Ad response models that correspond to the Job Ads related to the match requests for the given Job Application.
+        list[JobAdPreview]: A list of Pydantic Job Ad response models that correspond to the Job Ads related to the match requests for the given Job Application.
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
