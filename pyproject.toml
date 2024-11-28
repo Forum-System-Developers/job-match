@@ -81,5 +81,8 @@ omit = [
   "**/src/profiler_utils.py",
 ]
 
+[tool.coverage.run]
+source = ["src"]
+
 [tool.mypy]
 plugins = "pydantic.mypy"
