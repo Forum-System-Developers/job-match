@@ -30,3 +30,17 @@ def test_getAll_returnsCategories_whenCategoriesExist(mocker, mock_db) -> None:
     assert isinstance(result, list)
     assert isinstance(result[0], CategoryResponse)
     assert isinstance(result[1], CategoryResponse)
+
+
+def test_getAll_returnsEmptyList_whenNoCategoriesExist(mock_db) -> None:
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_query.all.return_value = []
+
+    # Act
+    result = get_all(mock_db)
+
+    # Assert
+    mock_db.query.assert_called_with(Category)
+    mock_query.all.assert_called()
+    assert result == []
