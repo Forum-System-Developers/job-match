@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
@@ -274,15 +274,16 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
     return professional
 
 
-def _get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
+def _get_matches(professional_id: UUID, db: Session) -> list[JobAdPreview]:
     """
     Fetches Matched Job Ads for the given Professional.
 
     Args:
-        professional (Professional): The existing professional object to be updated.        db (Session): Database dependency.
+        professional (Professional): The existing professional object to be updated.
+        db (Session): Database dependency.
 
     Returns:
-        list[BaseJobAd]: List of Pydantic models containing basic information about the matched Job Ad.
+        list[JobAdPreview]: List of Pydantic models containing basic information about the matched Job Ad.
     """
     ads: list[JobAd] = (
         db.query(JobAd)
@@ -295,7 +296,7 @@ def _get_matches(professional_id: UUID, db: Session) -> list[BaseJobAd]:
         .all()
     )
 
-    return [BaseJobAd.model_validate(ad) for ad in ads]
+    return [JobAdPreview.create(ad) for ad in ads]
 
 
 def _update_attributes(
