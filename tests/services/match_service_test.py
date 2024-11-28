@@ -12,6 +12,7 @@ from app.schemas.match import MatchResponse
 from app.services.match_service import (
     _get_match,
     accept_job_application_match_request,
+    accept_match_request,
     get_match_requests_for_job_application,
     process_request_from_company,
     reject_match_request,
@@ -24,6 +25,7 @@ from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
+from app.sql_app.professional.professional_status import ProfessionalStatus
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
 
@@ -196,6 +198,32 @@ def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -
     mock_db.commit.assert_called()
     assert isinstance(result, dict)
     assert result["msg"] == "Match Request rejected"
+
+
+def test_acceptMatchRequest_acceptsMatchRequest_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD, status=JobAdStatus.ACTIVE)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    match = mocker.Mock(**td.MATCH, job_application=job_application, job_ad=job_ad)
+    match.job_application.professional = mocker.Mock(
+        active_application_count=1, status=ProfessionalStatus.ACTIVE
+    )
+
+    # Act
+    result = accept_match_request(
+        job_ad_id=job_ad.id,
+        job_application_id=job_application.id,
+        match=match,
+        db=mock_db,
+    )
+
+    # Assert
+    assert job_ad.status == JobAdStatus.ARCHIVED
+    assert job_application.status == JobStatus.MATCHED
+    assert match.status == MatchStatus.ACCEPTED
+    assert match.job_application.professional.active_application_count == 0
+    mock_db.commit.assert_called()
+    assert result["msg"] == "Match Request accepted"
 
 
 def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
