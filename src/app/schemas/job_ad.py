@@ -67,7 +67,7 @@ class JobAdResponse(JobAdPreview):
 
 
 class JobAdCreate(BaseJobAd):
-    city_name: str
+    location_id: UUID
 
 
 class JobAdUpdate(BaseModel):

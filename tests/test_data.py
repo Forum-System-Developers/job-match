@@ -200,7 +200,7 @@ JOB_AD_2 = {
 
 JOB_AD_CREATE = {
     "category_id": VALID_CATEGORY_ID,
-    "city_id": VALID_CITY_ID,
+    "location_id": VALID_CITY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
     "min_salary": 1000.00,
