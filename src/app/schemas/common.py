@@ -70,11 +70,6 @@ class SearchParams(BaseModel):
 
     order: Literal["asc", "desc"] = "desc"
     order_by: Literal["created_at", "updated_at"] = "created_at"
-    skills: list[str] = Field(
-        examples=[["Python", "Linux", "React"]],
-        default=[],
-        description="List a set of skills to be included in the search",
-    )
 
 
 class SearchJobApplication(SearchParams):
@@ -130,15 +125,21 @@ class JobAdSearchParams(SearchParams):
             - ARCHIVED: Represents an archived job ad.
     """
 
+    skills: list[str] | None = Field(
+        examples=[["Python", "Linux", "React"]],
+        default=None,
+        description="List a set of skills to be included in the search",
+    )
+
     title: str | None = Field(description="The title of the job ad", default=None)
     salary_threshold: float = Field(description="The salary threshold", ge=0, default=0)
     min_salary: float | None = Field(description="Minimum salary", default=None)
     max_salary: float | None = Field(description="Maximum salary", default=None)
     company_id: UUID | None = Field(description="The company ID", default=None)
     location_id: UUID | None = Field(description="The location ID", default=None)
-    job_ad_status: JobAdStatus | None = Field(
+    job_ad_status: JobAdStatus = Field(
         description="ACTIVE: Represents an active job ad. ARCHIVED: Represents an archived job ad",
-        default=None,
+        default=JobAdStatus.ACTIVE,
     )
     skills_threshold: int = Field(description="The skills threshold", ge=0, default=0)
 
