@@ -117,6 +117,31 @@ def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(mocker, moc
     assert result == {"msg": "Match Request rejected"}
 
 
+def test_processRequestFromCompany_raisesError_whenNoExistingMatch(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+
+    mock_get_match = mocker.patch(
+        "app.services.match_service._get_match",
+        return_value=None,
+    )
+
+    accept_request = MatchResponseRequest(accept_request=True)
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        process_request_from_company(
+            job_application_id=job_application.id,
+            job_ad_id=job_ad.id,
+            accept_request=accept_request,
+            db=mock_db,
+        )
+
+    assert exc.value.data.detail == f"No match found for JobApplication id{job_application.id} and JobAd id {job_ad.id}"
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+
+
 def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD)
