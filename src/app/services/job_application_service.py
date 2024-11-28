@@ -136,13 +136,14 @@ def get_all(
         )
     )
 
-    if search_params.skills:
-        query = (
-            query.join(JobApplicationSkill)
-            .join(Skill)
-            .filter(Skill.name.in_(search_params.skills))
-        )
-        logger.info("Filtered applications by skills.")
+    # TODO
+    # if search_params.skills:
+    #     query = (
+    #         query.join(JobApplicationSkill)
+    #         .join(Skill)
+    #         .filter(Skill.name.in_(search_params.skills))
+    #     )
+    #     logger.info("Filtered applications by skills.")
 
     if search_params.order == "desc":
         query.order_by(getattr(JobApplication, search_params.order_by).desc())
