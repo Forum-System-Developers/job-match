@@ -35,7 +35,6 @@ VALID_PASSWORD = "test_password"
 VALID_JOB_APPLICATION_ID = uuid.uuid4()
 VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_PROFESSIONAL_ID = uuid.uuid4()
-VALID_CATEGORY_ID = uuid.uuid4()
 VALID_REQUIREMENT_ID = uuid.uuid4()
 
 VALID_CITY_ID = uuid.uuid4()
@@ -47,9 +46,17 @@ VALID_CITY_NAME_2 = "Test City 2"
 VALID_SKILL_NAME = "Test Skill"
 VALID_SKILL_NAME_2 = "Test Skill 2"
 
+VALID_CATEGORY_ID = uuid.uuid4()
+VALID_CATEGORY_TITLE = "Test Category"
+VALID_CATEGORY_DESCRIPTION = "Test Description"
+
+VALID_CATEGORY_ID_2 = uuid.uuid4()
+VALID_CATEGORY_TITLE_2 = "Test Category 2"
+VALID_CATEGORY_DESCRIPTION_2 = "Test Description 2"
+
 NON_EXISTENT_ID = uuid.uuid4()
 NON_EXISTENT_USERNAME = "non_existent_username"
-VALID_CATEGORY_ID = uuid.uuid4()
+
 
 COMPANY = {
     "id": VALID_COMPANY_ID,
@@ -225,4 +232,20 @@ MATCH_2 = {
     "job_ad_id": VALID_JOB_AD_ID,
     "job_application_id": VALID_JOB_APPLICATION_ID_2,
     "status": MatchStatus.REQUESTED_BY_JOB_APP,
+}
+
+CATEGORY = {
+    "id": VALID_CATEGORY_ID,
+    "title": VALID_CATEGORY_TITLE,
+    "description": VALID_CATEGORY_DESCRIPTION,
+    "job_ads": [],
+    "category_job_applications": [],
+}
+
+CATEGORY_2 = {
+    "id": uuid.uuid4(),
+    "title": "Test Category 2",
+    "description": "Test Description 2",
+    "job_ads": [],
+    "category_job_applications": [],
 }
