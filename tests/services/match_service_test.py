@@ -79,6 +79,44 @@ def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(mocker, moc
     assert result == {"msg": "Match Request accepted"}
 
 
+def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    match = mocker.Mock(**td.MATCH)
+
+    mock_get_match = mocker.patch(
+        "app.services.match_service._get_match",
+        return_value=match,
+    )
+    mock_reject_match_request = mocker.patch(
+        "app.services.match_service.reject_match_request",
+        return_value={"msg": "Match Request rejected"},
+    )
+
+    accept_request = MatchResponseRequest(accept_request=False)
+
+    # Act
+    result = process_request_from_company(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        accept_request=accept_request,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_get_match.assert_called_with(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=mock_db
+    )
+    mock_reject_match_request.assert_called_with(
+        match=match,
+        db=mock_db,
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+    )
+    assert result == {"msg": "Match Request rejected"}
+
+
 def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD)
