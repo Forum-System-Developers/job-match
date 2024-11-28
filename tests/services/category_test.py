@@ -1,5 +1,3 @@
-from unittest.mock import ANY
-
 import pytest
 
 from app.schemas.category import CategoryResponse
