@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
-from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_ad import JobAdPreview
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -84,13 +84,13 @@ class ProfessionalResponse(ProfessionalBase):
     photo: bytes | None = None
     status: ProfessionalStatus
     active_application_count: int
-    matched_ads: list[BaseJobAd] | None = None
+    matched_ads: list[JobAdPreview] | None = None
 
     @classmethod
     def create(
         cls,
         professional: Professional,
-        matched_ads: list[BaseJobAd] | None = None,
+        matched_ads: list[JobAdPreview] | None = None,
     ) -> "ProfessionalResponse":
         return cls(
             id=professional.id,
