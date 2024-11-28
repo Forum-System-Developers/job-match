@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.address import CityResponse
+from app.schemas.city import CityResponse
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
@@ -426,7 +426,7 @@ def handle_match_response(
 
 def view_match_requests(
     job_application_id: UUID, db: Session, filter_params: FilterParams
-) -> list[BaseJobAd]:
+) -> list[JobAdPreview]:
     """
     Verifies Job Application id and fetches all its related Match requests.
 
