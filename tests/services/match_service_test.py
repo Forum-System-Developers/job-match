@@ -2,13 +2,18 @@ from unittest.mock import call
 
 import pytest
 
+from fastapi import status
+
+from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_ad import JobAdPreview
+from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchResponse
 from app.services.match_service import (
     accept_job_application_match_request,
     get_match_requests_for_job_application,
+    process_request_from_company,
     reject_match_request,
     send_job_application_match_request,
     view_received_job_application_match_requests,
@@ -34,6 +39,44 @@ def mock_job_ads(mocker):
         mocker.Mock(**td.JOB_AD, location=City(**td.CITY)),
         mocker.Mock(**td.JOB_AD_2, location=City(**td.CITY_2)),
     ]
+
+
+def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    match = mocker.Mock(**td.MATCH)
+
+    mock_get_match = mocker.patch(
+        "app.services.match_service._get_match",
+        return_value=match,
+    )
+    mock_accept_match_request = mocker.patch(
+        "app.services.match_service.accept_match_request",
+        return_value={"msg": "Match Request accepted"},
+    )
+
+    accept_request = MatchResponseRequest(accept_request=True)
+
+    # Act
+    result = process_request_from_company(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        accept_request=accept_request,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_get_match.assert_called_with(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=mock_db
+    )
+    mock_accept_match_request.assert_called_with(
+        match=match,
+        db=mock_db,
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+    )
+    assert result == {"msg": "Match Request accepted"}
 
 
 def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
