@@ -6,8 +6,9 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
@@ -209,7 +210,7 @@ def accept_match_request(
 
 def get_match_requests_for_job_application(
     job_application_id: UUID, db: Session, filter_params: FilterParams
-) -> list[BaseJobAd]:
+) -> list[JobAdPreview]:
     """
     Fetch match requests for the given Job Application.
 
@@ -219,14 +220,16 @@ def get_match_requests_for_job_application(
         filter_params (FilterParams): Filtering options for pagination.
 
     Returns:
-        list[BaseJobAd]: Response models containing basic information for the Job Ads that sent the match request.
+        list[JobAdPreview]: Response models containing basic information for the Job Ads that sent the match request.
     """
 
     requests = (
         db.query(Match)
         .filter(
-            Match.job_application_id == job_application_id,
-            Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+            and_(
+                Match.job_application_id == job_application_id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+            )
         )
         .offset(filter_params.offset)
         .limit(filter_params.limit)
@@ -236,11 +239,11 @@ def get_match_requests_for_job_application(
     job_ads = [request.job_ad for request in requests]
 
     return [
-        BaseJobAd(
+        JobAdPreview(
             title=job_ad.title,
+            city=City(id=job_ad.location.id, name=job_ad.location.name),
             description=job_ad.description,
-            category_id=job_ad.category.id,
-            location_id=job_ad.location.id,
+            category_id=job_ad.category_id,
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
         )
