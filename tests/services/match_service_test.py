@@ -2,10 +2,13 @@ from unittest.mock import call
 
 import pytest
 
-from app.schemas.common import MessageResponse
+from app.schemas.city import City
+from app.schemas.common import FilterParams, MessageResponse
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.match import MatchResponse
 from app.services.match_service import (
     accept_job_application_match_request,
+    get_match_requests_for_job_application,
     send_job_application_match_request,
     view_received_job_application_match_requests,
     view_sent_job_application_match_requests,
@@ -22,6 +25,50 @@ from tests.utils import assert_filter_called_with
 @pytest.fixture
 def mock_db(mocker):
     return mocker.Mock()
+
+
+@pytest.fixture
+def mock_job_ads(mocker):
+    return [
+        mocker.Mock(**td.JOB_AD, location=City(**td.CITY)),
+        mocker.Mock(**td.JOB_AD_2, location=City(**td.CITY_2)),
+    ]
+
+
+def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
+    mocker, mock_db, mock_job_ads
+) -> None:
+    # Arrange
+    filter_params = FilterParams(offset=0, limit=10)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_offset = mock_filter.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = [
+        mocker.Mock(**td.MATCH, job_ad=mock_job_ads[0]),
+        mocker.Mock(**td.MATCH_2, job_ad=mock_job_ads[1]),
+    ]
+
+    # Act
+    result = get_match_requests_for_job_application(
+        job_application_id=td.VALID_JOB_APPLICATION_ID,
+        db=mock_db,
+        filter_params=filter_params,
+    )
+
+    # Assert
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_application_id == td.VALID_JOB_APPLICATION_ID)
+        & (Match.status == MatchStatus.REQUESTED_BY_JOB_AD),
+    )
+    mock_filter.offset.assert_called_with(filter_params.offset)
+    mock_offset.limit.assert_called_with(filter_params.limit)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], JobAdPreview)
+    assert isinstance(result[1], JobAdPreview)
 
 
 def test_acceptJobApplicationMatchRequest_acceptsMatchRequest_whenValidData(

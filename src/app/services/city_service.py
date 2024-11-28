@@ -5,7 +5,7 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.address import CityResponse
+from app.schemas.city import CityResponse
 from app.sql_app.city.city import City
 
 logger = logging.getLogger(__name__)

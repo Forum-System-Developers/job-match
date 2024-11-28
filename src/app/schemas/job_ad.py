@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, condecimal
 
+from app.schemas.city import City
 from app.schemas.custom_types import Salary
 from app.schemas.requirement import Requirement
 from app.sql_app.job_ad.job_ad import JobAd
@@ -12,7 +13,6 @@ from app.sql_app.job_ad.job_ad_status import JobAdStatus
 class BaseJobAd(BaseModel):
     title: str
     description: str
-    location_id: UUID
     category_id: UUID
     min_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
     max_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
@@ -21,7 +21,22 @@ class BaseJobAd(BaseModel):
         from_attributes = True
 
 
-class JobAdResponse(BaseJobAd):
+class JobAdPreview(BaseJobAd):
+    city: City
+
+    @classmethod
+    def create(cls, job_ad: JobAd) -> "JobAdPreview":
+        return cls(
+            title=job_ad.title,
+            description=job_ad.description,
+            category_id=job_ad.category_id,
+            city=City(id=job_ad.location.id, name=job_ad.location.name),
+            min_salary=job_ad.min_salary,
+            max_salary=job_ad.max_salary,
+        )
+
+
+class JobAdResponse(JobAdPreview):
     id: UUID
     company_id: UUID
     status: JobAdStatus
@@ -39,7 +54,7 @@ class JobAdResponse(BaseJobAd):
             id=job_ad.id,
             company_id=job_ad.company_id,
             category_id=job_ad.category_id,
-            location_id=job_ad.location_id,
+            city=City(id=job_ad.location.id, name=job_ad.location.name),
             title=job_ad.title,
             description=job_ad.description,
             min_salary=job_ad.min_salary,
@@ -52,7 +67,7 @@ class JobAdResponse(BaseJobAd):
 
 
 class JobAdCreate(BaseJobAd):
-    pass
+    city_name: str
 
 
 class JobAdUpdate(BaseModel):

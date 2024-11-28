@@ -5,7 +5,7 @@ import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.job_ad import BaseJobAd
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.user import User
 from app.services import professional_service
@@ -436,8 +436,8 @@ def test_get_matches_whenDataIsValid(mocker, mock_db):
     mock_filter = mock_join_2.filter.return_value
     mock_filter.all.return_value = mock_job_ads
 
-    mock_job_ad_response_1 = BaseJobAd(**td.JOB_AD_1)
-    mock_job_ad_response_2 = BaseJobAd(**td.JOB_AD_2)
+    mock_job_ad_response_1 = JobAdPreview(**td.JOB_AD_1)
+    mock_job_ad_response_2 = JobAdPreview(**td.JOB_AD_2)
 
     mocker.patch(
         "app.services.professional_service.BaseJobAd.model_validate",

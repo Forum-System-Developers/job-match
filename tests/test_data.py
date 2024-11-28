@@ -74,6 +74,11 @@ CITY = {
     "name": VALID_CITY_NAME,
 }
 
+CITY_2 = {
+    "id": VALID_CITY_ID_2,
+    "name": VALID_CITY_NAME_2,
+}
+
 VALID_PROFESSIONAL_EMAIL = "test_professional@email.com"
 VALID_PROFESSIONAL_USERNAME = "TestP"
 VALID_PROFESSIONAL_PASSWORD = "TestPassword@123"
@@ -177,16 +182,25 @@ JOB_AD = {
     "id": VALID_JOB_AD_ID,
     "company_id": VALID_COMPANY_ID,
     "category_id": VALID_CATEGORY_ID,
-    "location_id": VALID_CITY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
 }
 
+JOB_AD_2 = {
+    "id": VALID_JOB_AD_ID_2,
+    "company_id": VALID_COMPANY_ID,
+    "category_id": VALID_CATEGORY_ID,
+    "title": VALID_JOB_AD_TITLE_2,
+    "description": VALID_JOB_AD_DESCRIPTION_2,
+    "min_salary": 1200.00,
+    "max_salary": 2300.00,
+}
+
 JOB_AD_CREATE = {
     "category_id": VALID_CATEGORY_ID,
-    "location_id": VALID_CITY_ID,
+    "city_id": VALID_CITY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
     "min_salary": 1000.00,
@@ -200,17 +214,6 @@ JOB_AD_UPDATE = {
     "min_salary": 1000.00,
     "max_salary": 2000.00,
     "status": JobAdStatus.ACTIVE,
-}
-
-JOB_AD_2 = {
-    "id": VALID_JOB_AD_ID_2,
-    "company_id": VALID_COMPANY_ID,
-    "category_id": VALID_CATEGORY_ID,
-    "location_id": VALID_CITY_ID,
-    "title": VALID_JOB_AD_TITLE_2,
-    "description": VALID_JOB_AD_DESCRIPTION_2,
-    "min_salary": 1200.00,
-    "max_salary": 2300.00,
 }
 
 
