@@ -103,7 +103,10 @@ def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match 
     match = (
         db.query(Match)
         .filter(
-            Match.job_ad_id == job_ad_id, Match.job_application_id == job_application_id
+            and_(
+                Match.job_ad_id == job_ad_id,
+                Match.job_application_id == job_application_id,
+            )
         )
         .first()
     )

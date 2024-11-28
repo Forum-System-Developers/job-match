@@ -10,6 +10,7 @@ from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchResponse
 from app.services.match_service import (
+    _get_match,
     accept_job_application_match_request,
     get_match_requests_for_job_application,
     process_request_from_company,
@@ -38,6 +39,32 @@ def mock_job_ads(mocker):
         mocker.Mock(**td.JOB_AD, location=City(**td.CITY)),
         mocker.Mock(**td.JOB_AD_2, location=City(**td.CITY_2)),
     ]
+
+
+def test_getMatch_returnsMatch_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    job_ad = mocker.Mock(**td.JOB_AD)
+    match = mocker.Mock(**td.MATCH)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = match
+
+    # Act
+    result = _get_match(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        db=mock_db,
+    )
+
+    # Assert
+    assert_filter_called_with(
+        mock_query,
+        (Match.job_ad_id == td.VALID_JOB_AD_ID)
+        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    )
+    assert result == match
 
 
 def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(
