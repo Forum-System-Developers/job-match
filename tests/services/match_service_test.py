@@ -1,7 +1,6 @@
 from unittest.mock import call
 
 import pytest
-
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -41,7 +40,9 @@ def mock_job_ads(mocker):
     ]
 
 
-def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(mocker, mock_db) -> None:
+def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(
+    mocker, mock_db
+) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD)
     job_application = mocker.Mock(**td.JOB_APPLICATION)
@@ -79,7 +80,9 @@ def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(mocker, moc
     assert result == {"msg": "Match Request accepted"}
 
 
-def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
+def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(
+    mocker, mock_db
+) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD)
     job_application = mocker.Mock(**td.JOB_APPLICATION)
@@ -117,7 +120,9 @@ def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(mocker, moc
     assert result == {"msg": "Match Request rejected"}
 
 
-def test_processRequestFromCompany_raisesError_whenNoExistingMatch(mocker, mock_db) -> None:
+def test_processRequestFromCompany_raisesError_whenNoExistingMatch(
+    mocker, mock_db
+) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD)
     job_application = mocker.Mock(**td.JOB_APPLICATION)
@@ -138,7 +143,10 @@ def test_processRequestFromCompany_raisesError_whenNoExistingMatch(mocker, mock_
             db=mock_db,
         )
 
-    assert exc.value.data.detail == f"No match found for JobApplication id{job_application.id} and JobAd id {job_ad.id}"
+    assert (
+        exc.value.data.detail
+        == f"No match found for JobApplication id{job_application.id} and JobAd id {job_ad.id}"
+    )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
 
 
