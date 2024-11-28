@@ -9,6 +9,7 @@ from app.schemas.match import MatchResponse
 from app.services.match_service import (
     accept_job_application_match_request,
     get_match_requests_for_job_application,
+    reject_match_request,
     send_job_application_match_request,
     view_received_job_application_match_requests,
     view_sent_job_application_match_requests,
@@ -33,6 +34,27 @@ def mock_job_ads(mocker):
         mocker.Mock(**td.JOB_AD, location=City(**td.CITY)),
         mocker.Mock(**td.JOB_AD_2, location=City(**td.CITY_2)),
     ]
+
+
+def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
+    # Arrange
+    job_ad = mocker.Mock(**td.JOB_AD)
+    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    match = mocker.Mock(**td.MATCH)
+
+    # Act
+    result = reject_match_request(
+        match=match,
+        db=mock_db,
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+    )
+
+    # Assert
+    assert match.status == MatchStatus.REJECTED
+    mock_db.commit.assert_called()
+    assert isinstance(result, dict)
+    assert result["msg"] == "Match Request rejected"
 
 
 def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
