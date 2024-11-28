@@ -4,7 +4,7 @@ import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.address import CityResponse
+from app.schemas.city import CityResponse
 from app.services.city_service import get_by_id, get_by_name, get_id
 from app.sql_app.city.city import City
 from tests import test_data as td
