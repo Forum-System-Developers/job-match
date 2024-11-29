@@ -63,3 +63,33 @@ def test_create_createsRequirement_whenValidData(mocker, mock_db, requirement_da
     assert isinstance(result, RequirementResponse)
     assert result.description == requirement_data.description
     assert result.skill_level == requirement_data.skill_level
+
+
+def test_create_raisesError_whenRequirementExists(mocker, mock_db, requirement_data):
+    # Arrange
+    mock_exists = mocker.patch(
+        "app.services.requirement_service._exists", return_value=True
+    )
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        create(
+            company_id=td.VALID_COMPANY_ID,
+            requirement_data=requirement_data,
+            db=mock_db,
+        )
+
+    # Assert
+    mock_exists.assert_called_once_with(
+        company_id=td.VALID_COMPANY_ID,
+        requirement_description=requirement_data.description,
+        db=mock_db,
+    )
+    assert exc.value.data.status == status.HTTP_409_CONFLICT
+    assert (
+        exc.value.data.detail
+        == f"Requirement {requirement_data.description} already exists"
+    )
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_called()
+    mock_db.refresh.assert_not_called()
