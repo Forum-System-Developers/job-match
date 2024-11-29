@@ -2,6 +2,7 @@ import logging
 from uuid import UUID
 
 from fastapi import status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -67,8 +68,10 @@ def _exists(company_id: UUID, requirement_description: str, db: Session) -> bool
     return (
         db.query(JobRequirement)
         .filter(
-            JobRequirement.company_id == company_id,
-            JobRequirement.description == requirement_description,
+            and_(
+                JobRequirement.company_id == company_id,
+                JobRequirement.description == requirement_description,
+            )
         )
         .first()
         is not None
