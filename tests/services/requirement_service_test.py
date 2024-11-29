@@ -117,3 +117,26 @@ def test_exists_returnsTrue_whenRequirementExists(mock_db):
         & (JobRequirement.description == "Test Requirement"),
     )
     assert result is True
+
+
+def test_exists_returnsFalse_whenRequirementDoesNotExist(mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    result = _exists(
+        company_id=td.VALID_COMPANY_ID,
+        requirement_description="Nonexistent Requirement",
+        db=mock_db,
+    )
+
+    # Assert
+    mock_db.query.assert_called_once_with(JobRequirement)
+    assert_filter_called_with(
+        mock_query,
+        (JobRequirement.company_id == td.VALID_COMPANY_ID)
+        & (JobRequirement.description == "Nonexistent Requirement"),
+    )
+    assert result is False
