@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.requirement import RequirementCreate, RequirementResponse
 from app.services.requirement_service import create
-from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.job_requirement.skill_level import SkillLevel
 from tests import test_data as td
 
