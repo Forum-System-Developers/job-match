@@ -79,7 +79,7 @@ def update(
 
 
 @router.post(
-    "/",
+    "/all",
     description="Get all Job applications (filtered by indicated parameters)",
     dependencies=[Depends(get_current_user)],
 )

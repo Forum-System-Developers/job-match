@@ -239,8 +239,8 @@ def verify_token(token: str, db: Session) -> tuple[dict, str]:
         )
 
     user_role = str(payload.get("role"))
-    user_id = UUID(payload.get("sub"))
-    user_role = _verify_user(user_role=user_role, user_id=user_id, db=db)
+    user_id = payload.get("sub")
+    user_role = _verify_user(user_role=user_role, user_id=UUID(user_id), db=db)
 
     return payload, user_role
 
@@ -325,21 +325,19 @@ def refresh_access_token(request: Request, db: Session) -> Token:
     Returns:
         Token: A new access token for the user.
     """
-    refresh_token = request.cookies.get("refresh_token")
-    if refresh_token is None:
+    token = request.cookies.get("refresh_token")
+    if token is None:
         raise HTTPException(
             detail="Could not authenticate you",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    payload, user_role = verify_token(token=refresh_token, db=db)
+    payload, user_role = verify_token(token=token, db=db)
     user_id = payload.get("sub")
     logger.info(f"Verified refresh token for user {user_id}")
     access_token = _create_access_token({"sub": user_id, "role": user_role})
     logger.info(f"Created new access token for user {user_id}")
 
-    return Token(
-        access_token=access_token, refresh_token=refresh_token, token_type="bearer"
-    )
+    return Token(access_token=access_token, refresh_token=token, token_type="bearer")
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> UserResponse:

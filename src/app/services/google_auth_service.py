@@ -71,7 +71,7 @@ async def auth_callback(request: Request):
         )
 
     jwt_token = _create_access_token(data=user_info)
-    response = RedirectResponse(url="http://localhost:8000/swagger")
+    response = RedirectResponse(url="http://localhost:3000")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
 
     return response
