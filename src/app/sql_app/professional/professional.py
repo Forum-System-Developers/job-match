@@ -62,6 +62,7 @@ class Professional(Base):
     description: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    cv: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     status: Mapped[ProfessionalStatus] = mapped_column(
         Enum(ProfessionalStatus, native_enum=True), nullable=False
     )
