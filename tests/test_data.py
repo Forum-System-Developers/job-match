@@ -3,6 +3,7 @@ import uuid
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -203,6 +204,7 @@ JOB_AD_CREATE = {
     "location_id": VALID_CITY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
+    "skill_level": SkillLevel.INTERMEDIATE,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
 }
