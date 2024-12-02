@@ -11,7 +11,6 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.schemas.user import User
-from app.services import city_service
 from app.services.utils.file_utils import handle_file_upload
 from app.services.utils.validators import (
     ensure_valid_city,
@@ -19,7 +18,6 @@ from app.services.utils.validators import (
     unique_email,
     unique_username,
 )
-from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
 
