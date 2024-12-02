@@ -241,17 +241,7 @@ def get_match_requests_for_job_application(
 
     job_ads = [request.job_ad for request in requests]
 
-    return [
-        JobAdPreview(
-            title=job_ad.title,
-            city=City(id=job_ad.location.id, name=job_ad.location.name),
-            description=job_ad.description,
-            category_id=job_ad.category_id,
-            min_salary=job_ad.min_salary,
-            max_salary=job_ad.max_salary,
-        )
-        for job_ad in job_ads
-    ]
+    return [JobAdPreview.create(job_ad) for job_ad in job_ads]
 
 
 def accept_job_application_match_request(
