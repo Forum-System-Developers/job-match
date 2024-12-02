@@ -98,22 +98,22 @@ def update_job_ad(
     "/{job_ad_id}/requirements/{requirement_id}",
     description="Add new job requirements to a job advertisement.",
 )
-def add_job_ad_requirement(
+def add_job_ad_skill(
     job_ad_id: UUID,
-    requirement_id: UUID,
+    skill_id: UUID,
     company: CompanyResponse = Depends(require_company_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    def _add_job_ad_requirements():
+    def _add_job_ad_skill():
         return job_ad_service.add_requirement(
             job_ad_id=job_ad_id,
-            requirement_id=requirement_id,
+            skill_id=skill_id,
             company_id=company.id,
             db=db,
         )
 
     return process_request(
-        get_entities_fn=_add_job_ad_requirements,
+        get_entities_fn=_add_job_ad_skill,
         status_code=status.HTTP_200_OK,
         not_found_err_msg=f"Job Ad with id {job_ad_id} not found",
     )
