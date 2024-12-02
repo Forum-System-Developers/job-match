@@ -8,11 +8,13 @@ from app.schemas.custom_types import Salary
 from app.schemas.requirement import Requirement
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class BaseJobAd(BaseModel):
     title: str
     description: str
+    skill_level: SkillLevel
     category_id: UUID
     min_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
     max_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
@@ -30,6 +32,7 @@ class JobAdPreview(BaseJobAd):
             title=job_ad.title,
             description=job_ad.description,
             category_id=job_ad.category_id,
+            skill_level=job_ad.skill_level,
             city=City(id=job_ad.location.id, name=job_ad.location.name),
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
@@ -57,6 +60,7 @@ class JobAdResponse(JobAdPreview):
             city=City(id=job_ad.location.id, name=job_ad.location.name),
             title=job_ad.title,
             description=job_ad.description,
+            skill_level=job_ad.skill_level,
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
             status=job_ad.status,
@@ -73,6 +77,7 @@ class JobAdCreate(BaseJobAd):
 class JobAdUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    skill_level: SkillLevel | None = None
     location: str | None = None
     min_salary: Salary | None = None  # type: ignore
     max_salary: Salary | None = None  # type: ignore
