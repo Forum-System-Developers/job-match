@@ -14,6 +14,7 @@ from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
+from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 
@@ -197,41 +198,43 @@ def ensure_valid_match_request(
     return match
 
 
-def ensure_valid_requirement_id(
-    requirement_id: UUID, company_id: UUID, db: Session
-) -> JobRequirement:
+def ensure_valid_skill_id(
+    skill_id: UUID,
+    category_id: UUID,
+    db: Session,
+) -> Skill:
     """
-    Ensures that a requirement with the given ID exists in the database.
+    Ensure that a skill with the given skill_id and category_id exists in the database.
 
     Args:
-        requirement_id (UUID): The unique identifier of the requirement.
-        company_id (UUID): The unique identifier of the company.
-        db (Session): The database session used to query the requirement.
+        skill_id (UUID): The unique identifier of the skill.
+        category_id (UUID): The unique identifier of the category to which the skill belongs.
+        db (Session): The database session used to query the skill.
 
     Returns:
-        JobRequirement: The JobRequirement object if found.
+        Skill: The skill object if found.
 
     Raises:
-        ApplicationError: If no requirement with the given ID is found, raises an error with a 404 status code.
+        ApplicationError: If the skill with the given skill_id and category_id is not found.
     """
-    requirement = (
-        db.query(JobRequirement)
+    skill = (
+        db.query(Skill)
         .filter(
             and_(
-                JobRequirement.id == requirement_id,
-                JobRequirement.company_id == company_id,
+                Skill.id == skill_id,
+                Skill.category_id == category_id,
             )
         )
         .first()
     )
-    if requirement is None:
-        logger.error(f"Requirement with id {requirement_id} not found")
+    if skill is None:
+        logger.error(f"Skill with id {skill_id} not found")
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Requirement with id {requirement_id} not found",
+            detail=f"Skill with id {skill_id} not found",
         )
 
-    return requirement
+    return skill
 
 
 def unique_username(username: str, db: Session) -> bool:
