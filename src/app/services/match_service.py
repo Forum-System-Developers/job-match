@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_ad import JobAdPreview
+from app.schemas.job_ad import JobAdPreview, JobAdResponse
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
@@ -19,6 +19,7 @@ from app.services.utils.validators import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
@@ -242,6 +243,24 @@ def get_match_requests_for_job_application(
     job_ads = [request.job_ad for request in requests]
 
     return [JobAdPreview.create(job_ad) for job_ad in job_ads]
+
+
+def get_match_requests_for_professional(
+    professional_id: UUID, db: Session
+) -> list[JobAdResponse]:
+    ads: list[JobAd] = (
+        db.query(JobAd)
+        .join(Match, Match.job_ad_id == JobAd.id)
+        .join(JobApplication, Match.job_application_id == JobApplication.id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == JobStatus.ACTIVE,
+            Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+        )
+        .all()
+    )
+
+    return [JobAdResponse.create(job_ad=ad) for ad in ads]
 
 
 def accept_job_application_match_request(
