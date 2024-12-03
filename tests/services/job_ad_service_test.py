@@ -196,7 +196,9 @@ def test_update_updatesJobAd_whenValidData(mocker, mock_db) -> None:
     assert result == mock_job_ad_response
 
 
-def test_addSkillRequirement_addsSkillRequirement_whenValidData(mocker, mock_db) -> None:
+def test_addSkillRequirement_addsSkillRequirement_whenValidData(
+    mocker, mock_db
+) -> None:
     # Arrange
     job_ad = mocker.Mock(**td.JOB_AD, skills=[])
     category_id = td.VALID_CATEGORY_ID
