@@ -105,7 +105,7 @@ def add_job_ad_skill(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _add_job_ad_skill():
-        return job_ad_service.add_requirement(
+        return job_ad_service.add_skill_requirement(
             job_ad_id=job_ad_id,
             skill_id=skill_id,
             company_id=company.id,
