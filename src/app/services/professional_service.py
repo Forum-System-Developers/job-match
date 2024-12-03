@@ -208,7 +208,12 @@ def download_cv(professional_id: UUID, db: Session) -> StreamingResponse | JSONR
     if cv is None:
         return JSONResponse(content={"msg": "No available CV"})
 
-    return StreamingResponse(io.BytesIO(cv), media_type="application/pdf")
+    filename = f"{professional.first_name}_{professional.last_name}_CV.pdf"
+    response = StreamingResponse(io.BytesIO(cv), media_type="application/pdf")
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return response
 
 
 def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:

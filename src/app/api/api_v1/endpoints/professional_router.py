@@ -152,13 +152,13 @@ def download_photo(
 @router.get(
     "/{professional_id}/download-cv",
     response_model=None,
-    dependencies=[Depends(require_company_role)],
+    dependencies=[Depends(get_current_user)],
     status_code=status_code.HTTP_200_OK,
 )
 def download_cv(
     professional_id: UUID, db: Session = Depends(get_db)
 ) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download_photo(professional_id=professional_id, db=db)
+    return professional_service.download_cv(professional_id=professional_id, db=db)
 
 
 @router.post(
