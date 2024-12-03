@@ -9,44 +9,35 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.sql_app.database import Base
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_requirement.skill_level import SkillLevel
-from app.sql_app.skill.skill import Skill
 
 if TYPE_CHECKING:
-    from app.sql_app import (
-        Category,
-        City,
-        Company,
-        JobAdSkill,
-        JobAdsRequirement,
-        Match,
-    )
+    from app.sql_app import Category, City, Company, Match, Skill
 
 
 class JobAd(Base):
     """
-    Represents a job advertisement.
+    Represents a job advertisement in the system.
 
     Attributes:
         id (uuid.UUID): Unique identifier for the job advertisement.
-        company_id (uuid.UUID): Foreign key referencing the company.
-        category_id (uuid.UUID): Foreign key referencing the category.
-        location_id (uuid.UUID): Foreign key referencing the city.
+        company_id (uuid.UUID): Foreign key referencing the company posting the job.
+        category_id (uuid.UUID): Foreign key referencing the job category.
+        location_id (uuid.UUID): Foreign key referencing the job location.
         title (str): Title of the job advertisement.
         description (str): Description of the job advertisement.
         min_salary (float): Minimum salary offered for the job.
         max_salary (float): Maximum salary offered for the job.
         skill_level (SkillLevel): Required skill level for the job.
-        status (JobAdStatus): Status of the job advertisement.
+        status (JobAdStatus): Current status of the job advertisement.
         created_at (datetime): Timestamp when the job advertisement was created.
         updated_at (datetime): Timestamp when the job advertisement was last updated.
-    
+
     Relationships:
-        job_ad_skills (list[JobAdSkill]): List of skills associated with the job advertisement.
         skills (list[Skill]): List of skills required for the job.
-        category (Category): Category to which the job advertisement belongs.
-        location (City): City where the job is located.
-        company (Company): Company offering the job.
-        matches (list[Match]): List of matches associated with the job advertisement.
+        category (Category): Category of the job.
+        location (City): Location of the job.
+        company (Company): Company posting the job.
+        matches (list[Match]): List of matches for the job advertisement.
     """
 
     __tablename__ = "job_ad"
@@ -80,12 +71,9 @@ class JobAd(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    job_ad_skills: Mapped[list["JobAdSkill"]] = relationship(
-        "JobAdSkill", back_populates="job_ad", uselist=True, collection_class=list
-    )
-    skills: Mapped[list[Skill]] = relationship(
+    skills: Mapped[list["Skill"]] = relationship(
         "Skill",
-        secondary="job_ad_skills",
+        secondary="job_ad_skill",
         back_populates="job_ads",
         uselist=True,
         collection_class=list,
