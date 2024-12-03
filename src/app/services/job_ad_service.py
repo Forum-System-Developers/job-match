@@ -9,7 +9,6 @@ from sqlalchemy.orm import Query, Session, aliased
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
-from app.schemas.match import MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_city,
@@ -17,15 +16,12 @@ from app.services.utils.validators import (
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
     ensure_valid_match_request,
-    ensure_valid_requirement_id,
+    ensure_valid_skill_id,
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
-from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
-from app.sql_app.job_application.job_application_status import JobStatus
-from app.sql_app.job_requirement.job_requirement import JobRequirement
-from app.sql_app.match.match import Match
-from app.sql_app.match.match_status import MatchStatus
+from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
+from app.sql_app.skill.skill import Skill
 
 logger = logging.getLogger(__name__)
 
@@ -132,55 +128,52 @@ def update(
     return JobAdResponse.create(job_ad)
 
 
-def add_requirement(
+def add_skill_requirement(
     job_ad_id: UUID,
-    requirement_id: UUID,
+    skill_id: UUID,
     company_id: UUID,
+    category_id: UUID,
     db: Session,
 ) -> MessageResponse:
     """
-    Adds a requirement to a job advertisement.
+    Adds a skill requirement to a job advertisement.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
-        requirement_id (UUID): The unique identifier of the requirement to be added.
+        skill_id (UUID): The unique identifier of the skill to be added.
         company_id (UUID): The unique identifier of the company.
+        category_id (UUID): The unique identifier of the skill category.
         db (Session): The database session.
 
     Returns:
         MessageResponse: A response message indicating the result of the operation.
 
     Raises:
-        ApplicationError: If the requirement is already added to the job advertisement.
+        ApplicationError: If the skill is already added to the job advertisement.
     """
     job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    job_requirement = ensure_valid_requirement_id(
-        requirement_id=requirement_id, company_id=company_id, db=db
-    )
+    skill = ensure_valid_skill_id(skill_id=skill_id, category_id=category_id, db=db)
 
-    if job_requirement in job_ad.job_ads_requirements:
+    if skill in job_ad.skills:
         logger.error(
-            f"Requirement with id {requirement_id} already added to job ad with id {job_ad_id}"
+            f"Skill with id {skill_id} already added to job ad with id {job_ad_id}"
         )
         raise ApplicationError(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Requirement with id {requirement_id} already added to job ad with id {job_ad_id}",
+            detail=f"Skill with id {skill_id} already added to job ad with id {job_ad_id}",
         )
 
-    job_ad_requirement = JobAdsRequirement(
+    job_ad_skill = JobAdSkill(
         job_ad_id=job_ad_id,
-        job_requirement_id=requirement_id,
+        skill_id=skill_id,
     )
-    job_ad.job_ads_requirements.append(job_ad_requirement)
 
-    db.add(job_ad_requirement)
+    db.add(job_ad_skill)
     db.commit()
-    db.refresh(job_ad_requirement)
-    logger.info(
-        f"Added requirement with id {requirement_id} to job ad with id {job_ad_id}"
-    )
+    db.refresh(job_ad_skill)
+    logger.info(f"Added skill with id {skill_id} to job ad with id {job_ad_id}")
 
-    return MessageResponse(message="Requirement added to job ad")
+    return MessageResponse(message="Skill added to job ad")
 
 
 def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobAd:
@@ -244,10 +237,6 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
             f"Searching for job ads with company_id: {search_params.company_id}"
         )
 
-    if search_params.job_ad_status:
-        job_ads = job_ads.filter(JobAd.status == search_params.job_ad_status)
-        logger.info(f"Searching for job ads with status: {search_params.job_ad_status}")
-
     if search_params.title:
         job_ads = job_ads.filter(JobAd.title.ilike(f"%{search_params.title}%"))
         logger.info(f"Searching for job ads with title: {search_params.title}")
@@ -257,6 +246,10 @@ def _search_job_ads(search_params: JobAdSearchParams, db: Session) -> Query[JobA
         logger.info(
             f"Searching for job ads with location_id: {search_params.location_id}"
         )
+
+    if search_params.job_ad_status:
+        job_ads = job_ads.filter(JobAd.status == search_params.job_ad_status)
+        logger.info(f"Searching for job ads with status: {search_params.job_ad_status}")
 
     job_ads = _filter_by_salary(job_ads=job_ads, search_params=search_params)
     job_ads = _filter_by_skills(job_ads=job_ads, search_params=search_params, db=db)
@@ -305,15 +298,19 @@ def _filter_by_skills(
     db: Session,
 ) -> Query[JobAd]:
     """
-    Filters job advertisements by skills.
+    Filters job advertisements based on the provided skills in the search parameters.
 
     Args:
-        job_ads (Query[JobAd]): The query object containing the job advertisements.
-        search_params (JobAdSearchParams): The search parameters to filter the job advertisements.
-        db (Session): The database session to use for querying.
+        job_ads (Query[JobAd]): The initial query of job advertisements.
+        search_params (JobAdSearchParams): The search parameters containing the skills and threshold.
+        db (Session): The database session.
 
     Returns:
-        Query[JobAd]: The filtered query object containing the job advertisements.
+        Query[JobAd]: The filtered query of job advertisements.
+
+    Notes:
+        - If the number of skills in the search parameters is equal to the threshold, skill filtering is skipped.
+        - The function filters job advertisements that have at least the required number of matching skills from the provided skill list.
     """
     if search_params.skills:
         num_skills = len(search_params.skills)
@@ -326,21 +323,18 @@ def _filter_by_skills(
             )
             return job_ads
 
-        job_requirement_alias = aliased(JobRequirement)
+        skill_alias = aliased(Skill)
 
         skill_match_count = (
             db.query(JobAd.id.label("job_ad_id"))
-            .join(JobAdsRequirement)
-            .join(job_requirement_alias, JobAdsRequirement.job_requirement)
+            .join(JobAd.skills)
             .filter(
-                func.lower(job_requirement_alias.description).in_(
+                func.lower(skill_alias.name).in_(
                     [skill.lower() for skill in search_params.skills]
                 )
             )
             .group_by(JobAd.id)
-            .having(
-                func.count(func.distinct(job_requirement_alias.id)) >= required_matches
-            )
+            .having(func.count(func.distinct(skill_alias.id)) >= required_matches)
             .subquery()
         )
 

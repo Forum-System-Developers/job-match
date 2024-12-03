@@ -5,11 +5,11 @@ from app.sql_app.category_job_application.category_job_application import (
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad_requirement.job_ads_requirement import JobAdsRequirement
+from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.job_requirement.job_requirement import JobRequirement
 from app.sql_app.match.match import Match
+from app.sql_app.pending_skill.pending_skill import PendingSkill
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 
@@ -18,12 +18,12 @@ __all__ = [
     "City",
     "Company",
     "Professional",
+    "JobApplicationSkill",
     "JobApplication",
-    "JobRequirement",
+    "JobAdSkill",
     "JobAd",
     "Match",
     "Skill",
-    "JobAdsRequirement",
-    "JobApplicationSkill",
+    "PendingSkill",
     "CategoryJobApplication",
 ]

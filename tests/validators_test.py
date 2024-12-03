@@ -10,19 +10,12 @@ from app.services.utils.validators import (
     ensure_valid_job_application_id,
     ensure_valid_match_request,
     ensure_valid_professional_id,
-    ensure_valid_requirement_id,
+    ensure_valid_skill_id,
     unique_email,
     unique_username,
 )
-from app.sql_app import (
-    City,
-    Company,
-    JobAd,
-    JobApplication,
-    JobRequirement,
-    Match,
-    Professional,
-)
+from app.sql_app import City, Company, JobAd, JobApplication, Match, Professional
+from app.sql_app.skill.skill import Skill
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
 
@@ -373,36 +366,29 @@ def test_ensureValidMatchRequest_raisesApplicationError_whenMatchRequestIsNotInR
     )
 
 
-def test_ensureValidRequirementId_returnsRequirement_whenRequirementIsFound(
-    mocker, mock_db
-):
+def test_ensureValidSkillId_returnsSkill_whenSkillIsFound(mocker, mock_db):
     # Arrange
-    requirement = mocker.Mock(
-        id=td.VALID_REQUIREMENT_ID, company_id=td.VALID_COMPANY_ID
-    )
+    skill = mocker.Mock(id=td.VALID_SKILL_ID)
 
     mock_query = mock_db.query.return_value
     mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = requirement
+    mock_filter.first.return_value = skill
 
     # Act
-    result = ensure_valid_requirement_id(
-        requirement_id=requirement.id, company_id=td.VALID_COMPANY_ID, db=mock_db
+    result = ensure_valid_skill_id(
+        skill_id=td.VALID_SKILL_ID, category_id=td.VALID_CATEGORY_ID, db=mock_db
     )
 
     # Assert
-    mock_db.query.assert_called_once_with(JobRequirement)
+    mock_db.query.assert_called_once_with(Skill)
     assert_filter_called_with(
         mock_query,
-        (JobRequirement.id == td.VALID_REQUIREMENT_ID)
-        & (JobRequirement.company_id == td.VALID_COMPANY_ID),
+        (Skill.id == td.VALID_SKILL_ID) & (Skill.category_id == td.VALID_CATEGORY_ID),
     )
-    assert result == requirement
+    assert result == skill
 
 
-def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFound(
-    mock_db,
-):
+def test_ensureValidSkillId_raisesApplicationError_whenSkillIsNotFound(mock_db):
     # Arrange
     mock_query = mock_db.query.return_value
     mock_filter = mock_query.filter.return_value
@@ -410,24 +396,18 @@ def test_ensureValidRequirementId_raisesApplicationError_whenRequirementIsNotFou
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_requirement_id(
-            requirement_id=td.VALID_REQUIREMENT_ID,
-            company_id=td.VALID_COMPANY_ID,
-            db=mock_db,
+        ensure_valid_skill_id(
+            skill_id=td.NON_EXISTENT_ID, category_id=td.VALID_CATEGORY_ID, db=mock_db
         )
 
     # Assert
-    mock_db.query.assert_called_once_with(JobRequirement)
+    mock_db.query.assert_called_once_with(Skill)
     assert_filter_called_with(
         mock_query,
-        (JobRequirement.id == td.VALID_REQUIREMENT_ID)
-        & (JobRequirement.company_id == td.VALID_COMPANY_ID),
+        (Skill.id == td.NON_EXISTENT_ID) & (Skill.category_id == td.VALID_CATEGORY_ID),
     )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail
-        == f"Requirement with id {td.VALID_REQUIREMENT_ID} not found"
-    )
+    assert exc.value.data.detail == f"Skill with id {td.NON_EXISTENT_ID} not found"
 
 
 def test_uniqueUsername_returnsTrue_whenUsernameIsUnique(mock_db):

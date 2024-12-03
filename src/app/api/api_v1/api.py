@@ -9,8 +9,8 @@ from app.api.api_v1.endpoints import (
     google_auth_router,
     job_ad_router,
     job_application_router,
-    job_requirement_router,
     professional_router,
+    skill_router,
 )
 
 api_router = APIRouter()
@@ -21,9 +21,7 @@ api_router.include_router(
     tags=["Job Ads"],
 )
 
-api_router.include_router(
-    job_requirement_router.router, prefix="/job-requirements", tags=["Job Requirements"]
-)
+api_router.include_router(skill_router.router, prefix="/skills", tags=["Skills"])
 
 api_router.include_router(
     company_router.router, prefix="/companies", tags=["Companies"]
