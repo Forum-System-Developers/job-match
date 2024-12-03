@@ -217,7 +217,7 @@ def test_addSkillRequirement_addsSkillRequirement_whenValidData(
     # Act
     result = add_skill_requirement(
         job_ad_id=td.VALID_JOB_AD_ID,
-        skill_id=td.VALID_REQUIREMENT_ID,
+        skill_id=td.VALID_SKILL_ID,
         company_id=td.VALID_COMPANY_ID,
         category_id=category_id,
         db=mock_db,
@@ -230,7 +230,7 @@ def test_addSkillRequirement_addsSkillRequirement_whenValidData(
         company_id=td.VALID_COMPANY_ID,
     )
     mock_ensure_valid_skill_id.assert_called_with(
-        skill_id=td.VALID_REQUIREMENT_ID,
+        skill_id=td.VALID_SKILL_ID,
         category_id=td.VALID_CATEGORY_ID,
         db=mock_db,
     )

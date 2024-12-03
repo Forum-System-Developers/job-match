@@ -76,7 +76,7 @@ categories = [
     },
 ]
 
-companies = [
+companies: list[dict[str, Any]] = [
     {
         "id": uuid4(),
         "city_id": cities[0]["id"],
