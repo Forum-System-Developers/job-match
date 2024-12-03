@@ -9,7 +9,7 @@ from app.api.api_v1.endpoints import (
     google_auth_router,
     job_ad_router,
     job_application_router,
-    job_requirement_router,
+    skill_router,
     professional_router,
 )
 
@@ -22,7 +22,7 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    job_requirement_router.router, prefix="/job-requirements", tags=["Job Requirements"]
+    skill_router.router, prefix="/skills", tags=["Skills"]
 )
 
 api_router.include_router(
