@@ -125,6 +125,7 @@ class JobAdSearchParams(SearchParams):
         skills (list[str]): A list of skills to be included in the search. Default is an empty list.
         skills_threshold (int): The skills threshold. Must be between 0 and the number of skills. Default is 0.
     """
+
     title: str | None = Field(description="The title of the job ad", default=None)
     salary_threshold: float = Field(description="The salary threshold", ge=0, default=0)
     min_salary: float | None = Field(description="Minimum salary", default=None)
