@@ -425,7 +425,13 @@ def insert_matches(db: Session) -> None:
     db.commit()
 
 
+def is_initialized(db: Session) -> bool:
+    return db.query(City).count() > 0
+
+
 def insert_data(db: Session) -> None:
+    if is_initialized(db):
+        return
     insert_cities(db)
     insert_categories(db)
     insert_companies(db)
