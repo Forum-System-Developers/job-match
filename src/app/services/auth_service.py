@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -42,21 +42,32 @@ def login(username: str, password: str, db: Session, response: Response) -> Toke
     )
     logger.info(f"Created tokens for user {user_role.value} {user.id}")
 
-    response.set_cookie(
-        key="access_token",
-        value=token.access_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=token.refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-    )
+    response = _set_cookies(response=response, token=token)
     return token
+
+
+def _set_cookies(response: Response, token: Token) -> Token:
+    try:
+        response.set_cookie(
+            key="access_token",
+            value=token.access_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=token.refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+        )
+        return response
+    except KeyError as e:
+        raise HTTPException(
+            detail=f"Exception occurred: {e}, unable to set cookies",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def logout(response: Response) -> Response:
@@ -182,7 +193,7 @@ def _create_token(data: dict, expires_delta: timedelta) -> str:
         )
     except JWTError:
         logger.error(f"Could not create token with payload: {payload}")
-        raise ApplicationError(
+        raise HTTPException(
             detail="Could not create token",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -232,10 +243,17 @@ def verify_token(token: str, db: Session) -> tuple[dict, str]:
             token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
         )
         logger.info(f"Decoded token payload: {payload}")
+    except ExpiredSignatureError:
+        logger.warning("Token has expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        )
     except JWTError:
         logger.error("Could not verify token")
-        raise ApplicationError(
-            detail="Could not verify token", status_code=status.HTTP_401_UNAUTHORIZED
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not verify token",
         )
 
     user_role = str(payload.get("role"))
@@ -255,7 +273,7 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
         db (Session): Database dependency
 
     Raises:
-        ApplicationError: If no such user is found.
+        HTTPException: If no such user is found.
 
     Returns:
         UserRole: The role of the current user.
@@ -263,11 +281,11 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
     if user_role == UserRole.COMPANY.value:
         try:
             company_service.get_by_id(id=user_id, db=db)
-        except ApplicationError:
+        except HTTPException:
             logger.error(f"Company {user_id} not found")
-            raise ApplicationError(
-                detail="Company not found",
+            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Company not found",
             )
 
     elif user_role == UserRole.PROFESSIONAL.value:
@@ -275,9 +293,9 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
             professional_service.get_by_id(professional_id=user_id, db=db)
         except ApplicationError:
             logger.error(f"Professional {user_id} not found")
-            raise ApplicationError(
-                detail="Professional not found",
+            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Professional not found",
             )
 
     return user_role
@@ -314,7 +332,7 @@ def authenticate_user(login_data: UserLogin, db: Session) -> tuple[UserRole, Use
     return user_role, user
 
 
-def refresh_access_token(request: Request, db: Session) -> Token:
+def refresh_access_token(request: Request, response: Response, db: Session) -> Token:
     """
     Refreshes the access token using the provided refresh token.
 
@@ -336,8 +354,10 @@ def refresh_access_token(request: Request, db: Session) -> Token:
     logger.info(f"Verified refresh token for user {user_id}")
     access_token = _create_access_token({"sub": user_id, "role": user_role})
     logger.info(f"Created new access token for user {user_id}")
+    token = Token(access_token=access_token, refresh_token=token, token_type="bearer")
+    response = _set_cookies(response=response, token=token)
 
-    return Token(access_token=access_token, refresh_token=token, token_type="bearer")
+    return token
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> UserResponse:

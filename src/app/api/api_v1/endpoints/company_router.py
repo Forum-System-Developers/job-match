@@ -52,11 +52,10 @@ def get_company_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
 )
 def create_company(
     company_data: CompanyCreate,
-    logo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_company():
-        return company_service.create(company_data=company_data, db=db, logo=logo)
+        return company_service.create(company_data=company_data, db=db)
 
     return process_request(
         get_entities_fn=_create_company,
