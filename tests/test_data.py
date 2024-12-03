@@ -36,7 +36,7 @@ VALID_PASSWORD = "test_password"
 VALID_JOB_APPLICATION_ID = uuid.uuid4()
 VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_PROFESSIONAL_ID = uuid.uuid4()
-VALID_REQUIREMENT_ID = uuid.uuid4()
+VALID_SKILL_ID = uuid.uuid4()
 
 VALID_CITY_ID = uuid.uuid4()
 VALID_CITY_NAME = "Test City"
