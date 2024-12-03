@@ -315,7 +315,7 @@ def _update_skillset(
         skills_ids = {skill.skill_id for skill in job_application_model.skills}
         for skill in skills:
             if not skill_service.exists(db=db, skill_name=skill.name):
-                skill_id = skill_service.create_skill(db=db, skill_schema=skill)
+                skill_id = skill_service.create_skill(db=db, skill_data=skill)
             else:
                 skill_id = skill_service.get_id(skill_name=skill.name, db=db)
 
@@ -354,7 +354,7 @@ def _create_skillset(
     def _handle_create():
         for skill in skills:
             if not skill_service.exists(db=db, skill_name=skill.name):
-                skill_id = skill_service.create_skill(db=db, skill_schema=skill)
+                skill_id = skill_service.create_skill(db=db, skill_data=skill)
             else:
                 skill_id = skill_service.get_id(skill_name=skill.name, db=db)
 
