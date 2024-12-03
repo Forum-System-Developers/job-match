@@ -13,6 +13,7 @@ from app.services.match_service import (
     _get_match,
     accept_job_application_match_request,
     accept_match_request,
+    get_company_match_requests,
     get_match_requests_for_job_application,
     process_request_from_company,
     reject_match_request,
@@ -27,7 +28,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from tests import test_data as td
-from tests.utils import assert_filter_called_with
+from tests.utils import assert_called_with, assert_filter_called_with
 
 
 @pytest.fixture
@@ -456,3 +457,42 @@ def test_viewSentJobApplicationMatchRequests_viewsSentMatchRequests_whenValidDat
     assert isinstance(result[0], MatchResponse)
     assert isinstance(result[1], MatchResponse)
     assert len(result) == 2
+
+
+def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
+    mocker, mock_db, mock_job_ads
+) -> None:
+    # Arrange
+    filter_params = FilterParams(offset=0, limit=10)
+
+    mock_query = mock_db.query.return_value
+    mock_join = mock_query.join.return_value
+    mock_filter = mock_join.filter.return_value
+    mock_offset = mock_filter.offset.return_value
+    mock_limit = mock_offset.limit.return_value
+    mock_limit.all.return_value = [
+        mocker.Mock(**td.MATCH, job_ad=mock_job_ads[0]),
+        mocker.Mock(**td.MATCH_2, job_ad=mock_job_ads[1]),
+    ]
+
+    # Act
+    result = get_company_match_requests(
+        company_id=td.VALID_COMPANY_ID,
+        db=mock_db,
+        filter_params=filter_params,
+    )
+
+    # Assert
+    mock_db.query.assert_called_with(Match)
+    mock_query.join.assert_called_with(Match.job_ad)
+    assert_filter_called_with(
+        mock_join,
+        (JobAd.company_id == td.VALID_COMPANY_ID)
+        & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
+    )
+    mock_filter.offset.assert_called_with(filter_params.offset)
+    mock_offset.limit.assert_called_with(filter_params.limit)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], MatchResponse)
+    assert isinstance(result[1], MatchResponse)

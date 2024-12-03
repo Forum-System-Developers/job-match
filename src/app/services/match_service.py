@@ -416,3 +416,35 @@ def view_sent_job_application_match_requests(
     )
 
     return [MatchResponse.create(request) for request in requests]
+
+
+def get_company_match_requests(
+    company_id: UUID, db: Session, filter_params: FilterParams
+) -> list[MatchResponse]:
+    """
+    Retrieve match requests for a given company.
+
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified company.
+    """
+    requests = (
+        db.query(Match)
+        .join(Match.job_ad)
+        .filter(
+            and_(
+                JobAd.company_id == company_id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_APP,
+            )
+        )
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for company with id {company_id}")
+
+    return [MatchResponse.create(request) for request in requests]
