@@ -12,7 +12,7 @@ from app.utils.processors import process_request
 router = APIRouter()
 
 
-@router.post("/", description="Create a new job requirement.")
+@router.post("/", description="Create a new skill.")
 def create_skill(
     skill_data: SkillCreate,
     company: CompanyResponse = Depends(require_company_role),

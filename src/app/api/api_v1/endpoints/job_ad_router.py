@@ -95,8 +95,8 @@ def update_job_ad(
 
 
 @router.post(
-    "/{job_ad_id}/requirements/{requirement_id}",
-    description="Add new job requirements to a job advertisement.",
+    "/{job_ad_id}/skills/{skill_id}",
+    description="Add a skill requirement to a job advertisement.",
 )
 def add_job_ad_skill(
     job_ad_id: UUID,
