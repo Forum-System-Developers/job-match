@@ -128,7 +128,7 @@ def update(
     return JobAdResponse.create(job_ad)
 
 
-def add_requirement(
+def add_skill_requirement(
     job_ad_id: UUID,
     skill_id: UUID,
     company_id: UUID,
@@ -167,7 +167,6 @@ def add_requirement(
         job_ad_id=job_ad_id,
         skill_id=skill_id,
     )
-    job_ad.job_ad_skills.append(job_ad_skill)
 
     db.add(job_ad_skill)
     db.commit()
@@ -328,10 +327,9 @@ def _filter_by_skills(
 
         skill_match_count = (
             db.query(JobAd.id.label("job_ad_id"))
-            .join(JobAdSkill)
-            .join(skill_alias, JobAdSkill.skill)
+            .join(JobAd.skills)
             .filter(
-                func.lower(skill_alias.description).in_(
+                func.lower(skill_alias.name).in_(
                     [skill.lower() for skill in search_params.skills]
                 )
             )
