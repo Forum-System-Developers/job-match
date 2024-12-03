@@ -234,8 +234,9 @@ def verify_token(token: str, db: Session) -> tuple[dict, str]:
         logger.info(f"Decoded token payload: {payload}")
     except JWTError:
         logger.error("Could not verify token")
-        raise ApplicationError(
-            detail="Could not verify token", status_code=status.HTTP_401_UNAUTHORIZED
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not verify token",
         )
 
     user_role = str(payload.get("role"))
@@ -265,9 +266,9 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
             company_service.get_by_id(id=user_id, db=db)
         except ApplicationError:
             logger.error(f"Company {user_id} not found")
-            raise ApplicationError(
-                detail="Company not found",
+            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Company not found",
             )
 
     elif user_role == UserRole.PROFESSIONAL.value:
@@ -275,9 +276,9 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
             professional_service.get_by_id(professional_id=user_id, db=db)
         except ApplicationError:
             logger.error(f"Professional {user_id} not found")
-            raise ApplicationError(
-                detail="Professional not found",
+            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Professional not found",
             )
 
     return user_role
