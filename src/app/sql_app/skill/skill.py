@@ -1,27 +1,26 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, String, func
+from sqlalchemy import ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.sql_app.database import Base
-from app.sql_app.job_requirement.skill_level import SkillLevel
 
 if TYPE_CHECKING:
-    from app.sql_app import JobApplicationSkill
+    from app.sql_app import JobAd, JobApplicationSkill
 
 
 class Skill(Base):
     """
-    Represents a skill
-    Attributes:
-        id (UUID): The unique identifier of the Skill.
-        name (str): Represents the skill title.
-        level (SkillLevel): Represents the level of proficiency the Professional has indicated for this skill.
+    Represents a skill entity in the database.
 
-    Relationships:
-        job_applications (list[JobApplicationSkills]): A list of Job applications that are associated with this skill.
+    Attributes:
+        id (uuid.UUID): Unique identifier for the skill.
+        category_id (uuid.UUID): Foreign key referencing the category this skill belongs to.
+        name (str): Name of the skill.
+        job_ads (list[JobAd]): List of job advertisements associated with this skill.
+        job_application_skills (list[JobApplicationSkill]): List of job application skills associated with this skill.
     """
 
     __tablename__ = "skill"
@@ -33,10 +32,19 @@ class Skill(Base):
         unique=True,
         nullable=False,
     )
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), nullable=False)
 
-    job_applications: Mapped[list["JobApplicationSkill"]] = relationship(
+    job_ads: Mapped[list["JobAd"]] = relationship(
+        "JobAd",
+        secondary="job_ad_skill",
+        back_populates="skills",
+        uselist=True,
+        collection_class=list,
+    )
+    job_application_skills: Mapped[list["JobApplicationSkill"]] = relationship(
         "JobApplicationSkill",
         back_populates="skill",
         uselist=True,

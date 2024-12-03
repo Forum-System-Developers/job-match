@@ -5,14 +5,16 @@ from pydantic import BaseModel, condecimal
 
 from app.schemas.city import City
 from app.schemas.custom_types import Salary
-from app.schemas.requirement import Requirement
+from app.schemas.skill import Skill, SkillBase
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class BaseJobAd(BaseModel):
     title: str
     description: str
+    skill_level: SkillLevel
     category_id: UUID
     min_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
     max_salary: condecimal(gt=0, max_digits=10, decimal_places=2)  # type: ignore
@@ -30,6 +32,7 @@ class JobAdPreview(BaseJobAd):
             title=job_ad.title,
             description=job_ad.description,
             category_id=job_ad.category_id,
+            skill_level=job_ad.skill_level,
             city=City(id=job_ad.location.id, name=job_ad.location.name),
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
@@ -40,16 +43,13 @@ class JobAdResponse(JobAdPreview):
     id: UUID
     company_id: UUID
     status: JobAdStatus
-    requirements: list[Requirement] = []
+    required_skills: list[SkillBase] = []
     created_at: datetime
     updated_at: datetime
 
     @classmethod
     def create(cls, job_ad: JobAd) -> "JobAdResponse":
-        requirements = [
-            Requirement.model_validate(job_ad_req.job_requirement)
-            for job_ad_req in job_ad.job_ads_requirements
-        ]
+        required_skills = [SkillBase.model_validate(skill) for skill in job_ad.skills]
         return cls(
             id=job_ad.id,
             company_id=job_ad.company_id,
@@ -57,10 +57,11 @@ class JobAdResponse(JobAdPreview):
             city=City(id=job_ad.location.id, name=job_ad.location.name),
             title=job_ad.title,
             description=job_ad.description,
+            skill_level=job_ad.skill_level,
             min_salary=job_ad.min_salary,
             max_salary=job_ad.max_salary,
             status=job_ad.status,
-            requirements=requirements,
+            required_skills=required_skills,
             created_at=job_ad.created_at,
             updated_at=job_ad.updated_at,
         )
@@ -73,6 +74,7 @@ class JobAdCreate(BaseJobAd):
 class JobAdUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    skill_level: SkillLevel | None = None
     location: str | None = None
     min_salary: Salary | None = None  # type: ignore
     max_salary: Salary | None = None  # type: ignore
