@@ -1,12 +1,9 @@
-from uuid import uuid4
-
 import pytest
-from sqlalchemy.orm import Session
+from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillCreate, SkillResponse
-from app.services.skill_service import create_pending_skill, exists
-from app.sql_app.pending_skill.pending_skill import PendingSkill
+from app.services.skill_service import create_pending_skill
 from tests import test_data as td
 
 
@@ -46,3 +43,20 @@ def test_createPendingSkill_createsSkill_whenValidData(mocker, mock_db):
     mock_db.refresh.assert_called_once()
     mock_skill_response.assert_called_once()
     assert response == skill_response
+
+
+def test_createPendingSkill_raisesError_whenSkillAlreadyExists(mocker, mock_db):
+    # Arrange
+    skill_data = SkillCreate(name=td.VALID_SKILL_NAME, category_id=td.VALID_CATEGORY_ID)
+
+    mock_exists = mocker.patch("app.services.skill_service.exists", return_value=True)
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        create_pending_skill(
+            company_id=td.VALID_COMPANY_ID, skill_data=skill_data, db=mock_db
+        )
+
+    mock_exists.assert_called_with(skill_name=skill_data.name, db=mock_db)
+    assert exc.value.data.status == status.HTTP_409_CONFLICT
+    assert str(exc.value.data.detail) == f"Skill {skill_data.name} already exists"
