@@ -351,8 +351,8 @@ def test_getAll_returnsProfessionalsFilteredBySkills_whenSkillsProvided(
     mock_query = mock_db.query.return_value
     mock_options = mock_query.options.return_value
     mock_filtered_by_status = mock_options.filter.return_value
-    mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
-    mock_offset = mock_filtered_by_skills.offset.return_value
+    # mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
+    mock_offset = mock_filtered_by_status.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = mock_professionals
 
