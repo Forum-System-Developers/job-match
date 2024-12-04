@@ -8,22 +8,19 @@ from sqlalchemy.orm.query import Query
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
     JobApplicationUpdate,
     MatchResponseRequest,
 )
-from app.schemas.professional import ProfessionalResponse
+from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
 from app.services.utils.validators import ensure_valid_professional_id
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
-from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.professional.professional import Professional
-from app.sql_app.skill.skill import Skill
 from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
@@ -427,7 +424,7 @@ def handle_match_response(
 
 def view_match_requests(
     job_application_id: UUID, db: Session, filter_params: FilterParams
-) -> list[JobAdPreview]:
+) -> list[MatchRequestAd]:
     """
     Verifies Job Application id and fetches all its related Match requests.
 
@@ -437,7 +434,7 @@ def view_match_requests(
         db (Session): Database dependency.
 
     Returns:
-        list[JobAdPreview]: A list of Pydantic Job Ad response models that correspond to the Job Ads related to the match requests for the given Job Application.
+        list[MatchRequestAd]: A list of Pydantic response models that correspond to the Job Ads related to the match requests for the given Job Application.
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)

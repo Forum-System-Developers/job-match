@@ -46,7 +46,7 @@ def login(username: str, password: str, db: Session, response: Response) -> Toke
     return token
 
 
-def _set_cookies(response: Response, token: Token) -> Token:
+def _set_cookies(response: Response, token: Token) -> Response:
     try:
         response.set_cookie(
             key="access_token",
@@ -343,18 +343,20 @@ def refresh_access_token(request: Request, response: Response, db: Session) -> T
     Returns:
         Token: A new access token for the user.
     """
-    token = request.cookies.get("refresh_token")
-    if token is None:
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token is None:
         raise HTTPException(
             detail="Could not authenticate you",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    payload, user_role = verify_token(token=token, db=db)
+    payload, user_role = verify_token(token=refresh_token, db=db)
     user_id = payload.get("sub")
     logger.info(f"Verified refresh token for user {user_id}")
     access_token = _create_access_token({"sub": user_id, "role": user_role})
     logger.info(f"Created new access token for user {user_id}")
-    token = Token(access_token=access_token, refresh_token=token, token_type="bearer")
+    token = Token(
+        access_token=access_token, refresh_token=refresh_token, token_type="bearer"
+    )
     response = _set_cookies(response=response, token=token)
 
     return token
