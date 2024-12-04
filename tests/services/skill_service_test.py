@@ -170,3 +170,22 @@ def test_getById_returnsSkillResponse_whenSkillExists(mock_db):
     assert response.id == skill_id
     assert response.name == td.VALID_SKILL_NAME
     assert response.category_id == td.VALID_CATEGORY_ID
+
+
+def test_getById_raisesError_whenSkillDoesNotExist(mock_db):
+    # Arrange
+    skill_id = td.VALID_SKILL_ID
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        get_by_id(skill_id=skill_id, db=mock_db)
+
+    mock_db.query.assert_called_once_with(Skill)
+    assert_filter_called_with(mock_query, Skill.id == skill_id)
+    mock_filter.first.assert_called_once()
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert str(exc.value.data.detail) == f"Skill with id {skill_id} not found."
