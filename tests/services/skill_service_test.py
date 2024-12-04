@@ -110,7 +110,7 @@ def test_createPendingSkill_raisesError_whenSkillAlreadyExists(mocker, mock_db):
 
     mock_exists.assert_called_with(skill_name=skill_data.name, db=mock_db)
     assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert str(exc.value.data.detail) == f"Skill {skill_data.name} already exists"
+    assert exc.value.data.detail == f"Skill {skill_data.name} already exists"
 
 
 def test_exists_returnsTrue_whenSkillExists(mock_db):
@@ -188,4 +188,4 @@ def test_getById_raisesError_whenSkillDoesNotExist(mock_db):
     assert_filter_called_with(mock_query, Skill.id == skill_id)
     mock_filter.first.assert_called_once()
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert str(exc.value.data.detail) == f"Skill with id {skill_id} not found."
+    assert exc.value.data.detail == f"Skill with id {skill_id} not found."
