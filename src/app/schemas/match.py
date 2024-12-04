@@ -52,13 +52,16 @@ class MatchRequestAd(MatchResponse):
         job_ad_id (UUID): The ID of the job ad that was matched.
         job_application_id (UUID): The ID of the job application that was matched.
         status (JobAdStatus): The status of the match response.
-
+        title (str): The title of the job ad.
+        description (str): The description of the job ad.
         company_id (UUID): The ID of the company that was matched.
         company_name (str): The name of the company that was matched.
         min_salary (float): The minimum salary for the job ad.
         max_salary (float): The maximum salary for the job ad.
     """
 
+    title: str = Field(description="The title of the job ad.")
+    description: str = Field(description="The description of the job ad.")
     company_id: UUID = Field(description="The ID of the company that was matched.")
     company_name: str = Field(description="The name of the company that was matched.")
     min_salary: float = Field(description="The minimum salary for the job ad.")
@@ -80,6 +83,8 @@ class MatchRequestAd(MatchResponse):
         """
 
         return cls(
+            title=job_ad.title,
+            description=job_ad.description,
             job_ad_id=match.job_ad_id,
             job_application_id=match.job_application_id,
             status=match.status,
