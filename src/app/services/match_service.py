@@ -227,7 +227,7 @@ def get_match_requests_for_job_application(
 
     requests = (
         db.query(Match, JobAd)
-        .join(JobAd, Match.job_ad == JobAd.id)
+        .join(JobAd, Match.job_ad_id == JobAd.id)
         .filter(
             and_(
                 Match.job_application_id == job_application_id,
