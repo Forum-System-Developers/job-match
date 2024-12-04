@@ -1,34 +1,55 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
-from app.sql_app.job_requirement.skill_level import SkillLevel
+from app.sql_app.skill.skill import Skill
 
 
 class SkillBase(BaseModel):
     """
-    Pydantic model representing a skill associated with a specific skill level.
+    SkillBase is a Pydantic model that represents the base schema for a skill.
 
     Attributes:
-        name (str): Skill name.
-        level (SkillLevel): Enum representing the level of proficiency for the skill.
+        name (str): The name of the skill.
 
+    Config:
+        from_attributes (bool): Configuration to allow population of model attributes from dictionaries.
     """
 
     name: str
-    level: SkillLevel
 
     class Config:
-        use_enum_values = True
+        from_attributes = True
 
 
-class SkillResponse(BaseModel):
+class SkillCreate(SkillBase):
     """
-    Pydantic model representing a skill associated with a specific skill level.
+    SkillCreate schema for creating a new skill.
 
     Attributes:
-        name (str): Skill name.
-        level (SkillLevel): Enum representing the level of proficiency for the skill.
-
+        name (str): The name of the skill.
+        category_id (UUID): The unique identifier of the category to which the skill belongs.
     """
 
-    name: str
-    level: str
+    category_id: UUID
+
+
+class SkillResponse(SkillBase):
+    """
+    SkillResponse is a Pydantic model that represents the response schema for a skill.
+
+    Attributes:
+        id (UUID): The unique identifier of the skill.
+        category_id (UUID): The unique identifier of the category to which the skill belongs.
+    """
+
+    id: UUID
+    category_id: UUID
+
+    @classmethod
+    def create(cls, skill: Skill) -> "SkillResponse":
+        return cls(
+            id=skill.id,
+            name=skill.name,
+            category_id=skill.category_id,
+        )

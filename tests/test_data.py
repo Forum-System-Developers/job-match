@@ -3,6 +3,7 @@ import uuid
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -35,7 +36,7 @@ VALID_PASSWORD = "test_password"
 VALID_JOB_APPLICATION_ID = uuid.uuid4()
 VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_PROFESSIONAL_ID = uuid.uuid4()
-VALID_REQUIREMENT_ID = uuid.uuid4()
+VALID_SKILL_ID = uuid.uuid4()
 
 VALID_CITY_ID = uuid.uuid4()
 VALID_CITY_NAME = "Test City"
@@ -146,6 +147,7 @@ JOB_AD_1 = {
     "description": VALID_JOB_AD_DESCRIPTION,
     "location_id": VALID_CITY_ID,
     "category_id": VALID_CATEGORY_ID,
+    "skill_level": SkillLevel.INTERMEDIATE,
     "min_salary": VALID_JOB_AD_MIN_SALARY,
     "max_salary": VALID_JOB_AD_MAX_SALARY,
 }
@@ -156,6 +158,7 @@ JOB_AD_2 = {
     "description": VALID_JOB_AD_DESCRIPTION_2,
     "location_id": VALID_CITY_ID,
     "category_id": VALID_CATEGORY_ID,
+    "skill_level": SkillLevel.ADVANCED,
     "min_salary": VALID_JOB_AD_MIN_SALARY_2,
     "max_salary": VALID_JOB_AD_MAX_SALARY_2,
 }
@@ -184,6 +187,7 @@ JOB_AD = {
     "category_id": VALID_CATEGORY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
+    "skill_level": SkillLevel.INTERMEDIATE,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
 }
@@ -194,6 +198,7 @@ JOB_AD_2 = {
     "category_id": VALID_CATEGORY_ID,
     "title": VALID_JOB_AD_TITLE_2,
     "description": VALID_JOB_AD_DESCRIPTION_2,
+    "skill_level": SkillLevel.ADVANCED,
     "min_salary": 1200.00,
     "max_salary": 2300.00,
 }
@@ -203,6 +208,7 @@ JOB_AD_CREATE = {
     "location_id": VALID_CITY_ID,
     "title": VALID_JOB_AD_TITLE,
     "description": VALID_JOB_AD_DESCRIPTION,
+    "skill_level": SkillLevel.INTERMEDIATE,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
 }

@@ -4,6 +4,7 @@ from unittest.mock import ANY
 import pytest
 from sqlalchemy import asc, desc
 
+from app.schemas.city import City
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services.job_ad_service import (
@@ -12,7 +13,7 @@ from app.services.job_ad_service import (
     _order_by,
     _search_job_ads,
     _update_job_ad,
-    add_requirement,
+    add_skill_requirement,
     create,
     get_all,
     get_by_id,
@@ -20,7 +21,6 @@ from app.services.job_ad_service import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
-from app.sql_app.job_requirement.job_requirement import JobRequirement
 from tests import test_data as td
 from tests.utils import assert_called_with, assert_filter_called_with
 
@@ -116,7 +116,9 @@ def test_getById_returnsJobAd_whenJobAdExists(mocker, mock_db) -> None:
 
 def test_create_createsJobAd_whenValidJobAd(mocker, mock_db) -> None:
     # Arrange
-    job_ad_data = JobAdCreate(**td.JOB_AD_CREATE)
+    job_ad_data = JobAdCreate(
+        **td.JOB_AD_CREATE, location=City(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME)
+    )
     mock_company = mocker.Mock(
         id=td.VALID_COMPANY_ID,
         job_ads=list(),
@@ -194,26 +196,30 @@ def test_update_updatesJobAd_whenValidData(mocker, mock_db) -> None:
     assert result == mock_job_ad_response
 
 
-def test_addRequirement_addsRequirement_whenValidData(mocker, mock_db) -> None:
+def test_addSkillRequirement_addsSkillRequirement_whenValidData(
+    mocker, mock_db
+) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD, job_ads_requirements=[])
-    job_requirement = mocker.Mock()
-    message_response = MessageResponse(message="Requirement added to job ad")
+    job_ad = mocker.Mock(**td.JOB_AD, skills=[])
+    category_id = td.VALID_CATEGORY_ID
+    skill = mocker.Mock()
+    message_response = MessageResponse(message="Skill added to job ad")
 
     mock_ensure_valid_job_ad_id = mocker.patch(
         "app.services.job_ad_service.ensure_valid_job_ad_id",
         return_value=job_ad,
     )
-    mock_ensure_valid_requirement_id = mocker.patch(
-        "app.services.job_ad_service.ensure_valid_requirement_id",
-        return_value=job_requirement,
+    mock_ensure_valid_skill_id = mocker.patch(
+        "app.services.job_ad_service.ensure_valid_skill_id",
+        return_value=skill,
     )
 
     # Act
-    result = add_requirement(
+    result = add_skill_requirement(
         job_ad_id=td.VALID_JOB_AD_ID,
-        requirement_id=td.VALID_REQUIREMENT_ID,
+        skill_id=td.VALID_SKILL_ID,
         company_id=td.VALID_COMPANY_ID,
+        category_id=category_id,
         db=mock_db,
     )
 
@@ -223,9 +229,9 @@ def test_addRequirement_addsRequirement_whenValidData(mocker, mock_db) -> None:
         db=mock_db,
         company_id=td.VALID_COMPANY_ID,
     )
-    mock_ensure_valid_requirement_id.assert_called_with(
-        requirement_id=td.VALID_REQUIREMENT_ID,
-        company_id=td.VALID_COMPANY_ID,
+    mock_ensure_valid_skill_id.assert_called_with(
+        skill_id=td.VALID_SKILL_ID,
+        category_id=td.VALID_CATEGORY_ID,
         db=mock_db,
     )
     mock_db.add.assert_called_with(ANY)

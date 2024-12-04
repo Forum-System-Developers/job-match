@@ -22,6 +22,7 @@ class JobApplication(Base):
 
     Attributes:
         id (UUID): The unique identifier of the Job application.
+        name (str): The name of the Job application.
         min_salary (float): Lower limit of the salary range the Professional is applying for.
         max_salary (float): Upper limit of the salary the Professional is applying for.
         status (JobStatus): The status of the Job application.
@@ -47,6 +48,7 @@ class JobApplication(Base):
         unique=True,
         nullable=False,
     )
+    name: Mapped[str] = mapped_column(String, nullable=False)
     min_salary: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     max_salary: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     status: Mapped[JobStatus] = mapped_column(Enum(JobStatus), nullable=False)

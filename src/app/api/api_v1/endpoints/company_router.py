@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
-from app.services import company_service
+from app.services import company_service, match_service
 from app.services.auth_service import get_current_user, require_company_role
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
@@ -32,6 +32,24 @@ def get_all_companies(
 
 
 @router.get(
+    "/match-requests",
+    description="Retrieve all match requests for the current company.",
+)
+def view_match_requests(
+    company: CompanyResponse = Depends(require_company_role),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _view_match_requests():
+        return match_service.get_company_match_requests(company_id=company.id, db=db)
+
+    return process_request(
+        get_entities_fn=_view_match_requests,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg="No match requests found",
+    )
+
+
+@router.get(
     "/{id}",
     description="Retrieve a company by its unique identifier.",
 )
@@ -52,11 +70,10 @@ def get_company_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
 )
 def create_company(
     company_data: CompanyCreate,
-    logo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_company():
-        return company_service.create(company_data=company_data, db=db, logo=logo)
+        return company_service.create(company_data=company_data, db=db)
 
     return process_request(
         get_entities_fn=_create_company,

@@ -54,6 +54,7 @@ class JobAplicationBase(BaseModel):
         city (str): The city the professional is located in.
     """
 
+    name: str = Field(examples=["Job Application"])
     min_salary: float | None = Field(
         ge=0, description="Minimum salary (>= 0)", default=None
     )
@@ -139,6 +140,7 @@ class JobApplicationResponse(JobAplicationBase):
                 job_application=job_application, db=db
             )
         return cls(
+            name=job_application.name,
             application_id=job_application.id,
             professional_id=professional.id,
             photo=professional.photo,

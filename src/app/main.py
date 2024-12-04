@@ -11,8 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.api_v1.api import api_router
 from app.core.config import get_settings
-
-# from app.sql_app.database import initialize_database
+from app.sql_app.database import initialize_database
 
 
 def _setup_cors(p_app: FastAPI) -> None:
@@ -22,7 +21,7 @@ def _setup_cors(p_app: FastAPI) -> None:
     if get_settings().BACKEND_CORS_ORIGINS:
         p_app.add_middleware(
             CORSMiddleware,
-            allow_origins=["http://localhost:3000"],  # type: ignore[arg-type]
+            allow_origins=["http://localhost:4000"],  # type: ignore[arg-type]
             allow_credentials=bool(True),  # type: ignore[arg-type]
             allow_methods=list(["*"]),  # type: ignore[arg-type]
             allow_headers=list(["*"]),  # type: ignore[arg-type]
@@ -60,4 +59,4 @@ app = _create_app()
 _setup_cors(app)
 _setup_logger()
 
-# initialize_database()
+initialize_database()

@@ -33,10 +33,11 @@ def login_user(
     description="Refresh the access token.",
 )
 def refresh_token(
+    response: Response,
     request: Request,
     db: Session = Depends(get_db),
 ) -> Token:
-    return auth_service.refresh_access_token(request=request, db=db)
+    return auth_service.refresh_access_token(request=request, response=response, db=db)
 
 
 @router.post(

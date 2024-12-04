@@ -6,11 +6,9 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchResponse
+from app.schemas.match import MatchRequestAd, MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_job_ad_id,
@@ -19,6 +17,7 @@ from app.services.utils.validators import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
@@ -213,7 +212,7 @@ def accept_match_request(
 
 def get_match_requests_for_job_application(
     job_application_id: UUID, db: Session, filter_params: FilterParams
-) -> list[JobAdPreview]:
+) -> list[MatchRequestAd]:
     """
     Fetch match requests for the given Job Application.
 
@@ -223,11 +222,12 @@ def get_match_requests_for_job_application(
         filter_params (FilterParams): Filtering options for pagination.
 
     Returns:
-        list[JobAdPreview]: Response models containing basic information for the Job Ads that sent the match request.
+        list[MatchRequestAd]: Response models containing basic information for the Job Ads that sent the match request.
     """
 
     requests = (
-        db.query(Match)
+        db.query(Match, JobAd)
+        .join(JobAd, Match.job_ad == JobAd.id)
         .filter(
             and_(
                 Match.job_application_id == job_application_id,
@@ -239,18 +239,29 @@ def get_match_requests_for_job_application(
         .all()
     )
 
-    job_ads = [request.job_ad for request in requests]
+    return [
+        MatchRequestAd.create_response(match=match, job_ad=job_ad)
+        for (match, job_ad) in requests
+    ]
+
+
+def get_match_requests_for_professional(
+    professional_id: UUID, db: Session
+) -> list[MatchRequestAd]:
+    result = (
+        db.query(Match, JobAd)
+        .join(JobApplication, Match.job_application_id == JobApplication.id)
+        .join(JobAd, Match.job_ad_id == JobAd.id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == JobStatus.ACTIVE,
+            Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
+        )
+        .all()
+    )
 
     return [
-        JobAdPreview(
-            title=job_ad.title,
-            city=City(id=job_ad.location.id, name=job_ad.location.name),
-            description=job_ad.description,
-            category_id=job_ad.category_id,
-            min_salary=job_ad.min_salary,
-            max_salary=job_ad.max_salary,
-        )
-        for job_ad in job_ads
+        MatchRequestAd.create_response(match=match, job_ad=ad) for (match, ad) in result
     ]
 
 
@@ -405,5 +416,37 @@ def view_sent_job_application_match_requests(
     logger.info(
         f"Retrieved {len(requests)} sent requests for job ad with id {job_ad_id}"
     )
+
+    return [MatchResponse.create(request) for request in requests]
+
+
+def get_company_match_requests(
+    company_id: UUID, db: Session, filter_params: FilterParams
+) -> list[MatchResponse]:
+    """
+    Retrieve match requests for a given company.
+
+    Args:
+        company_id (UUID): The unique identifier of the company.
+        db (Session): The database session to use for the query.
+
+    Returns:
+        list[MatchResponse]: A list of match responses for the specified company.
+    """
+    requests = (
+        db.query(Match)
+        .join(Match.job_ad)
+        .filter(
+            and_(
+                JobAd.company_id == company_id,
+                Match.status == MatchStatus.REQUESTED_BY_JOB_APP,
+            )
+        )
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
+        .all()
+    )
+
+    logger.info(f"Retrieved {len(requests)} requests for company with id {company_id}")
 
     return [MatchResponse.create(request) for request in requests]

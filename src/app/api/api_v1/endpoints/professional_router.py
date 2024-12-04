@@ -15,7 +15,11 @@ from app.schemas.professional import (
     ProfessionalUpdateRequestBody,
 )
 from app.services import professional_service
-from app.services.auth_service import get_current_user, require_professional_role
+from app.services.auth_service import (
+    get_current_user,
+    require_company_role,
+    require_professional_role,
+)
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
@@ -93,13 +97,13 @@ def private_matches(
     "/upload-photo",
     description="Upload a photo",
 )
-def upload(
+def upload_photo(
     professional: ProfessionalResponse = Depends(require_professional_role),
     photo: UploadFile = File(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
-        return professional_service.upload(
+        return professional_service.upload_photo(
             professional_id=professional.id,
             photo=photo,
             db=db,
@@ -112,15 +116,49 @@ def upload(
     )
 
 
+@router.post("/upload-cv", description="Upload CV file")
+def upload_cv(
+    professional: ProfessionalResponse = Depends(require_professional_role),
+    cv: UploadFile = File(),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _upload():
+        return professional_service.upload_cv(
+            professional_id=professional.id,
+            cv=cv,
+            db=db,
+        )
+
+    return process_request(
+        get_entities_fn=_upload,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not upload CV",
+    )
+
+
 @router.get(
     "/{professional_id}/download-photo",
     response_model=None,
     dependencies=[Depends(get_current_user)],
+    status_code=status_code.HTTP_200_OK,
+    description="Fetch a Photo of a Professional",
 )
-def download(
+def download_photo(
     professional_id: UUID, db: Session = Depends(get_db)
 ) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download(professional_id=professional_id, db=db)
+    return professional_service.download_photo(professional_id=professional_id, db=db)
+
+
+@router.get(
+    "/{professional_id}/download-cv",
+    response_model=None,
+    dependencies=[Depends(get_current_user)],
+    status_code=status_code.HTTP_200_OK,
+)
+def download_cv(
+    professional_id: UUID, db: Session = Depends(get_db)
+) -> Union[StreamingResponse, JSONResponse]:
+    return professional_service.download_cv(professional_id=professional_id, db=db)
 
 
 @router.post(
@@ -176,7 +214,7 @@ def get_applications(
         description="Status of the Job Application"
     ),
     db: Session = Depends(get_db),
-):
+) -> JSONResponse:
     def _get_applications():
         return professional_service.get_applications(
             professional_id=professional_id,
@@ -189,4 +227,40 @@ def get_applications(
         get_entities_fn=_get_applications,
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg=f"Could not fetch Job Applications for professional with id {professional_id}",
+    )
+
+
+@router.get(
+    "/{professional_id}/skills",
+    description="Fetch Skills for a professional",
+    dependencies=[Depends(get_current_user)],
+)
+def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+    def _get_skills():
+        return professional_service.get_skills(professional_id=professional_id, db=db)
+
+    return process_request(
+        get_entities_fn=_get_skills,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Skills for professional not found",
+    )
+
+
+@router.get(
+    "/{professional_id}/match-requests",
+    description="Fetch Match Requests for a professional",
+    dependencies=[Depends(require_professional_role)],
+)
+def get_match_requests(
+    professional_id: UUID, db: Session = Depends(get_db)
+) -> JSONResponse:
+    def _get_match_requests():
+        return professional_service.get_match_requests(
+            professional_id=professional_id, db=db
+        )
+
+    return process_request(
+        get_entities_fn=_get_match_requests,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Skills for professional not found",
     )

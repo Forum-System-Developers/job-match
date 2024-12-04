@@ -11,6 +11,7 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
+from app.schemas.match import MatchRequestAd
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
@@ -18,8 +19,10 @@ from app.schemas.professional import (
     ProfessionalResponse,
     ProfessionalUpdateRequestBody,
 )
+from app.schemas.skill import SkillResponse
 from app.schemas.user import User
-from app.services import city_service
+from app.services import city_service, match_service
+from app.services.utils.file_utils import handle_file_upload
 from app.services.utils.validators import unique_email, unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
@@ -28,7 +31,6 @@ from app.sql_app.job_application_skill.job_application_skill import JobApplicati
 from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
-from app.sql_app.skill.skill import Skill
 from app.utils.password_utils import hash_password
 from app.utils.processors import process_db_transaction
 
@@ -117,7 +119,7 @@ def update(
     )
 
 
-def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
+def upload_photo(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     """
     Upload Professional photo to the database
 
@@ -131,19 +133,8 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     """
     profesional = _get_by_id(professional_id=professional_id, db=db)
 
-    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-
     def _handle_upload():
-        upload_photo = photo.file.read()
-        file_size = len(upload_photo)
-        photo.file.seek(0)
-        if file_size > MAX_FILE_SIZE:
-            logger.error("Upload cancelled, max file size exceeded")
-            raise ApplicationError(
-                detail=f"File size exceeds the allowed limit of {MAX_FILE_SIZE / (1024 * 1024)}MB.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-
+        upload_photo = handle_file_upload(file_to_upload=photo)
         profesional.photo = upload_photo
         profesional.updated_at = datetime.now()
         db.commit()
@@ -152,7 +143,38 @@ def upload(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     return process_db_transaction(transaction_func=_handle_upload, db=db)
 
 
-def download(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
+def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
+    """
+    Upload Professional photo to the database
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        cv (UploadFile): The upload file.
+        db (Session): Database dependency.
+
+    Returns:
+        dict: Confirmation message.
+    """
+    profesional = _get_by_id(professional_id=professional_id, db=db)
+
+    def _handle_upload():
+        if cv.content_type != "application/pdf":
+            raise ApplicationError(
+                detail="Only PDF files are allowed.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        upload_cv = handle_file_upload(file_to_upload=cv)
+        profesional.cv = upload_cv
+        profesional.updated_at = datetime.now()
+        db.commit()
+        return {"msg": "CV successfully uploaded"}
+
+    return process_db_transaction(transaction_func=_handle_upload, db=db)
+
+
+def download_photo(
+    professional_id: UUID, db: Session
+) -> StreamingResponse | JSONResponse:
     """
     Fetches the photo of the Professional with the given UUID.
 
@@ -169,6 +191,30 @@ def download(professional_id: UUID, db: Session) -> StreamingResponse | JSONResp
         return JSONResponse(content={"msg": "No available photo"})
 
     return StreamingResponse(io.BytesIO(photo), media_type="image/png")
+
+
+def download_cv(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
+    """
+    Fetches the CV of the Professional with the given UUID.
+
+    Args:
+        professional_id (UUID): Identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        bytes | dict:
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    cv = professional.cv
+    if cv is None:
+        return JSONResponse(content={"msg": "No available CV"})
+
+    filename = f"{professional.first_name}_{professional.last_name}_CV.pdf"
+    response = StreamingResponse(io.BytesIO(cv), media_type="application/pdf")
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return response
 
 
 def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
@@ -221,9 +267,9 @@ def get_all(
 
     logger.info("Retreived all professional profiles that are with status ACTIVE")
 
-    if search_params.skills:
-        query = query.filter(Skill.name.in_(search_params.skills))
-        logger.info(f"Filtered Professionals by skills: {search_params.skills}")
+    # if search_params.skills:
+    #     query = query.filter(Skill.name.in_(search_params.skills))
+    #     logger.info(f"Filtered Professionals by skills: {search_params.skills}")
 
     if search_params.order == "desc":
         query.order_by(getattr(Professional, search_params.order_by).desc())
@@ -535,3 +581,45 @@ def _create(
         return professional
 
     return process_db_transaction(transaction_func=_handle_create, db=db)
+
+
+def get_skills(professional_id: UUID, db: Session) -> list[SkillResponse]:
+    """
+    Fetch skillset for professional.
+
+    Args:
+        professional_id (UUID): The identifier of the professional.
+        db (Session): The database dependency.
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    professional_job_applications = professional.job_applications
+    skills = {
+        skill.skill
+        for application in professional_job_applications
+        for skill in application.skills
+    }
+
+    return [
+        SkillResponse(id=skill.id, name=skill.name, category_id=skill.category_id)
+        for skill in skills
+    ]
+
+
+def get_match_requests(professional_id: UUID, db: Session) -> list[MatchRequestAd]:
+    """
+    Fetches Match Requests for the given Professional.
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        list[MatchRequest]: List of Pydantic models containing basic information about the match request.
+    """
+    professional = _get_by_id(professional_id=professional_id, db=db)
+
+    match_requests = match_service.get_match_requests_for_professional(
+        professional_id=professional.id, db=db
+    )
+
+    return match_requests

@@ -64,3 +64,6 @@ def initialize_database():
     """
     create_uuid_extension()
     create_tables()
+    from app.sql_app.init_data import insert_data
+
+    insert_data(db=SessionLocal())
