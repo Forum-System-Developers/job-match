@@ -7,9 +7,9 @@ from app.services.skill_service import (
     create_job_application_skill,
     create_pending_skill,
     create_skill,
+    exists,
 )
 from app.sql_app.skill.skill import Skill
-from app.services.skill_service import exists
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
 
@@ -127,3 +127,20 @@ def test_exists_returnsTrue_whenSkillExists(mocker, mock_db):
     assert_filter_called_with(mock_query, Skill.name == skill_name)
     mock_filter.first.assert_called_once()
     assert result is True
+
+
+def test_exists_returnsFalse_whenSkillDoesNotExist(mocker, mock_db):
+    # Arrange
+    skill_name = td.VALID_SKILL_NAME
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    result = exists(db=mock_db, skill_name=skill_name)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Skill)
+    assert_filter_called_with(mock_query, Skill.name == skill_name)
+    mock_filter.first.assert_called_once()
+    assert result is False
