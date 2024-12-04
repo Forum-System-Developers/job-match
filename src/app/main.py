@@ -20,7 +20,7 @@ def _setup_cors(p_app: FastAPI) -> None:
     """
     p_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:4000", "https://rephera.com"],  # type: ignore[arg-type]
+        allow_origins=["http://localhost:4000", "https://www.rephera.com"],  # type: ignore[arg-type]
         allow_credentials=bool(True),  # type: ignore[arg-type]
         allow_methods=list(["*"]),  # type: ignore[arg-type]
         allow_headers=list(["*"]),  # type: ignore[arg-type]
