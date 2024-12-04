@@ -3,13 +3,32 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillCreate, SkillResponse
-from app.services.skill_service import create_pending_skill
+from app.services.skill_service import create_pending_skill, create_skill
 from tests import test_data as td
 
 
 @pytest.fixture
 def mock_db(mocker):
     return mocker.Mock()
+
+
+def test_createSkill_createsSkill_whenValidData(mocker, mock_db):
+    # Arrange
+    skill_data = SkillCreate(name=td.VALID_SKILL_NAME, category_id=td.VALID_CATEGORY_ID)
+    skill_id = td.VALID_SKILL_ID
+
+    mock_skill = mocker.patch("app.services.skill_service.Skill")
+    mock_skill_instance = mock_skill.return_value
+    mock_skill_instance.id = skill_id
+
+    # Act
+    response = create_skill(db=mock_db, skill_data=skill_data)
+
+    # Assert
+    mock_db.add.assert_called_once_with(mock_skill_instance)
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_skill_instance)
+    assert response == skill_id
 
 
 def test_createPendingSkill_createsSkill_whenValidData(mocker, mock_db):
