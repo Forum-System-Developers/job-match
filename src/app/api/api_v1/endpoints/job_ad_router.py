@@ -8,7 +8,7 @@ from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services import job_ad_service, match_service
-from app.services.auth_service import require_company_role
+from app.services.auth_service import get_current_user, require_company_role
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
@@ -18,6 +18,7 @@ router = APIRouter()
 @router.post(
     "/all",
     description="Retrieve all job advertisements.",
+    dependencies=[Depends(get_current_user)],
 )
 def get_all_job_ads(
     search_params: JobAdSearchParams,
@@ -39,6 +40,7 @@ def get_all_job_ads(
 @router.get(
     "/{job_ad_id}",
     description="Retrieve a job advertisement by its unique identifier.",
+    dependencies=[Depends(get_current_user)],
 )
 def get_job_ad_by_id(job_ad_id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
     def _get_job_ad_by_id():
