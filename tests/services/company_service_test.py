@@ -622,7 +622,7 @@ def test_updateCompany_updatesWebsiteUrl_whenWebsiteUrlIsProvided(
     assert result.phone_number == mock_company.phone_number
 
 
-def test_updateCompany_updatesYoutubeVideoId_whenYoutubeVideoURLIsProvided(
+def test_updateCompany_updatesYoutubeVideoId_whenYoutubeVideoUrlIsProvided(
     mocker,
     mock_db,
 ) -> None:
