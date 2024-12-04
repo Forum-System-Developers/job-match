@@ -8,6 +8,7 @@ from app.services.skill_service import (
     create_pending_skill,
     create_skill,
     exists,
+    get_by_id,
 )
 from app.sql_app.skill.skill import Skill
 from tests import test_data as td
@@ -112,7 +113,7 @@ def test_createPendingSkill_raisesError_whenSkillAlreadyExists(mocker, mock_db):
     assert str(exc.value.data.detail) == f"Skill {skill_data.name} already exists"
 
 
-def test_exists_returnsTrue_whenSkillExists(mocker, mock_db):
+def test_exists_returnsTrue_whenSkillExists(mock_db):
     # Arrange
     skill_name = td.VALID_SKILL_NAME
     mock_query = mock_db.query.return_value
@@ -129,7 +130,7 @@ def test_exists_returnsTrue_whenSkillExists(mocker, mock_db):
     assert result is True
 
 
-def test_exists_returnsFalse_whenSkillDoesNotExist(mocker, mock_db):
+def test_exists_returnsFalse_whenSkillDoesNotExist(mock_db):
     # Arrange
     skill_name = td.VALID_SKILL_NAME
     mock_query = mock_db.query.return_value
@@ -144,3 +145,28 @@ def test_exists_returnsFalse_whenSkillDoesNotExist(mocker, mock_db):
     assert_filter_called_with(mock_query, Skill.name == skill_name)
     mock_filter.first.assert_called_once()
     assert result is False
+
+
+def test_getById_returnsSkillResponse_whenSkillExists(mock_db):
+    # Arrange
+    skill_id = td.VALID_SKILL_ID
+    skill = Skill(
+        id=skill_id,
+        name=td.VALID_SKILL_NAME,
+        category_id=td.VALID_CATEGORY_ID,
+    )
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = skill
+
+    # Act
+    response = get_by_id(skill_id=skill_id, db=mock_db)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Skill)
+    assert_filter_called_with(mock_query, Skill.id == skill_id)
+    mock_filter.first.assert_called_once()
+    assert response.id == skill_id
+    assert response.name == td.VALID_SKILL_NAME
+    assert response.category_id == td.VALID_CATEGORY_ID
