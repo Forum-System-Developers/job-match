@@ -71,9 +71,9 @@ class CompanyUpdate(BaseModel):
     phone_number: str | None = None
     website_url: HttpUrl | None = None
     youtube_video_url: HttpUrl | None = None
-    youtube_video_id: str = None
+    youtube_video_id: str | None = None
 
-    @field_validator("youtube_url", pre=True)
+    @field_validator("youtube_video_url", mode="before")
     def extract_video_id(cls, v, values):
         url_parts = urlparse(url=v)
         query_params = parse_qs(url_parts.query)
