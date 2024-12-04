@@ -121,7 +121,7 @@ def test_update_update_professional_whenDataIsValid(mocker, mock_db):
     assert result == mock_response
 
 
-def test_upload_uploadsPhoto_whenFileIsValid(mocker, mock_db):
+def test_uploadPhoto_uploadsPhoto_whenFileIsValid(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock(photo=None)
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -155,7 +155,7 @@ def test_upload_uploadsPhoto_whenFileIsValid(mocker, mock_db):
     assert result == {"msg": "Photo successfully uploaded"}
 
 
-def test_upload_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db):
+def test_uploadPhoto_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock()
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -176,7 +176,7 @@ def test_upload_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db)
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        professional_service.upload(
+        professional_service.upload_photo(
             professional_id=professional_id, photo=mock_upload_file, db=mock_db
         )
 
