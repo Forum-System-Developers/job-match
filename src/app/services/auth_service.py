@@ -53,14 +53,14 @@ def _set_cookies(response: Response, token: Token) -> Response:
             value=token.access_token,
             httponly=True,
             secure=True,
-            samesite="strict",
+            samesite="none",
         )
         response.set_cookie(
             key="refresh_token",
             value=token.refresh_token,
             httponly=True,
             secure=True,
-            samesite="strict",
+            samesite="none",
         )
         return response
     except KeyError as e:

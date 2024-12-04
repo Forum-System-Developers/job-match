@@ -153,7 +153,7 @@ def request_match(
 def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
-    accept_request: MatchResponseRequest = Form(),
+    accept_request: MatchResponseRequest,
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():

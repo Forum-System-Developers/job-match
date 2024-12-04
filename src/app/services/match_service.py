@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchRequestAd, MatchResponse
+from app.schemas.match import MatchRequestAd, MatchRequestApplication, MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_job_ad_id,
@@ -422,7 +422,7 @@ def view_sent_job_application_match_requests(
 
 def get_company_match_requests(
     company_id: UUID, db: Session, filter_params: FilterParams
-) -> list[MatchResponse]:
+) -> list[MatchRequestApplication]:
     """
     Retrieve match requests for a given company.
 
@@ -431,10 +431,11 @@ def get_company_match_requests(
         db (Session): The database session to use for the query.
 
     Returns:
-        list[MatchResponse]: A list of match responses for the specified company.
+        list[MatchRequestApplication]: A list of match responses for the specified company.
     """
     requests = (
-        db.query(Match)
+        db.query(Match, JobApplication)
+        .join(Match.job_application)
         .join(Match.job_ad)
         .filter(
             and_(
@@ -449,4 +450,7 @@ def get_company_match_requests(
 
     logger.info(f"Retrieved {len(requests)} requests for company with id {company_id}")
 
-    return [MatchResponse.create(request) for request in requests]
+    return [
+        MatchRequestApplication.create_response(match, job_application)
+        for (match, job_application) in requests
+    ]
