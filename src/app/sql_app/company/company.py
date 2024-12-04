@@ -26,6 +26,8 @@ class Company(Base):
         address_line (str): Address of the company.
         email (str): Unique email address of the company.
         phone_number (str): Unique phone number of the company.
+        website_url (str, optional): URL of the company's website.
+        youtube_video_id (str, optional): YouTube video ID of the company.
         logo (bytes): Logo of the company.
         active_job_count (int, optional): Number of active job postings by the company.
         successfull_matches_count (int, optional): Number of successful matches made by the company.
@@ -56,6 +58,8 @@ class Company(Base):
     address_line: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone_number: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
+    website_url: Mapped[str] = mapped_column(String, nullable=True)
+    youtube_video_id: Mapped[str] = mapped_column(String, nullable=True)
     logo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     active_job_count: Mapped[int] = mapped_column(Integer, nullable=True)
     successfull_matches_count: Mapped[int] = mapped_column(Integer, nullable=True)

@@ -14,6 +14,11 @@ VALID_COMPANY_DESCRIPTION = "Test Description"
 VALID_COMPANY_ADDRESS_LINE = "Test Address Line"
 VALID_COMPANY_EMAIL = "test_company_email@example.com"
 VALID_COMPANY_PHONE_NUMBER = "1234567890"
+VALID_COMPANY_WEBSITE_URL = "http://www.example-test-url.com"
+VALID_COMPANY_YOUTUBE_VIDEO_URL = (
+    "https://www.youtube.com/watch?v=test_youtube_video_id"
+)
+VALID_COMPANY_YOUTUBE_VIDEO_ID = "test_youtube_video_id"
 
 VALID_COMPANY_ID_2 = uuid.uuid4()
 VALID_COMPANY_NAME_2 = "Test Company 2"

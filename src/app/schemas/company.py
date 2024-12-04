@@ -1,8 +1,11 @@
 import re
+from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, field_validator
+from fastapi import status
+from pydantic import BaseModel, EmailStr, HttpUrl, field_validator, model_validator
 
+from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.custom_types import PASSWORD_REGEX, Password, Username
 from app.sql_app.company.company import Company
 
@@ -15,6 +18,8 @@ class CompanyBase(BaseModel):
     description: str
     email: EmailStr
     phone_number: str
+    website_url: HttpUrl | None = None
+    youtube_video_id: str | None = None
     active_job_ads: int = 0
     successful_matches: int = 0
 
@@ -64,6 +69,23 @@ class CompanyUpdate(BaseModel):
     description: str | None = None
     email: EmailStr | None = None
     phone_number: str | None = None
+    website_url: HttpUrl | None = None
+    youtube_video_url: HttpUrl | None = None
+    youtube_video_id: str | None = None
+
+    @model_validator(mode="before")
+    def extract_video_id(cls, values):
+        if "youtube_video_url" in values and values["youtube_video_url"]:
+            url_parts = urlparse(values["youtube_video_url"])
+            query_params = parse_qs(url_parts.query)
+            video_id = query_params.get("v")
+            if not video_id:
+                raise ApplicationError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid YouTube video URL provided.",
+                )
+            values["youtube_video_id"] = video_id[0]
+        return values
 
 
 class CompanyResponse(CompanyBase):
