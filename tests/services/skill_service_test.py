@@ -8,7 +8,10 @@ from app.services.skill_service import (
     create_pending_skill,
     create_skill,
 )
+from app.sql_app.skill.skill import Skill
+from app.services.skill_service import exists
 from tests import test_data as td
+from tests.utils import assert_filter_called_with
 
 
 @pytest.fixture
@@ -107,3 +110,20 @@ def test_createPendingSkill_raisesError_whenSkillAlreadyExists(mocker, mock_db):
     mock_exists.assert_called_with(skill_name=skill_data.name, db=mock_db)
     assert exc.value.data.status == status.HTTP_409_CONFLICT
     assert str(exc.value.data.detail) == f"Skill {skill_data.name} already exists"
+
+
+def test_exists_returnsTrue_whenSkillExists(mocker, mock_db):
+    # Arrange
+    skill_name = td.VALID_SKILL_NAME
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = True
+
+    # Act
+    result = exists(db=mock_db, skill_name=skill_name)
+
+    # Assert
+    mock_db.query.assert_called_once_with(Skill)
+    assert_filter_called_with(mock_query, Skill.name == skill_name)
+    mock_filter.first.assert_called_once()
+    assert result is True
