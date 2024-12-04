@@ -184,7 +184,7 @@ def test_uploadPhoto_raisesApplicationError_whenFileExceedsSizeLimit(mocker, moc
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
 
 
-def test_download_returnsPhoto_whenPhotoExists(mocker, mock_db):
+def test_downloadPhoto_returnsPhoto_whenPhotoExists(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -197,7 +197,7 @@ def test_download_returnsPhoto_whenPhotoExists(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(
+    response = professional_service.download_photo(
         professional_id=professional_id, db=mock_db
     )
 
