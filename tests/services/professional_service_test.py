@@ -121,7 +121,7 @@ def test_update_update_professional_whenDataIsValid(mocker, mock_db):
     assert result == mock_response
 
 
-def test_upload_whenFileIsValid(mocker, mock_db):
+def test_upload_uploadsPhoto_whenFileIsValid(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock(photo=None)
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -142,7 +142,7 @@ def test_upload_whenFileIsValid(mocker, mock_db):
     mock_upload_file.file.seek.return_value = None
 
     # Act
-    result = professional_service.upload(
+    result = professional_service.upload_photo(
         professional_id=professional_id, photo=mock_upload_file, db=mock_db
     )
 
@@ -155,7 +155,7 @@ def test_upload_whenFileIsValid(mocker, mock_db):
     assert result == {"msg": "Photo successfully uploaded"}
 
 
-def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
+def test_upload_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock()
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -184,7 +184,7 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
 
 
-def test_download_whenPhotoExists(mocker, mock_db):
+def test_download_returnsPhoto_whenPhotoExists(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -207,7 +207,7 @@ def test_download_whenPhotoExists(mocker, mock_db):
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
 
 
-def test_download_whenPhotoIsNone(mocker, mock_db):
+def test_download_returnsMessage_whenPhotoIsNone(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -337,7 +337,9 @@ def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
     assert response[1] == mock_professional_response[1]
 
 
-def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
+def test_getAll_returnsProfessionalsFilteredBySkills_whenSkillsProvided(
+    mocker, mock_db
+):
     # Arrange
     mock_filter_params = mocker.Mock(offset=0, limit=10)
     mock_search_params = mocker.Mock(
