@@ -3,7 +3,11 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import SkillCreate, SkillResponse
-from app.services.skill_service import create_pending_skill, create_skill
+from app.services.skill_service import (
+    create_job_application_skill,
+    create_pending_skill,
+    create_skill,
+)
 from tests import test_data as td
 
 
@@ -28,6 +32,30 @@ def test_createSkill_createsSkill_whenValidData(mocker, mock_db):
     mock_db.add.assert_called_once_with(mock_skill_instance)
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_skill_instance)
+    assert response == skill_id
+
+
+def test_createJobApplicationSkill_createsJobApplicationSkill_whenValidData(
+    mocker, mock_db
+):
+    # Arrange
+    skill_id = td.VALID_SKILL_ID
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+
+    mock_job_application_skill = mocker.patch(
+        "app.services.skill_service.JobApplicationSkill"
+    )
+    mock_job_application_skill_instance = mock_job_application_skill.return_value
+
+    # Act
+    response = create_job_application_skill(
+        db=mock_db, skill_id=skill_id, job_application_id=job_application_id
+    )
+
+    # Assert
+    mock_db.add.assert_called_once_with(mock_job_application_skill_instance)
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_job_application_skill_instance)
     assert response == skill_id
 
 
