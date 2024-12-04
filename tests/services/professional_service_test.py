@@ -121,7 +121,7 @@ def test_update_update_professional_whenDataIsValid(mocker, mock_db):
     assert result == mock_response
 
 
-def test_upload_whenFileIsValid(mocker, mock_db):
+def test_uploadPhoto_uploadsPhoto_whenFileIsValid(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock(photo=None)
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -142,7 +142,7 @@ def test_upload_whenFileIsValid(mocker, mock_db):
     mock_upload_file.file.seek.return_value = None
 
     # Act
-    result = professional_service.upload(
+    result = professional_service.upload_photo(
         professional_id=professional_id, photo=mock_upload_file, db=mock_db
     )
 
@@ -155,7 +155,7 @@ def test_upload_whenFileIsValid(mocker, mock_db):
     assert result == {"msg": "Photo successfully uploaded"}
 
 
-def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
+def test_uploadPhoto_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db):
     # Arrange
     mock_professional = mocker.Mock()
     professional_id = td.VALID_PROFESSIONAL_ID
@@ -176,7 +176,7 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        professional_service.upload(
+        professional_service.upload_photo(
             professional_id=professional_id, photo=mock_upload_file, db=mock_db
         )
 
@@ -184,7 +184,7 @@ def test_upload_whenFileExceedsSizeLimit(mocker, mock_db):
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
 
 
-def test_download_whenPhotoExists(mocker, mock_db):
+def test_downloadPhoto_returnsPhoto_whenPhotoExists(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -197,7 +197,7 @@ def test_download_whenPhotoExists(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(
+    response = professional_service.download_photo(
         professional_id=professional_id, db=mock_db
     )
 
@@ -207,7 +207,7 @@ def test_download_whenPhotoExists(mocker, mock_db):
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
 
 
-def test_download_whenPhotoIsNone(mocker, mock_db):
+def test_downloadPhoto_returnsMessage_whenPhotoIsNone(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -219,7 +219,7 @@ def test_download_whenPhotoIsNone(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(
+    response = professional_service.download_photo(
         professional_id=professional_id, db=mock_db
     )
 
@@ -337,7 +337,9 @@ def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
     assert response[1] == mock_professional_response[1]
 
 
-def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
+def test_getAll_returnsProfessionalsFilteredBySkills_whenSkillsProvided(
+    mocker, mock_db
+):
     # Arrange
     mock_filter_params = mocker.Mock(offset=0, limit=10)
     mock_search_params = mocker.Mock(
@@ -349,8 +351,8 @@ def test_get_all_whenProfessionalsFilteredBySkills(mocker, mock_db):
     mock_query = mock_db.query.return_value
     mock_options = mock_query.options.return_value
     mock_filtered_by_status = mock_options.filter.return_value
-    mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
-    mock_offset = mock_filtered_by_skills.offset.return_value
+    # mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
+    mock_offset = mock_filtered_by_status.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = mock_professionals
 
