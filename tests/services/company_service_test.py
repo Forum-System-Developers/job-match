@@ -583,6 +583,45 @@ def test_updateCompany_updatesPhoneNumber_whenPhoneNumberIsProvided(
     assert result.email == mock_company.email
 
 
+def test_updateCompany_updatesWebsiteUrl_whenWebsiteUrlIsProvided(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(**td.COMPANY)
+    company_update_data = CompanyUpdate(website_url=td.VALID_COMPANY_WEBSITE_URL)
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city"
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._update_company(
+        company=mock_company, company_data=company_update_data, db=mock_db
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    mock_unique_email.assert_not_called()
+    mock_unique_phone_number.assert_not_called()
+    assert result.website_url == str(company_update_data.website_url)
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.id == mock_company.id
+    assert result.name == mock_company.name
+    assert result.description == mock_company.description
+    assert result.address_line == mock_company.address_line
+    assert result.city == mock_company.city
+    assert result.email == mock_company.email
+    assert result.phone_number == mock_company.phone_number
+
+
 def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
     mocker,
     mock_db,
