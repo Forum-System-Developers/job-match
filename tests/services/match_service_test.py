@@ -22,6 +22,7 @@ from app.services.match_service import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
@@ -464,19 +465,32 @@ def test_viewSentJobApplicationMatchRequests_viewsSentMatchRequests_whenValidDat
 
 
 def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
-    mocker, mock_db, mock_job_ads
+    mocker, mock_db
 ) -> None:
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
+    mock_job_applications = [
+        mocker.Mock(
+            **td.JOB_APPLICATION,
+            professional=mocker.Mock(first_name="John", last_name="Doe"),
+        ),
+        mocker.Mock(
+            **td.JOB_APPLICATION_2,
+            professional=mocker.Mock(first_name="Jane", last_name="Doe"),
+        ),
+    ]
+    mock_job_applications[0].name = "Test Job Application"
+    mock_job_applications[1].name = "Test Job Application 2"
 
     mock_query = mock_db.query.return_value
     mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
+    mock_join_job_ad = mock_join.join.return_value
+    mock_filter = mock_join_job_ad.filter.return_value
     mock_offset = mock_filter.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = [
-        mocker.Mock(**td.MATCH, job_ad=mock_job_ads[0]),
-        mocker.Mock(**td.MATCH_2, job_ad=mock_job_ads[1]),
+        (mocker.Mock(**td.MATCH), mock_job_applications[0]),
+        (mocker.Mock(**td.MATCH_2), mock_job_applications[1]),
     ]
 
     # Act
@@ -487,10 +501,11 @@ def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
     )
 
     # Assert
-    mock_db.query.assert_called_with(Match)
-    mock_query.join.assert_called_with(Match.job_ad)
+    mock_db.query.assert_called_with(Match, JobApplication)
+    mock_query.join.assert_called_with(Match.job_application)
+    mock_join.join.assert_called_with(Match.job_ad)
     assert_filter_called_with(
-        mock_join,
+        mock_join_job_ad,
         (JobAd.company_id == td.VALID_COMPANY_ID)
         & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
     )
