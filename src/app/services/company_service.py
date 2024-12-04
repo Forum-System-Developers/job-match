@@ -258,6 +258,18 @@ def _update_company(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
         )
 
+    if company_data.website_url is not None:
+        company.website_url = str(company_data.website_url)
+        logger.info(
+            f"Updated company (id: {company.id}) website URL to {company_data.website_url}"
+        )
+
+    if company_data.youtube_video_id is not None:
+        company.youtube_video_id = company_data.youtube_video_id
+        logger.info(
+            f"Updated company (id: {company.id}) YouTube video ID to {company_data.youtube_video_id}"
+        )
+
     if any(value is not None for value in vars(company_data).values()):
         company.updated_at = datetime.now()
 
