@@ -207,7 +207,7 @@ def test_downloadPhoto_returnsPhoto_whenPhotoExists(mocker, mock_db):
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
 
 
-def test_download_returnsMessage_whenPhotoIsNone(mocker, mock_db):
+def test_downloadPhoto_returnsMessage_whenPhotoIsNone(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
@@ -219,7 +219,7 @@ def test_download_returnsMessage_whenPhotoIsNone(mocker, mock_db):
     )
 
     # Act
-    response = professional_service.download(
+    response = professional_service.download_photo(
         professional_id=professional_id, db=mock_db
     )
 
