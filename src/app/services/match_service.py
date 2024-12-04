@@ -6,11 +6,9 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_ad import JobAdPreview, JobAdResponse
 from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchResponse
+from app.schemas.match import MatchRequestAd, MatchResponse
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_job_ad_id,
@@ -214,7 +212,7 @@ def accept_match_request(
 
 def get_match_requests_for_job_application(
     job_application_id: UUID, db: Session, filter_params: FilterParams
-) -> list[JobAdPreview]:
+) -> list[MatchRequestAd]:
     """
     Fetch match requests for the given Job Application.
 
@@ -224,11 +222,12 @@ def get_match_requests_for_job_application(
         filter_params (FilterParams): Filtering options for pagination.
 
     Returns:
-        list[JobAdPreview]: Response models containing basic information for the Job Ads that sent the match request.
+        list[MatchRequestAd]: Response models containing basic information for the Job Ads that sent the match request.
     """
 
     requests = (
-        db.query(Match)
+        db.query(Match, JobAd)
+        .join(JobAd, Match.job_ad == JobAd.id)
         .filter(
             and_(
                 Match.job_application_id == job_application_id,
@@ -240,18 +239,19 @@ def get_match_requests_for_job_application(
         .all()
     )
 
-    job_ads = [request.job_ad for request in requests]
-
-    return [JobAdPreview.create(job_ad) for job_ad in job_ads]
+    return [
+        MatchRequestAd.create_response(match=match, job_ad=job_ad)
+        for (match, job_ad) in requests
+    ]
 
 
 def get_match_requests_for_professional(
     professional_id: UUID, db: Session
-) -> list[JobAdResponse]:
-    ads: list[JobAd] = (
-        db.query(JobAd)
-        .join(Match, Match.job_ad_id == JobAd.id)
+) -> list[MatchRequestAd]:
+    result = (
+        db.query(Match, JobAd)
         .join(JobApplication, Match.job_application_id == JobApplication.id)
+        .join(JobAd, Match.job_ad_id == JobAd.id)
         .filter(
             JobApplication.professional_id == professional_id,
             JobApplication.status == JobStatus.ACTIVE,
@@ -260,7 +260,9 @@ def get_match_requests_for_professional(
         .all()
     )
 
-    return [JobAdResponse.create(job_ad=ad) for ad in ads]
+    return [
+        MatchRequestAd.create_response(match=match, job_ad=ad) for (match, ad) in result
+    ]
 
 
 def accept_job_application_match_request(

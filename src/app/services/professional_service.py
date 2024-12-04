@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, SearchParams
-from app.schemas.job_ad import JobAdPreview, JobAdResponse
+from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
+from app.schemas.match import MatchRequestAd
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
@@ -28,7 +29,6 @@ from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.match.match import Match
-from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.utils.password_utils import hash_password
@@ -599,10 +599,13 @@ def get_skills(professional_id: UUID, db: Session) -> list[SkillResponse]:
         for skill in application.skills
     }
 
-    return [SkillResponse(name=skill.name, level=skill.level.value) for skill in skills]
+    return [
+        SkillResponse(id=skill.id, name=skill.name, category_id=skill.category_id)
+        for skill in skills
+    ]
 
 
-def get_match_requests(professional_id: UUID, db: Session) -> list[JobAdResponse]:
+def get_match_requests(professional_id: UUID, db: Session) -> list[MatchRequestAd]:
     """
     Fetches Match Requests for the given Professional.
 
@@ -611,12 +614,12 @@ def get_match_requests(professional_id: UUID, db: Session) -> list[JobAdResponse
         db (Session): Database dependency.
 
     Returns:
-        list[JobAdResponse]: List of Pydantic models containing basic information about the matched Job Ad.
+        list[MatchRequest]: List of Pydantic models containing basic information about the match request.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
 
-    job_ads = match_service.get_match_requests_for_professional(
+    match_requests = match_service.get_match_requests_for_professional(
         professional_id=professional.id, db=db
     )
 
-    return job_ads
+    return match_requests
