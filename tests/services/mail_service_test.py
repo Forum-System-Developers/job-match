@@ -16,7 +16,7 @@ SUBJECT = "Test Subject"
 MESSAGE = "Test Message"
 
 MESSAGE_ID = "<msg-id>"
-UNSUBSCRIBE_HEADER = "<mailto:@example.com?subject=unsubscribe>"
+UNSUBSCRIBE_HEADER = f"<mailto:{SMTP_FROM_EMAIL}?subject=unsubscribe>"
 
 
 @pytest.fixture
@@ -118,3 +118,26 @@ def test_createMessage_createsMessageWithCorrectFields(mocker, mail_service):
     assert message.get_payload()[0].get_payload() == MESSAGE
     assert message["Message-ID"] == MESSAGE_ID
     assert message["List-Unsubscribe"] == UNSUBSCRIBE_HEADER
+
+
+def test_generateUnsubscribeHeader_returnsDefaultHeader_whenNoArgumentsProvided(
+    mail_service,
+):
+    # Arrange & Act
+    header = mail_service._generate_unsubscribe_header()
+
+    # Assert
+    assert header == UNSUBSCRIBE_HEADER
+
+
+def test_generateUnsubscribeHeader_returnsCustomHeader_whenCustomHeaderProvided(
+    mail_service,
+):
+    # Arrange
+    custom_header = "<http://unsubscribe.example.com>"
+
+    # Act
+    header = mail_service._generate_unsubscribe_header([custom_header])
+
+    # Assert
+    assert header == custom_header
