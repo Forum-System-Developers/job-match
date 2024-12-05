@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
-from app.services.auth_service import get_current_user
+from app.services.auth_service import google_get_current_user
 from app.services.google_auth_service import auth_callback, login, logout
 from app.utils.processors import process_async_request
 
@@ -33,8 +33,15 @@ async def auth_callback_route(request: Request):
 
 
 @router.get("/protected")
-async def protected_route(user=Depends(get_current_user)):
-    pass
+async def protected_route(user=Depends(google_get_current_user)):
+    async def _get_current_user():
+        return user
+
+    return await process_async_request(
+        get_entities_fn=_get_current_user,
+        status_code=200,
+        not_found_err_msg="Protected route not found.",
+    )
 
 
 @router.get("/logout")

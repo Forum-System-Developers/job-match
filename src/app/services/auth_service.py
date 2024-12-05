@@ -70,7 +70,7 @@ def _set_cookies(response: Response, token: Token) -> Response:
         )
 
 
-def logout(response: Response) -> Response:
+def logout(request: Request, response: Response) -> Response:
     """
     Logs out the user by deleting the access and refresh tokens from cookies.
 
@@ -87,12 +87,14 @@ def logout(response: Response) -> Response:
             secure=True,
             samesite="none",
         )
-        response.delete_cookie(
-            key="refresh_token",
-            httponly=True,
-            secure=True,
-            samesite="none",
-        )
+        if request.cookies.get("refresh_token"):
+            response.delete_cookie(
+                key="refresh_token",
+                httponly=True,
+                secure=True,
+                samesite="none",
+            )
+
         return response
     except KeyError as e:
         raise HTTPException(
@@ -437,3 +439,41 @@ def require_company_role(
         )
     company = company_service.get_by_id(id=user.id, db=db)
     return company
+
+
+def decode_access_token(token: str) -> dict:
+    """
+    Decodes a given JWT access token using the secret key and algorithm specified in the settings.
+
+    Args:
+        token (str): The JWT access token to decode.
+    Returns:
+        dict: The decoded token payload as a dictionary.
+    """
+
+    return jwt.decode(
+        token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
+    )
+
+
+async def google_get_current_user(request: Request) -> dict:
+    """
+    Retrieve the current user information from Google using the access token stored in cookies.
+
+    Args:
+        request (Request): The incoming HTTP request containing cookies.
+    Returns:
+        dict: A dictionary containing the user information.
+    Raises:
+        HTTPException: If the access token is not found in cookies or is invalid.
+    """
+
+    access_token = request.cookies.get("access_token")
+    if access_token is None:
+        raise HTTPException(
+            detail="Could not authenticate you",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    user_info = decode_access_token(token=access_token)
+    return user_info
