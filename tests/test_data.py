@@ -14,6 +14,11 @@ VALID_COMPANY_DESCRIPTION = "Test Description"
 VALID_COMPANY_ADDRESS_LINE = "Test Address Line"
 VALID_COMPANY_EMAIL = "test_company_email@example.com"
 VALID_COMPANY_PHONE_NUMBER = "1234567890"
+VALID_COMPANY_WEBSITE_URL = "http://www.example-test-url.com"
+VALID_COMPANY_YOUTUBE_VIDEO_URL = (
+    "https://www.youtube.com/watch?v=test_youtube_video_id"
+)
+VALID_COMPANY_YOUTUBE_VIDEO_ID = "test_youtube_video_id"
 
 VALID_COMPANY_ID_2 = uuid.uuid4()
 VALID_COMPANY_NAME_2 = "Test Company 2"
@@ -33,8 +38,6 @@ VALID_JOB_AD_TITLE_2 = "Test Job Ad 2"
 HASHED_PASSWORD = "hashed_password"
 VALID_PASSWORD = "test_password"
 
-VALID_JOB_APPLICATION_ID = uuid.uuid4()
-VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_PROFESSIONAL_ID = uuid.uuid4()
 VALID_SKILL_ID = uuid.uuid4()
 
@@ -141,6 +144,16 @@ VALID_JOB_AD_MIN_SALARY_2 = 2000.00
 VALID_JOB_AD_MAX_SALARY_2 = 3000.00
 
 
+VALID_JOB_APPLICATION_ID = uuid.uuid4()
+VALID_JOB_APPLICATION_DESCRIPTION = "Test Description"
+VALID_JOB_APPLICATION_MIN_SALARY = 1000.00
+VALID_JOB_APPLICATION_MAX_SALARY = 2000.00
+
+VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
+VALID_JOB_APPLICATION_DESCRIPTION_2 = "Test Description 2"
+VALID_JOB_APPLICATION_MIN_SALARY_2 = 2000.00
+VALID_JOB_APPLICATION_MAX_SALARY_2 = 3000.00
+
 JOB_AD_1 = {
     "id": VALID_JOB_AD_ID,
     "title": VALID_JOB_AD_TITLE,
@@ -225,7 +238,19 @@ JOB_AD_UPDATE = {
 
 JOB_APPLICATION = {
     "id": VALID_JOB_APPLICATION_ID,
+    "description": VALID_JOB_APPLICATION_DESCRIPTION,
     "professional_id": VALID_PROFESSIONAL_ID,
+    "min_salary": 1000.00,
+    "max_salary": 2000.00,
+    "status": JobStatus.ACTIVE,
+}
+
+JOB_APPLICATION_2 = {
+    "id": VALID_JOB_APPLICATION_ID_2,
+    "description": VALID_JOB_APPLICATION_DESCRIPTION_2,
+    "professional_id": VALID_PROFESSIONAL_ID,
+    "min_salary": 2000.00,
+    "max_salary": 3000.00,
     "status": JobStatus.ACTIVE,
 }
 

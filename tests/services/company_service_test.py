@@ -583,6 +583,86 @@ def test_updateCompany_updatesPhoneNumber_whenPhoneNumberIsProvided(
     assert result.email == mock_company.email
 
 
+def test_updateCompany_updatesWebsiteUrl_whenWebsiteUrlIsProvided(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(**td.COMPANY)
+    company_update_data = CompanyUpdate(website_url=td.VALID_COMPANY_WEBSITE_URL)
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city"
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._update_company(
+        company=mock_company, company_data=company_update_data, db=mock_db
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    mock_unique_email.assert_not_called()
+    mock_unique_phone_number.assert_not_called()
+    assert result.website_url == str(company_update_data.website_url)
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.id == mock_company.id
+    assert result.name == mock_company.name
+    assert result.description == mock_company.description
+    assert result.address_line == mock_company.address_line
+    assert result.city == mock_company.city
+    assert result.email == mock_company.email
+    assert result.phone_number == mock_company.phone_number
+
+
+def test_updateCompany_updatesYoutubeVideoId_whenYoutubeVideoUrlIsProvided(
+    mocker,
+    mock_db,
+) -> None:
+    # Arrange
+    mock_company = mocker.Mock(**td.COMPANY)
+    company_update_data = CompanyUpdate(
+        youtube_video_url=td.VALID_COMPANY_YOUTUBE_VIDEO_URL
+    )
+
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city"
+    )
+    mock_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._update_company(
+        company=mock_company, company_data=company_update_data, db=mock_db
+    )
+
+    # Assert
+    mock_ensure_valid_city.assert_not_called()
+    mock_unique_email.assert_not_called()
+    mock_unique_phone_number.assert_not_called()
+    assert result.youtube_video_id == company_update_data.youtube_video_id
+    assert isinstance(result.updated_at, datetime)
+
+    assert result.id == mock_company.id
+    assert result.name == mock_company.name
+    assert result.description == mock_company.description
+    assert result.address_line == mock_company.address_line
+    assert result.city == mock_company.city
+    assert result.email == mock_company.email
+    assert result.phone_number == mock_company.phone_number
+
+
 def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
     mocker,
     mock_db,
@@ -596,6 +676,8 @@ def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
         city=td.VALID_CITY_NAME_2,
         email=td.VALID_COMPANY_EMAIL_2,
         phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
+        website_url=td.VALID_COMPANY_WEBSITE_URL,
+        youtube_video_url=td.VALID_COMPANY_YOUTUBE_VIDEO_URL,
     )
 
     mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
@@ -627,6 +709,8 @@ def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
     assert result.city == mock_city
     assert result.email == company_update_data.email
     assert result.phone_number == company_update_data.phone_number
+    assert result.website_url == str(company_update_data.website_url)
+    assert result.youtube_video_id == company_update_data.youtube_video_id
     assert isinstance(result.updated_at, datetime)
 
     assert result.id == mock_company.id

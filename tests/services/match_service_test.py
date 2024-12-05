@@ -6,9 +6,8 @@ from fastapi import status
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchResponse
+from app.schemas.match import MatchRequestAd, MatchResponse
 from app.services.match_service import (
     _get_match,
     accept_job_application_match_request,
@@ -23,6 +22,7 @@ from app.services.match_service import (
 )
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match
 from app.sql_app.match.match_status import MatchStatus
@@ -232,14 +232,19 @@ def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
 ) -> None:
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
+    mock_job_ads[0].company = mocker.Mock()
+    mock_job_ads[0].company.name = td.VALID_COMPANY_NAME
+    mock_job_ads[1].company = mocker.Mock()
+    mock_job_ads[1].company.name = td.VALID_COMPANY_NAME_2
 
     mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
+    mock_join = mock_query.join.return_value
+    mock_filter = mock_join.filter.return_value
     mock_offset = mock_filter.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = [
-        mocker.Mock(**td.MATCH, job_ad=mock_job_ads[0]),
-        mocker.Mock(**td.MATCH_2, job_ad=mock_job_ads[1]),
+        (mocker.Mock(**td.MATCH), mock_job_ads[0]),
+        (mocker.Mock(**td.MATCH_2), mock_job_ads[1]),
     ]
 
     # Act
@@ -251,7 +256,7 @@ def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
 
     # Assert
     assert_filter_called_with(
-        mock_query,
+        mock_join,
         (Match.job_application_id == td.VALID_JOB_APPLICATION_ID)
         & (Match.status == MatchStatus.REQUESTED_BY_JOB_AD),
     )
@@ -259,8 +264,8 @@ def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
     mock_offset.limit.assert_called_with(filter_params.limit)
     assert isinstance(result, list)
     assert len(result) == 2
-    assert isinstance(result[0], JobAdPreview)
-    assert isinstance(result[1], JobAdPreview)
+    assert isinstance(result[0], MatchRequestAd)
+    assert isinstance(result[1], MatchRequestAd)
 
 
 def test_acceptJobApplicationMatchRequest_acceptsMatchRequest_whenValidData(
@@ -460,19 +465,32 @@ def test_viewSentJobApplicationMatchRequests_viewsSentMatchRequests_whenValidDat
 
 
 def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
-    mocker, mock_db, mock_job_ads
+    mocker, mock_db
 ) -> None:
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
+    mock_job_applications = [
+        mocker.Mock(
+            **td.JOB_APPLICATION,
+            professional=mocker.Mock(first_name="John", last_name="Doe"),
+        ),
+        mocker.Mock(
+            **td.JOB_APPLICATION_2,
+            professional=mocker.Mock(first_name="Jane", last_name="Doe"),
+        ),
+    ]
+    mock_job_applications[0].name = "Test Job Application"
+    mock_job_applications[1].name = "Test Job Application 2"
 
     mock_query = mock_db.query.return_value
     mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
+    mock_join_job_ad = mock_join.join.return_value
+    mock_filter = mock_join_job_ad.filter.return_value
     mock_offset = mock_filter.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = [
-        mocker.Mock(**td.MATCH, job_ad=mock_job_ads[0]),
-        mocker.Mock(**td.MATCH_2, job_ad=mock_job_ads[1]),
+        (mocker.Mock(**td.MATCH), mock_job_applications[0]),
+        (mocker.Mock(**td.MATCH_2), mock_job_applications[1]),
     ]
 
     # Act
@@ -483,10 +501,11 @@ def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
     )
 
     # Assert
-    mock_db.query.assert_called_with(Match)
-    mock_query.join.assert_called_with(Match.job_ad)
+    mock_db.query.assert_called_with(Match, JobApplication)
+    mock_query.join.assert_called_with(Match.job_application)
+    mock_join.join.assert_called_with(Match.job_ad)
     assert_filter_called_with(
-        mock_join,
+        mock_join_job_ad,
         (JobAd.company_id == td.VALID_COMPANY_ID)
         & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
     )
