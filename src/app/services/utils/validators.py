@@ -75,13 +75,43 @@ def ensure_valid_job_ad_id(
     return job_ad
 
 
-def ensure_valid_job_application_id(id: UUID, db: Session) -> JobApplication:
+def ensure_valid_job_application_id(
+    id: UUID, db: Session, professional_id: UUID | None = None
+) -> JobApplication:
+    """
+    Ensures that a job application with the given ID exists and optionally
+    belongs to the specified professional.
+
+    Args:
+        id (UUID): The ID of the job application to validate.
+        db (Session): The database session to use for querying.
+        professional_id (UUID | None, optional): The ID of the professional
+            to validate ownership. Defaults to None.
+
+    Returns:
+        JobApplication: The validated job application object.
+
+    Raises:
+        ApplicationError: If the job application does not exist or does not
+            belong to the specified professional.
+    """
     job_application = db.query(JobApplication).filter(JobApplication.id == id).first()
     if job_application is None:
         logger.error(f"Job Application with id {id} not found")
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job Application with id {id} not found",
+        )
+    if (
+        professional_id is not None
+        and job_application.professional_id != professional_id
+    ):
+        logger.error(
+            f"Job Application with id {id} does not belong to professional with id {professional_id}"
+        )
+        raise ApplicationError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Job Application with id {id} does not belong to professional with id {professional_id}",
         )
     return job_application
 
