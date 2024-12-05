@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import FilterParams, SearchParams
+from app.schemas.common import FilterParams, MessageResponse, SearchParams
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.match import MatchRequestAd
@@ -215,6 +215,21 @@ def download_cv(professional_id: UUID, db: Session) -> StreamingResponse | JSONR
     response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
 
     return response
+
+
+def delete_cv(professional_id: UUID, db: Session) -> MessageResponse:
+    professional = _get_by_id(professional_id=professional_id, db=db)
+    if professional.cv is None:
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"CV for Job Application with id {professional_id} not found",
+        )
+    professional.cv = None
+    professional.updated_at = datetime.now()
+    db.commit()
+    logger.info(f"Deleted CV of professional with id {professional_id}")
+
+    return MessageResponse(message="CV deleted successfully")
 
 
 def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
