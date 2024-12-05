@@ -161,6 +161,27 @@ def download_cv(
     return professional_service.download_cv(professional_id=professional_id, db=db)
 
 
+@router.delete(
+    "/cv",
+    description="Delete the cv of a professional.",
+)
+def delete_cv(
+    professional: ProfessionalResponse = Depends(require_professional_role),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    def _delete_logo():
+        return professional_service.delete_cv(
+            professional_id=professional.id,
+            db=db,
+        )
+
+    return process_request(
+        get_entities_fn=_delete_logo,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not delete logo",
+    )
+
+
 @router.post(
     "/all",
     description="Retreive all Professional profiles.",
