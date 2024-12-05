@@ -58,3 +58,29 @@ def test_sendMail_returnsSuccessMessage_whenMailIsSentSuccessfully(
     assert response == MessageResponse(
         message=f"Message sent successfully to {TO_EMAIL}"
     )
+
+
+def test_sendMail_returnsErrorMessage_whenMailSendingFails(mocker, mail_service):
+    # Arrange
+    mock_smtp = mocker.patch("smtplib.SMTP_SSL", autospec=True)
+    mock_smtp.side_effect = Exception("Error sending email")
+    mock_create_message = mocker.patch.object(
+        mail_service, "_create_message", return_value=mocker.Mock()
+    )
+
+    # Act
+    response = mail_service.send_mail(
+        to_email=TO_EMAIL,
+        subject=SUBJECT,
+        body=MESSAGE,
+    )
+
+    # Assert
+    mock_create_message.assert_called_once_with(
+        to_email=TO_EMAIL,
+        subject=SUBJECT,
+        body=MESSAGE,
+        list_unsubscribe=None,
+    )
+    mock_smtp.assert_called_once_with(SMTP_SERVER, SMTP_PORT)
+    assert response == MessageResponse(message=f"Error sending email to {TO_EMAIL}")
