@@ -162,7 +162,7 @@ def download_cv(
 
 
 @router.delete(
-    "/cvs",
+    "/cv",
     description="Delete the cv of a professional.",
 )
 def delete_cv(

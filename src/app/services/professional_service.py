@@ -218,6 +218,19 @@ def download_cv(professional_id: UUID, db: Session) -> StreamingResponse | JSONR
 
 
 def delete_cv(professional_id: UUID, db: Session) -> MessageResponse:
+    """
+    Deletes the CV of a professional by setting the CV attribute to None and updating the updated_at timestamp.
+
+    Args:
+        professional_id (UUID): The unique identifier of the professional whose CV is to be deleted.
+        db (Session): The database session used to perform the operation.
+
+    Returns:
+        MessageResponse: A response object containing a success message.
+
+    Raises:
+        ApplicationError: If the professional's CV is not found.
+    """
     professional = _get_by_id(professional_id=professional_id, db=db)
     if professional.cv is None:
         raise ApplicationError(
