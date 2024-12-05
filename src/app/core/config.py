@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     REDIRECT_URI: str
+    SMTP_SERVER: str
+    SMTP_PORT: int
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    SMTP_FROM_EMAIL: str
 
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
     VERSION: str = "9.9.9.9"
