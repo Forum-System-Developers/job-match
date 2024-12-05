@@ -439,8 +439,12 @@ def test_get_matches_whenDataIsValid(mocker, mock_db):
     mock_filter = mock_join_2.filter.return_value
     mock_filter.all.return_value = mock_job_ads
 
-    mock_job_ad_response_1 = JobAdPreview(**td.JOB_AD_1, city=City(**td.CITY))
-    mock_job_ad_response_2 = JobAdPreview(**td.JOB_AD_2, city=City(**td.CITY_2))
+    mock_job_ad_response_1 = JobAdPreview(
+        **td.JOB_AD_1, city=City(**td.CITY), category_name=td.VALID_CATEGORY_TITLE
+    )
+    mock_job_ad_response_2 = JobAdPreview(
+        **td.JOB_AD_2, city=City(**td.CITY_2), category_name=td.VALID_CATEGORY_TITLE_2
+    )
 
     mocker.patch(
         "app.services.professional_service.JobAdPreview.create",
