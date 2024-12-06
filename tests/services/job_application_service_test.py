@@ -423,7 +423,7 @@ def test_update_attributes_updates_is_main(mocker, mock_db):
         min_salary=None,
         max_salary=None,
         description=None,
-        is_main=False, 
+        is_main=False,
         status=mocker.Mock(value=JobStatus.ACTIVE),
         city=mocker.Mock(name=None),
     )
@@ -478,7 +478,7 @@ def test_update_attributes_updates_application_status(mocker, mock_db):
 
     # Assert
     assert result == job_application_model
-    assert job_application_model.status.value == JobStatus.PRIVATE.value 
+    assert job_application_model.status.value == JobStatus.PRIVATE.value
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(job_application_model)
 
@@ -505,7 +505,9 @@ def test_update_attributes_updates_city(mocker, mock_db):
     )
 
     mock_city_response = mocker.Mock(id=td.VALID_CITY_ID)
-    mocker.patch("app.services.city_service.get_by_name", return_value=mock_city_response)
+    mocker.patch(
+        "app.services.city_service.get_by_name", return_value=mock_city_response
+    )
 
     mock_db.commit = mocker.Mock()
     mock_db.refresh = mocker.Mock()
