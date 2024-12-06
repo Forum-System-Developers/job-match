@@ -327,6 +327,8 @@ def test_update_attributes_updates_min_salary(mocker, mock_db):
     # Assert
     assert result == job_application_model
     assert job_application_model.min_salary == 50000
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(job_application_model)
 
 
 def test_update_attributes_updates_max_salary(mocker, mock_db):
