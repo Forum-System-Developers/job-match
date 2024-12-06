@@ -216,3 +216,37 @@ def test_get_all_job_applications_WithDesc(mocker, mock_db):
 
     # Assert
     assert result == mock_job_app_response
+
+
+def test_get_by_id_return_JobApplicationResponse(mocker, mock_db):
+    # Arrange
+    mock_job_application = mocker.Mock(professional=mocker.Mock())
+
+    mock__get_by_id = mocker.patch(
+        "app.services.job_application_service._get_by_id",
+        return_value=mock_job_application,
+    )
+
+    mock_JobApplicationResponse = mocker.patch(
+        "app.schemas.job_application.JobApplicationResponse.create",
+        return_value=mock_job_application,
+    )
+
+    # Act
+    result = job_application_service.get_by_id(
+        job_application_id=td.VALID_JOB_APPLICATION_ID,
+        db=mock_db,
+    )
+
+    # Assert
+    mock__get_by_id.assert_called_once_with(
+        job_application_id=td.VALID_JOB_APPLICATION_ID, db=mock_db
+    )
+
+    mock_JobApplicationResponse.assert_called_once_with(
+        professional=mock_job_application.professional,
+        job_application=mock_job_application,
+        db=mock_db,
+    )
+
+    assert result == mock_job_application
