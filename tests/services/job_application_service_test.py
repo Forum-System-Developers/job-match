@@ -405,3 +405,41 @@ def test_update_attributes_updates_description(mocker, mock_db):
     assert job_application_model.description == "Updated job description"
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(job_application_model)
+
+
+def test_update_attributes_updates_is_main(mocker, mock_db):
+    # Arrange
+    application_update = mocker.Mock(
+        min_salary=None,
+        max_salary=None,
+        description=None,
+        is_main=True,
+        application_status=mocker.Mock(value=JobStatus.ACTIVE),
+        city=None,
+        skills=None,
+    )
+    job_application_model = mocker.Mock(
+        id=1,
+        min_salary=None,
+        max_salary=None,
+        description=None,
+        is_main=False, 
+        status=mocker.Mock(value=JobStatus.ACTIVE),
+        city=mocker.Mock(name=None),
+    )
+
+    mock_db.commit = mocker.Mock()
+    mock_db.refresh = mocker.Mock()
+
+    # Act
+    result = job_application_service._update_attributes(
+        application_update=application_update,
+        job_application_model=job_application_model,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result == job_application_model
+    assert job_application_model.is_main is True
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(job_application_model)
