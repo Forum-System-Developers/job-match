@@ -683,7 +683,9 @@ def test_create_skillset_adds_new_skill(mocker, mock_db):
     mock_exists.assert_any_call(db=mock_db, skill_name=skills[0].name)
     mock_create_skill.assert_any_call(db=mock_db, skill_data=skills[0])
     mock_create_job_application_skill.assert_any_call(
-        db=mock_db, skill_id=skills[0].skill_id, job_application_id=job_application_model.id
+        db=mock_db,
+        skill_id=skills[0].skill_id,
+        job_application_id=job_application_model.id,
     )
     mock_get_by_id.assert_any_call(db=mock_db, skill_id=skills[0].skill_id)
     mock_db.flush.assert_called_once()
@@ -723,7 +725,9 @@ def test_create_skillset_does_not_add_existing_skill(mocker, mock_db):
     mock_exists.assert_any_call(db=mock_db, skill_name=skills[0].name)
     mock_get_id.assert_any_call(db=mock_db, skill_name=skills[0].name)
     mock_create_job_application_skill.assert_any_call(
-        db=mock_db, skill_id=skills[0].skill_id, job_application_id=job_application_model.id
+        db=mock_db,
+        skill_id=skills[0].skill_id,
+        job_application_id=job_application_model.id,
     )
     mock_get_by_id.assert_any_call(db=mock_db, skill_id=skills[0].skill_id)
     mock_db.flush.assert_called_once()
