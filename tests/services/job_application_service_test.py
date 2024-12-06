@@ -291,3 +291,39 @@ def test_get_by_id_return_none(mock_db):
         == f"Job Aplication with id {td.VALID_JOB_APPLICATION_ID} not found."
     )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+
+
+def test_update_attributes_updates_min_salary(mocker, mock_db):
+    # Arrange
+    application_update = mocker.Mock(
+        min_salary=50000,
+        max_salary=None,
+        description=None,
+        is_main=None,
+        application_status=mocker.Mock(value=JobStatus.ACTIVE),
+        city=None,
+        skills=None,
+    )
+    job_application_model = mocker.Mock(
+        id=1,
+        min_salary=40000,
+        max_salary=None,
+        description=None,
+        is_main=False,
+        status=mocker.Mock(value=JobStatus.ACTIVE),
+        city=mocker.Mock(name=None),
+    )
+
+    mock_db.commit = mocker.Mock()
+    mock_db.refresh = mocker.Mock()
+
+    # Act
+    result = job_application_service._update_attributes(
+        application_update=application_update,
+        job_application_model=job_application_model,
+        db=mock_db,
+    )
+
+    # Assert
+    assert result == job_application_model
+    assert job_application_model.min_salary == 50000
