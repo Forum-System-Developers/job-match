@@ -96,9 +96,9 @@ def test_update_job_application(mocker, mock_db):
     # Arrange
     application_update = JobApplicationUpdate(
         **td.JOB_APPLICATION,
-        name = td.VALID_JOB_APPLICATION_NAME,
+        name=td.VALID_JOB_APPLICATION_NAME,
         is_main=True,
-        application_status=JobStatus.ACTIVE,            
+        application_status=JobStatus.ACTIVE,
     )
 
     mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
