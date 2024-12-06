@@ -1,12 +1,9 @@
 import pytest
 
-from app.schemas.city import City
-from app.schemas.common import FilterParams, SearchParams
+from app.schemas.common import FilterParams
 from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
-from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
-from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 
 
@@ -163,10 +160,10 @@ def test_get_all_job_applications_withAsc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
     search_params = mocker.Mock(order="asc", order_by="created_at")
-    
+
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]
-    
+
     mock_query = mock_db.query.return_value
     mock_join = mock_query.join.return_value
     mock_filter = mock_join.filter.return_value
@@ -178,7 +175,7 @@ def test_get_all_job_applications_withAsc(mocker, mock_db):
         "app.schemas.job_application.JobApplicationResponse.create",
         side_effect=mock_job_app_response,
     )
-    
+
     # Act
     result = job_application_service.get_all(
         filter_params=filter_params,
@@ -194,10 +191,10 @@ def test_get_all_job_applications_WithDesc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
     search_params = mocker.Mock(order="desc", order_by="created_at")
-    
+
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]
-    
+
     mock_query = mock_db.query.return_value
     mock_join = mock_query.join.return_value
     mock_filter = mock_join.filter.return_value
@@ -209,7 +206,7 @@ def test_get_all_job_applications_WithDesc(mocker, mock_db):
         "app.schemas.job_application.JobApplicationResponse.create",
         side_effect=mock_job_app_response,
     )
-    
+
     # Act
     result = job_application_service.get_all(
         filter_params=filter_params,
