@@ -1,8 +1,9 @@
 import pytest
 
 from app.schemas.city import City
-from app.schemas.job_application import JobApplicationCreate
+from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
+from app.sql_app.job_application.job_application_status import JobStatus
 from tests import test_data as td
 
 
@@ -85,6 +86,70 @@ def test_create_job_application(mocker, mock_db):
     mock_create_skillset.assert_called_once_with(
         job_application_model=mock_job_application,
         skills=job_application_data.skills,
+        db=mock_db,
+    )
+
+    assert result == mock_job_application
+
+
+def test_update_job_application(mocker, mock_db):
+    # Arrange
+    application_update = JobApplicationUpdate(
+        **td.JOB_APPLICATION,
+        name = td.VALID_JOB_APPLICATION_NAME,
+        is_main=True,
+        application_status=JobStatus.ACTIVE,            
+    )
+
+    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
+    mock_job_application = mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)
+
+    mock_get_by_id = mocker.patch(
+        "app.services.job_application_service._get_by_id",
+        return_value=mock_job_application,
+    )
+
+    mock_ensure_valid_professional_id = mocker.patch(
+        "app.services.job_application_service.ensure_valid_professional_id",
+        return_value=mock_professional,
+    )
+
+    mock_update_attributes = mocker.patch(
+        "app.services.job_application_service._update_attributes",
+        return_value=mock_job_application,
+    )
+
+    mock_JobApplicationResponse = mocker.patch(
+        "app.schemas.job_application.JobApplicationResponse.create",
+        return_value=mock_job_application,
+    )
+
+    # Act
+    result = job_application_service.update(
+        job_application_id=mock_job_application.id,
+        professional_id=mock_professional.id,
+        application_update=application_update,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(
+        job_application_id=mock_job_application.id, db=mock_db
+    )
+
+    mock_ensure_valid_professional_id.assert_called_once_with(
+        professional_id=mock_professional.id, db=mock_db
+    )
+
+    mock_update_attributes.assert_called_once_with(
+        application_update=application_update,
+        job_application_model=mock_job_application,
+        db=mock_db,
+    )
+
+    mock_JobApplicationResponse.assert_called_once_with(
+        professional=mock_professional,
+        job_application=mock_job_application,
         db=mock_db,
     )
 
