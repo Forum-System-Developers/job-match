@@ -1,9 +1,10 @@
 import pytest
+from fastapi import status
 
+from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
-from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from tests import test_data as td
 
@@ -269,3 +270,24 @@ def test_get_by_id_return_job_application(mocker, mock_db):
 
     # Assert
     assert result == mock_job_application
+
+
+def test_get_by_id_return_none(mock_db):
+    # Arrange
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = None
+
+    # Act
+    with pytest.raises(ApplicationError) as exc:
+        job_application_service._get_by_id(
+            job_application_id=td.VALID_JOB_APPLICATION_ID,
+            db=mock_db,
+        )
+
+    # Assert
+    assert (
+        exc.value.data.detail
+        == f"Job Aplication with id {td.VALID_JOB_APPLICATION_ID} not found."
+    )
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
