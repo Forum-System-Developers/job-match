@@ -3,6 +3,7 @@ import pytest
 from app.schemas.common import FilterParams
 from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
+from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
 from tests import test_data as td
 
@@ -249,4 +250,22 @@ def test_get_by_id_return_JobApplicationResponse(mocker, mock_db):
         db=mock_db,
     )
 
+    assert result == mock_job_application
+
+
+def test_get_by_id_return_job_application(mocker, mock_db):
+    # Arrange
+    mock_job_application = mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)
+
+    mock_query = mock_db.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.return_value = mock_job_application
+
+    # Act
+    result = job_application_service._get_by_id(
+        job_application_id=mock_job_application.id,
+        db=mock_db,
+    )
+
+    # Assert
     assert result == mock_job_application
