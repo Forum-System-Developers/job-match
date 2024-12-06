@@ -1,8 +1,8 @@
 import pytest
 
 from app.schemas.city import City
-from app.services import job_application_service
 from app.schemas.job_application import JobApplicationCreate
+from app.services import job_application_service
 from tests import test_data as td
 
 
@@ -24,8 +24,8 @@ def test_create_job_application(mocker, mock_db):
     )
 
     mock_professional = mocker.Mock(
-        id = td.VALID_PROFESSIONAL_ID,
-        active_application_count = td.VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
+        id=td.VALID_PROFESSIONAL_ID,
+        active_application_count=td.VALID_PROFESSIONAL_ACTIVE_APPLICATION_COUNT,
     )
 
     mock_city = mocker.Mock()
@@ -63,31 +63,29 @@ def test_create_job_application(mocker, mock_db):
     # Act
 
     result = job_application_service.create(
-        professional_id=mock_professional.id, 
-        application_create=job_application_data, 
-        db=mock_db
+        professional_id=mock_professional.id,
+        application_create=job_application_data,
+        db=mock_db,
     )
 
     # Assert
     mock_ensure_valid_professional_id.assert_called_once_with(
-        professional_id=mock_professional.id, 
-        db=mock_db
+        professional_id=mock_professional.id, db=mock_db
     )
 
-    mock_get_by_name.assert_called_once_with(
-        city_name=td.VALID_CITY_NAME, 
-        db=mock_db
-    )
+    mock_get_by_name.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
 
     mock__create.assert_called_once_with(
         professional=mock_professional,
         city_id=mock_city.id,
         application_create=job_application_data,
-        db=mock_db
+        db=mock_db,
     )
 
     mock_create_skillset.assert_called_once_with(
         job_application_model=mock_job_application,
         skills=job_application_data.skills,
-        db=mock_db
+        db=mock_db,
     )
+
+    assert result == mock_job_application
