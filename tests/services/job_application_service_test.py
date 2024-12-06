@@ -646,3 +646,44 @@ def test_update_skillset_does_not_add_existing_skill(mocker, mock_db):
         job_application_id=job_application_model.id,
     )
     mock_db.flush.assert_called_once()
+
+
+def test_create_skillset_adds_new_skill(mocker, mock_db):
+    # Arrange
+    skills = [mocker.Mock(name=td.VALID_SKILL_NAME, skill_id=td.VALID_SKILL_ID)]
+    job_application_model = mocker.Mock(
+        id=td.VALID_JOB_APPLICATION_ID,
+        skills=[],
+    )
+
+    # Мокаем методы для работы с навыками
+    mock_exists = mocker.patch(
+        "app.services.skill_service.exists", side_effect=lambda db, skill_name: False
+    )
+    mock_create_skill = mocker.patch(
+        "app.services.skill_service.create_skill", return_value=skills[0].skill_id
+    )
+    mock_create_job_application_skill = mocker.patch(
+        "app.services.skill_service.create_job_application_skill"
+    )
+    mock_get_by_id = mocker.patch(
+        "app.services.skill_service.get_by_id", return_value=skills[0]
+    )
+
+    mock_db.flush = mocker.Mock()
+
+    # Act
+    job_application_service._create_skillset(
+        db=mock_db,
+        job_application_model=job_application_model,
+        skills=skills,
+    )
+
+    # Assert
+    mock_exists.assert_any_call(db=mock_db, skill_name=skills[0].name)
+    mock_create_skill.assert_any_call(db=mock_db, skill_data=skills[0])
+    mock_create_job_application_skill.assert_any_call(
+        db=mock_db, skill_id=skills[0].skill_id, job_application_id=job_application_model.id
+    )
+    mock_get_by_id.assert_any_call(db=mock_db, skill_id=skills[0].skill_id)
+    mock_db.flush.assert_called_once()
