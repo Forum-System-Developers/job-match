@@ -117,7 +117,9 @@ def test_getById_returnsJobAd_whenJobAdExists(mocker, mock_db) -> None:
 def test_create_createsJobAd_whenValidJobAd(mocker, mock_db) -> None:
     # Arrange
     job_ad_data = JobAdCreate(
-        **td.JOB_AD_CREATE, location=City(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME)
+        **td.JOB_AD_CREATE,
+        location=City(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME),
+        category=mocker.Mock(id=td.VALID_CATEGORY_ID, title=td.VALID_CATEGORY_TITLE),
     )
     mock_company = mocker.Mock(
         id=td.VALID_COMPANY_ID,

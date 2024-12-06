@@ -44,8 +44,8 @@ def refresh_token(
     "/logout",
     description="Logs out the current user by invalidating their existing tokens.",
 )
-def logout(response: Response) -> Response:
-    response = auth_service.logout(response=response)
+def logout(request: Request, response: Response) -> Response:
+    response = auth_service.logout(request=request, response=response)
     response.status_code = status.HTTP_200_OK
     return response
 

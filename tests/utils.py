@@ -28,6 +28,6 @@ def assert_called_with(mock_clause, expected_expression):
 
     if str(actual_expression) != str(expected_expression):
         raise AssertionError(
-            f"Filter was called with {actual_expression}, "
+            f"Mock was called with {actual_expression}, "
             f"but expected {expected_expression}"
         )
