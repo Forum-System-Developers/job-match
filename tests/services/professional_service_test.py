@@ -1137,3 +1137,39 @@ def test_delete_cv_not_found(mocker, mock_db):
         exc.value.data.detail
         == f"CV for Job Application with id {professional_id} not found"
     )
+
+
+def test_get_skills_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_professional = mocker.Mock()
+    mock_job_application = mocker.Mock()
+
+    skill_1 = mocker.Mock()
+    skill_1.id = td.VALID_SKILL_ID
+    skill_1.name = td.VALID_SKILL_NAME
+    skill_1.category_id = td.VALID_CATEGORY_ID
+
+    skill_2 = mocker.Mock()
+    skill_2.id = td.VALID_SKILL_ID_2
+    skill_2.name = td.VALID_SKILL_NAME_2
+    skill_2.category_id = td.VALID_CATEGORY_ID
+
+    mock_application_skill_1 = mocker.Mock()
+    mock_application_skill_1.skill = skill_1
+    mock_application_skill_2 = mocker.Mock()
+    mock_application_skill_2.skill = skill_2
+
+    mock_job_application.skills = [mock_application_skill_1, mock_application_skill_2]
+    mock_professional.job_applications = [mock_job_application]
+
+    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+
+    # Act
+    response = professional_service.get_skills(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert len(response) == 2
+    assert any(skill.id == td.VALID_SKILL_ID and skill.name == td.VALID_SKILL_NAME for skill in response)
+    assert any(skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2 for skill in response)
