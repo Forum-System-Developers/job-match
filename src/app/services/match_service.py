@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def create_if_not_exists(
     job_application_id: UUID, job_ad_id: UUID, db: Session
-) -> dict:
+) -> MessageResponse:
     """
     Creates a Match request for a Job Application from a Company.
 
@@ -41,7 +41,7 @@ def create_if_not_exists(
         ApplicationError: If there is an existing Match already
 
     Returns:
-        dict: A dictionary containing a success message if the match request is created successfully.
+        MessageResponse: A dictionary containing a success message if the match request is created successfully.
 
     """
     existing_match = _get_match(
@@ -81,7 +81,7 @@ def create_if_not_exists(
         logger.info(
             f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
         )
-        return {"msg": "Match Request successfully sent"}
+        return MessageResponse(message="Match Request successfully sent")
 
     return process_db_transaction(transaction_func=_handle_create, db=db)
 
@@ -117,7 +117,7 @@ def process_request_from_company(
     job_ad_id: UUID,
     accept_request: MatchResponseRequest,
     db: Session,
-) -> dict:
+) -> MessageResponse:
     """
     Accepts or Rejects a Match request for a Job Application from a Company.
 
@@ -131,7 +131,7 @@ def process_request_from_company(
         ApplicationError: If there is no existing Match.
 
     Returns:
-        dict: A dictionary containing a success message if the match request is accepted or rejected.
+        MessageResponse: A dictionary containing a success message if the match request is accepted or rejected.
 
     """
     existing_match = _get_match(
@@ -165,21 +165,32 @@ def process_request_from_company(
 
 def reject_match_request(
     match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
-) -> dict:
+) -> MessageResponse:
+    """
+    Rejects a Match request.
+
+    Args:
+        match (Match): The Match instance.
+        db (Session): Database dependency.
+
+    Returns:
+        MessageResponse: Confirmation message.
+    """
+
     def _handle_reject():
         match.status = MatchStatus.REJECTED
         db.commit()
         logger.info(
             f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
         )
-        return {"msg": "Match Request rejected"}
+        return MessageResponse(message="Match Request rejected")
 
     return process_db_transaction(transaction_func=_handle_reject, db=db)
 
 
 def accept_match_request(
     match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
-) -> dict:
+) -> MessageResponse:
     """
     Updates .
 
@@ -188,7 +199,7 @@ def accept_match_request(
         db (Session): Database dependency.
 
     Returns:
-        dict: Confirmation message.
+        MessageResponse: Confirmation message.
 
     """
     match_job_application = match.job_application
@@ -205,7 +216,7 @@ def accept_match_request(
         logger.info(
             f"Updated statuses for JobAplication with id {job_application_id}, JobAd id {job_ad_id}, Professional with id {professional.id}"
         )
-        return {"msg": "Match Request accepted"}
+        return MessageResponse(message="Match Request accepted")
 
     return process_db_transaction(transaction_func=_handle_accept, db=db)
 
@@ -248,6 +259,17 @@ def get_match_requests_for_job_application(
 def get_match_requests_for_professional(
     professional_id: UUID, db: Session
 ) -> list[MatchRequestAd]:
+    """
+    Fetch match requests for the given Professional.
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        list[MatchRequestAd]: Response models containing basic information for the Job Ads that sent the match request.
+    """
+
     result = (
         db.query(Match, JobAd)
         .join(JobApplication, Match.job_application_id == JobApplication.id)
@@ -339,19 +361,22 @@ def send_job_application_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
     )
 
-    match = Match(
-        job_ad_id=job_ad_id,
-        job_application_id=job_application_id,
-        status=MatchStatus.REQUESTED_BY_JOB_AD,
-    )
+    def _handle_create():
+        match = Match(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            status=MatchStatus.REQUESTED_BY_JOB_APP,
+        )
 
-    db.add(match)
-    db.commit()
-    logger.info(
-        f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
-    )
+        db.add(match)
+        db.commit()
+        logger.info(
+            f"Sent match request from job ad with id {job_ad_id} to job ad with id {job_application_id}"
+        )
 
-    return MessageResponse(message="Match request sent")
+        return MessageResponse(message="Match request sent")
+
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def view_received_job_application_match_requests(

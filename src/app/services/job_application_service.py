@@ -7,7 +7,7 @@ from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
-from app.schemas.common import FilterParams, SearchJobApplication
+from app.schemas.common import FilterParams, MessageResponse, SearchJobApplication
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
@@ -372,7 +372,9 @@ def _create_skillset(
     return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
-def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
+def request_match(
+    job_application_id: UUID, job_ad_id: UUID, db: Session
+) -> MessageResponse:
     """
     Verifies Job Application and Job Ad and initiates a Match request for a Job Ad.
 
@@ -382,7 +384,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
         db (Session): Database dependency.
 
     Returns:
-        dict: A dictionary containing a success message if the match request is created successfully.
+        MessageResponse: A dictionary containing a success message if the match request is created successfully.
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)

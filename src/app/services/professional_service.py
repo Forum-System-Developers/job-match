@@ -119,7 +119,9 @@ def update(
     )
 
 
-def upload_photo(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
+def upload_photo(
+    professional_id: UUID, photo: UploadFile, db: Session
+) -> MessageResponse:
     """
     Upload Professional photo to the database
 
@@ -138,12 +140,12 @@ def upload_photo(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
         profesional.photo = upload_photo
         profesional.updated_at = datetime.now()
         db.commit()
-        return {"msg": "Photo successfully uploaded"}
+        return MessageResponse(message="Photo successfully uploaded")
 
     return process_db_transaction(transaction_func=_handle_upload, db=db)
 
 
-def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
+def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> MessageResponse:
     """
     Upload Professional photo to the database
 
@@ -153,7 +155,7 @@ def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
         db (Session): Database dependency.
 
     Returns:
-        dict: Confirmation message.
+        MessageResponse: Confirmation message.
     """
     profesional = _get_by_id(professional_id=professional_id, db=db)
 
@@ -167,7 +169,7 @@ def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
         profesional.cv = upload_cv
         profesional.updated_at = datetime.now()
         db.commit()
-        return {"msg": "CV successfully uploaded"}
+        return MessageResponse(message="CV successfully uploaded")
 
     return process_db_transaction(transaction_func=_handle_upload, db=db)
 
