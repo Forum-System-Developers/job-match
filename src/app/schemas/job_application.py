@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -115,7 +114,6 @@ class JobApplicationResponse(JobAplicationBase):
 
     application_id: UUID
     professional_id: UUID
-    created_at: datetime
     first_name: str
     last_name: str
     city: str
@@ -149,7 +147,6 @@ class JobApplicationResponse(JobAplicationBase):
             name=job_application.name,
             application_id=job_application.id,
             professional_id=professional.id,
-            created_at=job_application.created_at,
             category_id=job_application.category_id,
             category_title=job_application.category.title,
             photo=professional.photo,
