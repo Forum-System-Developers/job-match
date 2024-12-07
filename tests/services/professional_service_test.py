@@ -963,3 +963,26 @@ def test_create_professional_success(mocker, mock_db):
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_professional)
     assert result == mock_professional
+
+
+def test_upload_cv_successful(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_get_by_id = mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mock_handle_file_upload = mocker.patch("app.services.professional_service.handle_file_upload", return_value=td.VALID_CV_PATH)
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    mock_cv = mocker.Mock()
+    mock_cv.content_type = "application/pdf"
+
+    # Act
+    result = professional_service.upload_cv(professional_id=professional_id, cv=mock_cv, db=mock_db)
+
+    # # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
+    mock_commit.assert_called_once()
+    assert mock_professional.cv == td.VALID_CV_PATH
+    assert "msg" in result
+    assert result["msg"] == "CV successfully uploaded"
