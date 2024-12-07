@@ -2,14 +2,18 @@ import json
 
 import pytest
 from fastapi import status
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
+from app.schemas.common import MessageResponse
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobSearchStatus
+from app.schemas.match import MatchRequestAd
 from app.schemas.user import User
 from app.services import professional_service
 from app.sql_app.job_application.job_application import JobApplication
+from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
@@ -963,3 +967,251 @@ def test_create_professional_success(mocker, mock_db):
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_professional)
     assert result == mock_professional
+
+
+def test_upload_cv_successful(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_handle_file_upload = mocker.patch(
+        "app.services.professional_service.handle_file_upload",
+        return_value=td.VALID_CV_PATH,
+    )
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    mock_cv = mocker.Mock()
+    mock_cv.content_type = "application/pdf"
+
+    # Act
+    result = professional_service.upload_cv(
+        professional_id=professional_id, cv=mock_cv, db=mock_db
+    )
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
+    mock_commit.assert_called_once()
+    assert mock_professional.cv == td.VALID_CV_PATH
+    assert "msg" in result
+    assert result["msg"] == "CV successfully uploaded"
+
+
+def test_upload_cv_invalid_file_type(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    mock_cv = mocker.Mock()
+    mock_cv.content_type = "text/plain"
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        professional_service.upload_cv(
+            professional_id=professional_id, cv=mock_cv, db=mock_db
+        )
+
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    assert exc.value.data.detail == "Only PDF files are allowed."
+
+
+def test_upload_cv_updates_professional(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_handle_file_upload = mocker.patch(
+        "app.services.professional_service.handle_file_upload",
+        return_value=td.VALID_CV_PATH,
+    )
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    mock_cv = mocker.Mock()
+    mock_cv.content_type = "application/pdf"
+    old_updated_at = mock_professional.updated_at
+
+    # Act
+    professional_service.upload_cv(
+        professional_id=professional_id, cv=mock_cv, db=mock_db
+    )
+
+    # Assert
+    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
+    mock_commit.assert_called_once()
+    assert mock_professional.cv == td.VALID_CV_PATH
+    assert mock_professional.updated_at != old_updated_at
+
+
+def test_download_cv_successful(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = b"PDF content"
+    mock_professional.first_name = td.VALID_PROFESSIONAL_FIRST_NAME
+    mock_professional.last_name = td.VALID_PROFESSIONAL_LAST_NAME
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    # Act
+    response = professional_service.download_cv(
+        professional_id=professional_id, db=mock_db
+    )
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    assert isinstance(response, StreamingResponse)
+    assert response.media_type == "application/pdf"
+    assert (
+        response.headers["Content-Disposition"]
+        == "attachment; filename=Test_Professional_CV.pdf"
+    )
+    assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
+
+
+def test_download_cv_no_cv(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = None
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    # Act
+    response = professional_service.download_cv(
+        professional_id=professional_id, db=mock_db
+    )
+
+    # Assert
+    assert isinstance(response, JSONResponse)
+    assert response.status_code == 200
+
+
+def test_delete_cv_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = b"some_cv_data"
+    mock_professional.updated_at = None
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    # Act
+    response = professional_service.delete_cv(
+        professional_id=professional_id, db=mock_db
+    )
+
+    # Assert
+    assert isinstance(response, MessageResponse)
+    assert response.message == "CV deleted successfully"
+    assert mock_professional.cv is None
+    assert mock_professional.updated_at is not None
+    mock_commit.assert_called_once()
+
+
+def test_delete_cv_not_found(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = None
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        professional_service.delete_cv(professional_id=professional_id, db=mock_db)
+
+    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert (
+        exc.value.data.detail
+        == f"CV for Job Application with id {professional_id} not found"
+    )
+
+
+def test_get_skills_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_professional = mocker.Mock()
+    mock_job_application = mocker.Mock()
+
+    skill_1 = mocker.Mock()
+    skill_1.id = td.VALID_SKILL_ID
+    skill_1.name = td.VALID_SKILL_NAME
+    skill_1.category_id = td.VALID_CATEGORY_ID
+
+    skill_2 = mocker.Mock()
+    skill_2.id = td.VALID_SKILL_ID_2
+    skill_2.name = td.VALID_SKILL_NAME_2
+    skill_2.category_id = td.VALID_CATEGORY_ID
+
+    mock_application_skill_1 = mocker.Mock()
+    mock_application_skill_1.skill = skill_1
+    mock_application_skill_2 = mocker.Mock()
+    mock_application_skill_2.skill = skill_2
+
+    mock_job_application.skills = [mock_application_skill_1, mock_application_skill_2]
+    mock_professional.job_applications = [mock_job_application]
+
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    # Act
+    response = professional_service.get_skills(
+        professional_id=professional_id, db=mock_db
+    )
+
+    # Assert
+    assert len(response) == 2
+    assert any(
+        skill.id == td.VALID_SKILL_ID and skill.name == td.VALID_SKILL_NAME
+        for skill in response
+    )
+    assert any(
+        skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2
+        for skill in response
+    )
+
+
+def test_get_match_requests_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_professional = mocker.Mock()
+    mock_professional.id = professional_id
+
+    match_request_1 = td.MATCH_REQUEST_1
+    match_request_2 = td.MATCH_REQUEST_2
+    mock_match_requests = [match_request_1, match_request_2]
+
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+
+    mocker.patch(
+        "app.services.match_service.get_match_requests_for_professional",
+        return_value=mock_match_requests,
+    )
+
+    # Act
+    response = professional_service.get_match_requests(
+        professional_id=professional_id, db=mock_db
+    )
+
+    # Assert
+    assert response == mock_match_requests
+    assert len(response) == 2

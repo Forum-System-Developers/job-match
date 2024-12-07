@@ -1,5 +1,7 @@
 import uuid
+from datetime import datetime
 
+from app.schemas.match import MatchRequestAd
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
 from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application_status import JobStatus
@@ -19,6 +21,8 @@ VALID_COMPANY_YOUTUBE_VIDEO_URL = (
     "https://www.youtube.com/watch?v=test_youtube_video_id"
 )
 VALID_COMPANY_YOUTUBE_VIDEO_ID = "test_youtube_video_id"
+
+VALID_CV_PATH = "test_cv_path"
 
 VALID_COMPANY_ID_2 = uuid.uuid4()
 VALID_COMPANY_NAME_2 = "Test Company 2"
@@ -155,6 +159,10 @@ VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_JOB_APPLICATION_DESCRIPTION_2 = "Test Description 2"
 VALID_JOB_APPLICATION_MIN_SALARY_2 = 2000.00
 VALID_JOB_APPLICATION_MAX_SALARY_2 = 3000.00
+
+VALID_CREATED_AT = datetime.now()
+VALID_MATCH_REQUEST_ID_1 = uuid.uuid4()
+VALID_MATCH_REQUEST_ID_2 = uuid.uuid4()
 
 JOB_AD_1 = {
     "id": VALID_JOB_AD_ID,
@@ -294,3 +302,34 @@ CATEGORY_2 = {
     "job_ads": [],
     "category_job_applications": [],
 }
+
+
+MATCH_REQUEST_1 = MatchRequestAd(
+    id=VALID_MATCH_REQUEST_ID_2,
+    job_ad_id=VALID_JOB_AD_ID_2,
+    job_application_id=VALID_JOB_APPLICATION_ID_2,
+    status=MatchStatus.ACCEPTED,
+    title="Data Scientist",
+    description="Great role for an experienced data scientist.",
+    company_id=VALID_COMPANY_ID,
+    company_name="Company B",
+    min_salary=80000,
+    max_salary=120000,
+    position="Data Scientist",
+    created_at=VALID_CREATED_AT,
+)
+
+MATCH_REQUEST_2 = MatchRequestAd(
+    id=VALID_MATCH_REQUEST_ID_2,
+    job_ad_id=VALID_JOB_AD_ID_2,
+    job_application_id=VALID_JOB_APPLICATION_ID_2,
+    status=MatchStatus.ACCEPTED,
+    title="Data Scientist",
+    description="Great role for an experienced data scientist.",
+    company_id=VALID_COMPANY_ID,
+    company_name="Company B",
+    min_salary=80000,
+    max_salary=120000,
+    position="Data Scientist",
+    created_at=VALID_CREATED_AT,
+)
