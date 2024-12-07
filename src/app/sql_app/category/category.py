@@ -9,8 +9,8 @@ from app.sql_app.database import Base
 
 if TYPE_CHECKING:
     from app.sql_app import JobAd
-    from app.sql_app.category_job_application.category_job_application import (
-        CategoryJobApplication,
+    from app.sql_app.job_application.job_application import (
+        JobApplication,
     )
 
 
@@ -41,8 +41,8 @@ class Category(Base):
     job_ads: Mapped[list["JobAd"]] = relationship(
         "JobAd", back_populates="category", uselist=True, collection_class=list
     )
-    category_job_applications: Mapped[list["CategoryJobApplication"]] = relationship(
-        "CategoryJobApplication",
+    job_applications: Mapped[list["JobApplication"]] = relationship(
+        "JobApplication",
         back_populates="category",
         uselist=True,
         collection_class=list,

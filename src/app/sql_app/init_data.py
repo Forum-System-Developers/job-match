@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.sql_app import (
     Category,
-    CategoryJobApplication,
     City,
     Company,
     JobAd,
@@ -250,6 +249,7 @@ job_applications = [
         "id": uuid4(),
         "city_id": cities[0]["id"],
         "professional_id": professionals[0]["id"],
+        "category_id": categories[0]["id"],
         "name": "Job Application 1",
         "description": "Job Application 1",
         "min_salary": 1000.0,
@@ -262,6 +262,7 @@ job_applications = [
         "id": uuid4(),
         "city_id": cities[1]["id"],
         "professional_id": professionals[1]["id"],
+        "category_id": categories[1]["id"],
         "name": "Job Application 2",
         "description": "Job Application 2",
         "min_salary": 2000.0,
@@ -274,6 +275,7 @@ job_applications = [
         "id": uuid4(),
         "city_id": cities[2]["id"],
         "professional_id": professionals[2]["id"],
+        "category_id": categories[2]["id"],
         "name": "Job Application 3",
         "description": "Job Application 3",
         "min_salary": 3000.0,
@@ -299,20 +301,6 @@ job_application_skills = [
     },
 ]
 
-category_job_applications = [
-    {
-        "category_id": categories[0]["id"],
-        "job_application_id": job_applications[0]["id"],
-    },
-    {
-        "category_id": categories[1]["id"],
-        "job_application_id": job_applications[1]["id"],
-    },
-    {
-        "category_id": categories[2]["id"],
-        "job_application_id": job_applications[2]["id"],
-    },
-]
 
 matches = [
     {
@@ -412,15 +400,6 @@ def insert_job_application_skills(db: Session) -> None:
     db.commit()
 
 
-def insert_category_job_applications(db: Session) -> None:
-    for category_job_application in category_job_applications:
-        category_job_application_model = CategoryJobApplication(
-            **category_job_application
-        )
-        db.add(category_job_application_model)
-    db.commit()
-
-
 def insert_matches(db: Session) -> None:
     for match in matches:
         match_model = Match(**match)
@@ -445,5 +424,4 @@ def insert_data(db: Session) -> None:
     insert_job_ad_skills(db)
     insert_job_applications(db)
     insert_job_application_skills(db)
-    insert_category_job_applications(db)
     insert_matches(db)
