@@ -176,18 +176,17 @@ def accept_match_request(
 @router.post(
     "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
     description="Send a match request to a Job Ad.",
+    dependencies=[Depends(require_professional_role)],
 )
 def send_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company: CompanyResponse = Depends(require_professional_role),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _send_job_ad_request():
         return match_service.send_job_application_match_request(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
-            company_id=company.id,
             db=db,
         )
 
