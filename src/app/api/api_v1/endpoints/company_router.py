@@ -18,11 +18,9 @@ router = APIRouter()
     "/",
     description="Retrieve all companies.",
 )
-def get_all_companies(
-    filter_params: FilterParams = Depends(), db: Session = Depends(get_db)
-) -> JSONResponse:
+def get_all_companies(filter_params: FilterParams = Depends()) -> JSONResponse:
     def _get_all_companies():
-        return company_service.get_all(db=db, filter_params=filter_params)
+        return company_service.get_all(filter_params=filter_params)
 
     return process_request(
         get_entities_fn=_get_all_companies,
@@ -50,17 +48,17 @@ def view_match_requests(
 
 
 @router.get(
-    "/{id}",
+    "/{company_id}",
     description="Retrieve a company by its unique identifier.",
 )
-def get_company_by_id(id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+def get_company_by_id(company_id: UUID) -> JSONResponse:
     def _get_company_by_id():
-        return company_service.get_by_id(id=id, db=db)
+        return company_service.get_by_id(company_id=company_id)
 
     return process_request(
         get_entities_fn=_get_company_by_id,
         status_code=status.HTTP_200_OK,
-        not_found_err_msg=f"Company with id {id} not found",
+        not_found_err_msg=f"Company with id {company_id} not found",
     )
 
 
