@@ -785,7 +785,8 @@ def test_handle_match_response_processes_request(mocker, mock_db):
     )
 
     mock_process_request = mocker.patch(
-        "app.services.match_service.process_request_from_company", return_value={"message": "Match response processed successfully"}
+        "app.services.match_service.process_request_from_company",
+        return_value={"message": "Match response processed successfully"},
     )
 
     # Act
@@ -797,7 +798,9 @@ def test_handle_match_response_processes_request(mocker, mock_db):
     )
 
     # Assert
-    mock_get_job_application.assert_called_once_with(job_application_id=job_application_id, db=mock_db)
+    mock_get_job_application.assert_called_once_with(
+        job_application_id=job_application_id, db=mock_db
+    )
     mock_get_job_ad.assert_called_once_with(id=job_ad_id, db=mock_db)
     mock_process_request.assert_called_once_with(
         job_application_id=job_application.id,
