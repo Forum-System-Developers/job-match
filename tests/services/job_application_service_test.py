@@ -25,6 +25,7 @@ def test_create_job_application(mocker, mock_db):
         **td.JOB_APPLICATION_CREATE,
         city=td.VALID_CITY_NAME,
         skills=[skill_1],
+        category_id=td.VALID_CATEGORY_ID,
     )
 
     mock_professional = mocker.Mock(
@@ -102,6 +103,7 @@ def test_update_job_application(mocker, mock_db):
         name=td.VALID_JOB_APPLICATION_NAME,
         is_main=True,
         application_status=JobStatus.ACTIVE,
+        category_id=td.VALID_CATEGORY_ID,
     )
 
     mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
