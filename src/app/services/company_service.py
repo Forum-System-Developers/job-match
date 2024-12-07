@@ -20,44 +20,44 @@ from app.services.utils.validators import (
 )
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
+from app.utils.request_handlers import perform_get_request
+from tests.services.urls import COMPANIES_URL, COMPANY_BY_ID_URL
 
 logger = logging.getLogger(__name__)
 
 
-def get_all(filter_params: FilterParams, db: Session) -> list[CompanyResponse]:
+def get_all(filter_params: FilterParams) -> list[CompanyResponse]:
     """
     Retrieve a list of companies from the database based on the provided filter parameters.
 
     Args:
         filter_params (FilterParams): The parameters to filter the companies, including offset and limit.
-        db (Session): The database session used to query the companies.
 
     Returns:
         list[CompanyResponse]: A list of CompanyResponse objects representing the retrieved companies.
     """
-    companies = (
-        db.query(Company).offset(filter_params.offset).limit(filter_params.limit).all()
+    companies = perform_get_request(
+        url=COMPANIES_URL, params=filter_params.model_dump()
     )
     logger.info(f"Retrieved {len(companies)} companies")
 
-    return [CompanyResponse.create(company) for company in companies]
+    return [CompanyResponse(**company) for company in companies]
 
 
-def get_by_id(id: UUID, db: Session) -> CompanyResponse:
+def get_by_id(company_id: UUID) -> CompanyResponse:
     """
     Retrieve a company by its unique identifier.
 
     Args:
-        id (UUID): The unique identifier of the company.
-        db (Session): The database session to use for the query.
+        company_id (UUID): The unique identifier of the company.
 
     Returns:
         CompanyResponse: The company response model.
     """
-    company = ensure_valid_company_id(id=id, db=db)
-    logger.info(f"Retrieved company with id {id}")
+    company = perform_get_request(url=COMPANY_BY_ID_URL.format(company_id=company_id))
+    logger.info(f"Retrieved company with id {company_id}")
 
-    return CompanyResponse.create(company)
+    return CompanyResponse(**company)
 
 
 def get_by_username(username: str, db: Session) -> User:
