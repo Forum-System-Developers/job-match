@@ -1093,18 +1093,23 @@ def test_download_cv_no_cv(mocker, mock_db):
     assert isinstance(response, JSONResponse)
     assert response.status_code == 200
 
+
 def test_delete_cv_success(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
     mock_professional.cv = b"some_cv_data"
     mock_professional.updated_at = None
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     mock_commit = mocker.patch.object(mock_db, "commit")
 
     # Act
-    response = professional_service.delete_cv(professional_id=professional_id, db=mock_db)
+    response = professional_service.delete_cv(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert isinstance(response, MessageResponse)
