@@ -846,21 +846,27 @@ def test_view_match_requests_returns_match_requests(mocker, mock_db):
     assert len(result) > 0
 
 
-def test_create_job_application_creates_application_and_increments_count(mocker, mock_db):
+def test_create_job_application_creates_application_and_increments_count(
+    mocker, mock_db
+):
     # Arrange
     professional = mocker.Mock()
     professional.id = td.VALID_PROFESSIONAL_ID
     professional.active_application_count = 0
 
-    application_create = mocker.Mock(status=JobStatus.ACTIVE, professional_id=professional.id)
-    application_create.model_dump = mocker.Mock(return_value={
-        "name": td.VALID_JOB_APPLICATION_NAME,
-        "min_salary": td.VALID_JOB_APPLICATION_MIN_SALARY,
-        "max_salary": td.VALID_JOB_APPLICATION_MAX_SALARY,
-        "description": td.VALID_JOB_APPLICATION_DESCRIPTION,
-        "is_main": True,
-    })
-    
+    application_create = mocker.Mock(
+        status=JobStatus.ACTIVE, professional_id=professional.id
+    )
+    application_create.model_dump = mocker.Mock(
+        return_value={
+            "name": td.VALID_JOB_APPLICATION_NAME,
+            "min_salary": td.VALID_JOB_APPLICATION_MIN_SALARY,
+            "max_salary": td.VALID_JOB_APPLICATION_MAX_SALARY,
+            "description": td.VALID_JOB_APPLICATION_DESCRIPTION,
+            "is_main": True,
+        }
+    )
+
     city_id = td.VALID_CITY_ID
 
     mock_job_application = JobApplication(
@@ -869,9 +875,9 @@ def test_create_job_application_creates_application_and_increments_count(mocker,
         min_salary=td.VALID_JOB_APPLICATION_MIN_SALARY,
         max_salary=td.VALID_JOB_APPLICATION_MAX_SALARY,
         description=td.VALID_JOB_APPLICATION_DESCRIPTION,
-        is_main=True
+        is_main=True,
     )
-    
+
     mock_db.add = mocker.Mock()
     mock_db.commit = mocker.Mock()
     mock_db.refresh = mocker.Mock()
@@ -881,11 +887,10 @@ def test_create_job_application_creates_application_and_increments_count(mocker,
         professional=professional,
         application_create=application_create,
         city_id=city_id,
-        db=mock_db
+        db=mock_db,
     )
 
     # Assert
     mock_db.add.assert_called_once_with(job_application)
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(job_application)
-    
