@@ -986,7 +986,7 @@ def test_upload_cv_successful(mocker, mock_db):
         professional_id=professional_id, cv=mock_cv, db=mock_db
     )
 
-    # # Assert
+    # Assert
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
     mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
     mock_commit.assert_called_once()
@@ -1014,3 +1014,32 @@ def test_upload_cv_invalid_file_type(mocker, mock_db):
 
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     assert exc.value.data.detail == "Only PDF files are allowed."
+
+
+def test_upload_cv_updates_professional(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_handle_file_upload = mocker.patch(
+        "app.services.professional_service.handle_file_upload",
+        return_value=td.VALID_CV_PATH,
+    )
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    mock_cv = mocker.Mock()
+    mock_cv.content_type = "application/pdf"
+    old_updated_at = mock_professional.updated_at
+
+    # Act
+    professional_service.upload_cv(
+        professional_id=professional_id, cv=mock_cv, db=mock_db
+    )
+
+    # Assert
+    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
+    mock_commit.assert_called_once()
+    assert mock_professional.cv == td.VALID_CV_PATH
+    assert mock_professional.updated_at != old_updated_at
