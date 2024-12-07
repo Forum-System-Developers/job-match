@@ -412,7 +412,12 @@ def require_professional_role(
         raise HTTPException(
             detail="Requires Professional Role", status_code=status.HTTP_403_FORBIDDEN
         )
-    professional = professional_service.get_by_id(professional_id=user.id, db=db)
+    try:
+        professional = professional_service.get_by_id(professional_id=user.id, db=db)
+    except ApplicationError:
+        raise HTTPException(
+            detail="Professional not found", status_code=status.HTTP_404_NOT_FOUND
+        )
     return professional
 
 
@@ -437,7 +442,12 @@ def require_company_role(
         raise HTTPException(
             detail="Requires Company Role", status_code=status.HTTP_403_FORBIDDEN
         )
-    company = company_service.get_by_id(id=user.id, db=db)
+    try:
+        company = company_service.get_by_id(id=user.id, db=db)
+    except ApplicationError:
+        raise HTTPException(
+            detail="Company not found", status_code=status.HTTP_404_NOT_FOUND
+        )
     return company
 
 
