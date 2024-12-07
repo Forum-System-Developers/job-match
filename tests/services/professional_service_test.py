@@ -969,15 +969,22 @@ def test_upload_cv_successful(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
-    mock_get_by_id = mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
-    mock_handle_file_upload = mocker.patch("app.services.professional_service.handle_file_upload", return_value=td.VALID_CV_PATH)
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
+    mock_handle_file_upload = mocker.patch(
+        "app.services.professional_service.handle_file_upload",
+        return_value=td.VALID_CV_PATH,
+    )
     mock_commit = mocker.patch.object(mock_db, "commit")
 
     mock_cv = mocker.Mock()
     mock_cv.content_type = "application/pdf"
 
     # Act
-    result = professional_service.upload_cv(professional_id=professional_id, cv=mock_cv, db=mock_db)
+    result = professional_service.upload_cv(
+        professional_id=professional_id, cv=mock_cv, db=mock_db
+    )
 
     # # Assert
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
