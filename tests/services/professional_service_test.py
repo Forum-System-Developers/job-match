@@ -2,7 +2,7 @@ import json
 
 import pytest
 from fastapi import status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
@@ -1072,3 +1072,18 @@ def test_download_cv_successful(mocker, mock_db):
         == "attachment; filename=John_Doe_CV.pdf"
     )
     assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
+
+
+def test_download_cv_no_cv(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = None
+    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+
+    # Act
+    response = professional_service.download_cv(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert isinstance(response, JSONResponse)
+    assert response.status_code == 200
