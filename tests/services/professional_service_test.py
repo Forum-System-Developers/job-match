@@ -9,9 +9,11 @@ from app.schemas.city import City
 from app.schemas.common import MessageResponse
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobSearchStatus
+from app.schemas.match import MatchRequestAd
 from app.schemas.user import User
 from app.services import professional_service
 from app.sql_app.job_application.job_application import JobApplication
+from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 from tests.utils import assert_filter_called_with
@@ -1183,3 +1185,29 @@ def test_get_skills_success(mocker, mock_db):
         skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2
         for skill in response
     )
+
+
+def test_get_match_requests_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_professional = mocker.Mock()
+    mock_professional.id = professional_id
+
+    match_request_1 = td.MATCH_REQUEST_1
+    match_request_2 = td.MATCH_REQUEST_2
+    mock_match_requests = [match_request_1, match_request_2]
+
+    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+
+    mocker.patch(
+        "app.services.match_service.get_match_requests_for_professional",
+        return_value=mock_match_requests
+    )
+
+    # Act
+    response = professional_service.get_match_requests(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert response == mock_match_requests
+    assert len(response) == 2
