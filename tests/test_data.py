@@ -20,6 +20,8 @@ VALID_COMPANY_YOUTUBE_VIDEO_URL = (
 )
 VALID_COMPANY_YOUTUBE_VIDEO_ID = "test_youtube_video_id"
 
+VALID_CV_PATH = "test_cv_path"
+
 VALID_COMPANY_ID_2 = uuid.uuid4()
 VALID_COMPANY_NAME_2 = "Test Company 2"
 VALID_COMPANY_DESCRIPTION_2 = "Test Description 2"
