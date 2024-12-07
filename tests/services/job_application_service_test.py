@@ -731,3 +731,39 @@ def test_create_skillset_does_not_add_existing_skill(mocker, mock_db):
     )
     mock_get_by_id.assert_any_call(db=mock_db, skill_id=skills[0].skill_id)
     mock_db.flush.assert_called_once()
+
+
+def test_request_match_creates_match_if_not_exists(mocker, mock_db):
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+
+    job_application = mocker.Mock(id=job_application_id)
+    job_ad = mocker.Mock(id=job_ad_id)
+
+    mock_get_job_application = mocker.patch(
+        "app.services.job_application_service._get_by_id", return_value=job_application
+    )
+    mock_get_job_ad = mocker.patch(
+        "app.services.job_ad_service.get_by_id", return_value=job_ad
+    )
+
+    mock_create_match = mocker.patch(
+        "app.services.match_service.create_if_not_exists",
+        return_value={"message": "Match created successfully"},
+    )
+
+    result = job_application_service.request_match(
+        job_application_id=job_application_id, job_ad_id=job_ad_id, db=mock_db
+    )
+
+    # Assert
+    mock_get_job_application.assert_called_once_with(
+        job_application_id=job_application_id, db=mock_db
+    )
+    mock_get_job_ad.assert_called_once_with(id=job_ad_id, db=mock_db)
+    mock_create_match.assert_called_once_with(
+        job_application_id=job_application.id, job_ad_id=job_ad.id, db=mock_db
+    )
+
+    assert result == {"message": "Match created successfully"}
