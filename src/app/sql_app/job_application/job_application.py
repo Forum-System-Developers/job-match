@@ -6,8 +6,8 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, fun
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.sql_app.category_job_application.category_job_application import (
-    CategoryJobApplication,
+from app.sql_app.category.category import (
+    Category,
 )
 from app.sql_app.database import Base
 from app.sql_app.job_application.job_application_status import JobStatus
@@ -69,12 +69,15 @@ class JobApplication(Base):
     city_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("city.id"), nullable=False
     )
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("category.id"), nullable=False
+    )
 
     professional: Mapped["Professional"] = relationship(
         "Professional", back_populates="job_applications"
     )
-    category_job_applications: Mapped["CategoryJobApplication"] = relationship(
-        "CategoryJobApplication", back_populates="job_application"
+    category: Mapped["Category"] = relationship(
+        "Category", back_populates="job_applications"
     )
     skills: Mapped[list["JobApplicationSkill"]] = relationship(
         "JobApplicationSkill",
