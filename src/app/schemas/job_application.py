@@ -65,7 +65,6 @@ class JobAplicationBase(BaseModel):
     description: str = Field(
         examples=["A seasoned web developer with expertise in FastAPI"]
     )
-    category_id: UUID = Field(description="Category ID")
 
     @model_validator(mode="before")
     def validate_salary_range(cls, values):
@@ -80,6 +79,7 @@ class JobAplicationBase(BaseModel):
 
 
 class JobApplicationCreate(JobAplicationBase):
+    category_id: UUID = Field(description="Category ID")
     city: str = Field(examples=["Sofia"])
     is_main: bool
     skills: list[SkillBase] = Field(default_factory=list)
@@ -121,6 +121,7 @@ class JobApplicationResponse(JobAplicationBase):
     photo: bytes | None = None
     status: str
     skills: list[SkillResponse] | None = None
+    category_id: UUID
     category_title: str
 
     @classmethod
