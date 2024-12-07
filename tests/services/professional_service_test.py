@@ -1198,15 +1198,19 @@ def test_get_match_requests_success(mocker, mock_db):
     match_request_2 = td.MATCH_REQUEST_2
     mock_match_requests = [match_request_1, match_request_2]
 
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     mocker.patch(
         "app.services.match_service.get_match_requests_for_professional",
-        return_value=mock_match_requests
+        return_value=mock_match_requests,
     )
 
     # Act
-    response = professional_service.get_match_requests(professional_id=professional_id, db=mock_db)
+    response = professional_service.get_match_requests(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert response == mock_match_requests
