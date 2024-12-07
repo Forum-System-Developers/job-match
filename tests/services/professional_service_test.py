@@ -999,14 +999,18 @@ def test_upload_cv_invalid_file_type(mocker, mock_db):
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     mock_cv = mocker.Mock()
     mock_cv.content_type = "text/plain"
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        professional_service.upload_cv(professional_id=professional_id, cv=mock_cv, db=mock_db)
+        professional_service.upload_cv(
+            professional_id=professional_id, cv=mock_cv, db=mock_db
+        )
 
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     assert exc.value.data.detail == "Only PDF files are allowed."
