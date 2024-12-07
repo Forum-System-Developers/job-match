@@ -767,3 +767,43 @@ def test_request_match_creates_match_if_not_exists(mocker, mock_db):
     )
 
     assert result == {"message": "Match created successfully"}
+
+
+def test_handle_match_response_processes_request(mocker, mock_db):
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    accept_request = mocker.Mock()
+    job_application = mocker.Mock(id=job_application_id)
+    job_ad = mocker.Mock(id=job_ad_id)
+
+    mock_get_job_application = mocker.patch(
+        "app.services.job_application_service._get_by_id", return_value=job_application
+    )
+    mock_get_job_ad = mocker.patch(
+        "app.services.job_ad_service.get_by_id", return_value=job_ad
+    )
+
+    mock_process_request = mocker.patch(
+        "app.services.match_service.process_request_from_company", return_value={"message": "Match response processed successfully"}
+    )
+
+    # Act
+    result = job_application_service.handle_match_response(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+        accept_request=accept_request,
+        db=mock_db,
+    )
+
+    # Assert
+    mock_get_job_application.assert_called_once_with(job_application_id=job_application_id, db=mock_db)
+    mock_get_job_ad.assert_called_once_with(id=job_ad_id, db=mock_db)
+    mock_process_request.assert_called_once_with(
+        job_application_id=job_application.id,
+        job_ad_id=job_ad.id,
+        accept_request=accept_request,
+        db=mock_db,
+    )
+
+    assert result == {"message": "Match response processed successfully"}
