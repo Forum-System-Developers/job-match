@@ -40,6 +40,7 @@ VALID_PASSWORD = "test_password"
 
 VALID_PROFESSIONAL_ID = uuid.uuid4()
 VALID_SKILL_ID = uuid.uuid4()
+VALID_SKILL_ID_2 = uuid.uuid4()
 
 VALID_CITY_ID = uuid.uuid4()
 VALID_CITY_NAME = "Test City"
