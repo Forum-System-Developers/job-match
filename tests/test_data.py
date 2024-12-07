@@ -3,10 +3,10 @@ from datetime import datetime
 
 from app.schemas.match import MatchRequestAd
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
-from app.sql_app.job_application.job_application_status import JobStatus
-from app.sql_app.job_requirement.skill_level import SkillLevel
-from app.sql_app.match.match_status import MatchStatus
+from app.services.enums.job_ad_status import JobAdStatus
+from app.services.enums.job_application_status import JobStatus
+from app.services.enums.match_status import MatchStatus
+from app.services.enums.skill_level import SkillLevel
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
 VALID_COMPANY_ID = uuid.uuid4()

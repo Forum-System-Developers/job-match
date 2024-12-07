@@ -9,6 +9,7 @@ from sqlalchemy.orm import Query, Session, aliased
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdResponse, JobAdUpdate
+from app.services.enums.job_ad_status import JobAdStatus
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_city,
@@ -19,7 +20,6 @@ from app.services.utils.validators import (
     ensure_valid_skill_id,
 )
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
 from app.sql_app.skill.skill import Skill
 

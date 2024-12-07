@@ -6,12 +6,12 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.services.enums.match_status import MatchStatus
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.match.match import Match
-from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 

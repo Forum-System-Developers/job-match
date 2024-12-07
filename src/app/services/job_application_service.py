@@ -17,9 +17,9 @@ from app.schemas.job_application import (
 from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
+from app.services.enums.job_application_status import JobStatus
 from app.services.utils.validators import ensure_valid_professional_id
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.professional.professional import Professional
 from app.utils.processors import process_db_transaction
 

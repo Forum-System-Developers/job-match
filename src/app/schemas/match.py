@@ -2,10 +2,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.services.enums.match_status import MatchStatus
 from app.sql_app import Match
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 
 

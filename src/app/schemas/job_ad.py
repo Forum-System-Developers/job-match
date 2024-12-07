@@ -6,9 +6,9 @@ from pydantic import BaseModel, condecimal
 from app.schemas.city import City
 from app.schemas.custom_types import Salary
 from app.schemas.skill import SkillBase
+from app.services.enums.job_ad_status import JobAdStatus
+from app.services.enums.skill_level import SkillLevel
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
-from app.sql_app.job_requirement.skill_level import SkillLevel
 
 
 class BaseJobAd(BaseModel):

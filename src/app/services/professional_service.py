@@ -22,11 +22,11 @@ from app.schemas.professional import (
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
+from app.services.enums.job_application_status import JobStatus
 from app.services.utils.file_utils import handle_file_upload
 from app.services.utils.validators import unique_email, unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional

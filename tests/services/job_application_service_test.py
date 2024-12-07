@@ -5,8 +5,8 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
+from app.services.enums.job_application_status import JobStatus
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from tests import test_data as td
 
 

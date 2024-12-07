@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field, field_validator
 
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.services.enums.job_ad_status import JobAdStatus
 
 
 class FilterParams(BaseModel):

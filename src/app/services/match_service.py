@@ -9,6 +9,8 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchRequestAd, MatchRequestApplication, MatchResponse
+from app.services.enums.job_ad_status import JobAdStatus
+from app.services.enums.job_application_status import JobStatus
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_job_ad_id,
@@ -16,9 +18,7 @@ from app.services.utils.validators import (
     ensure_valid_match_request,
 )
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match, MatchStatus
 from app.sql_app.professional.professional import ProfessionalStatus
 from app.utils.processors import process_db_transaction

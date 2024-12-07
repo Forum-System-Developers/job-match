@@ -9,9 +9,7 @@ from app.sql_app.database import Base
 
 if TYPE_CHECKING:
     from app.sql_app import JobAd
-    from app.sql_app.job_application.job_application import (
-        JobApplication,
-    )
+    from app.sql_app.job_application.job_application import JobApplication
 
 
 class Category(Base):

@@ -6,9 +6,9 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.services.enums.job_ad_status import JobAdStatus
+from app.services.enums.skill_level import SkillLevel
 from app.sql_app.database import Base
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
-from app.sql_app.job_requirement.skill_level import SkillLevel
 
 if TYPE_CHECKING:
     from app.sql_app import Category, City, Company, Match, Skill

@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.skill import Skill, SkillCreate, SkillResponse
+from app.services.enums.skill_level import SkillLevel
 from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.job_requirement.skill_level import SkillLevel
 from app.sql_app.pending_skill.pending_skill import PendingSkill
 from app.sql_app.skill.skill import Skill
 from app.utils.processors import process_db_transaction

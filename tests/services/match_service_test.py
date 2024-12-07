@@ -8,6 +8,9 @@ from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchRequestAd, MatchResponse
+from app.services.enums.job_ad_status import JobAdStatus
+from app.services.enums.job_application_status import JobStatus
+from app.services.enums.match_status import MatchStatus
 from app.services.match_service import (
     _get_match,
     accept_job_application_match_request,
@@ -21,11 +24,8 @@ from app.services.match_service import (
     view_sent_job_application_match_requests,
 )
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from app.sql_app.match.match import Match
-from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from tests import test_data as td
 from tests.utils import assert_called_with, assert_filter_called_with
