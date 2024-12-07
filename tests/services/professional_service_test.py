@@ -1,5 +1,6 @@
 import json
 
+from fastapi.responses import StreamingResponse
 import pytest
 from fastapi import status
 
@@ -1043,3 +1044,24 @@ def test_upload_cv_updates_professional(mocker, mock_db):
     mock_commit.assert_called_once()
     assert mock_professional.cv == td.VALID_CV_PATH
     assert mock_professional.updated_at != old_updated_at
+
+
+def test_download_cv_successful(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = b"PDF content"
+    mock_professional.first_name = "John"
+    mock_professional.last_name = "Doe"
+
+    mock_get_by_id = mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+
+    # Act
+    response = professional_service.download_cv(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    assert isinstance(response, StreamingResponse)
+    assert response.media_type == "application/pdf"
+    assert response.headers["Content-Disposition"] == "attachment; filename=John_Doe_CV.pdf"
+    assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
