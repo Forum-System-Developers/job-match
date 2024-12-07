@@ -32,6 +32,7 @@ dependencies = [
     "debugpy==1.8.9",
     "itsdangerous==2.2.0",
     "requests==2.32.3",
+    "types-requests==2.32.0.20241016",
     "httpx==0.27.2"
 ]
 
