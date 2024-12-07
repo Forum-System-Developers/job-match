@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
+from app.schemas.common import MessageResponse
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.user import User
@@ -1091,3 +1092,23 @@ def test_download_cv_no_cv(mocker, mock_db):
     # Assert
     assert isinstance(response, JSONResponse)
     assert response.status_code == 200
+
+def test_delete_cv_success(mocker, mock_db):
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_professional = mocker.Mock()
+    mock_professional.cv = b"some_cv_data"
+    mock_professional.updated_at = None
+    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+
+    mock_commit = mocker.patch.object(mock_db, "commit")
+
+    # Act
+    response = professional_service.delete_cv(professional_id=professional_id, db=mock_db)
+
+    # Assert
+    assert isinstance(response, MessageResponse)
+    assert response.message == "CV deleted successfully"
+    assert mock_professional.cv is None
+    assert mock_professional.updated_at is not None
+    mock_commit.assert_called_once()
