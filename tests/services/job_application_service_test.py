@@ -810,3 +810,35 @@ def test_handle_match_response_processes_request(mocker, mock_db):
     )
 
     assert result == {"message": "Match response processed successfully"}
+
+
+def test_view_match_requests_returns_match_requests(mocker, mock_db):
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    filter_params = mocker.Mock()
+
+    job_application = mocker.Mock(id=job_application_id)
+
+    mock_get_job_application = mocker.patch(
+        "app.services.job_application_service._get_by_id", return_value=job_application
+    )
+
+    mock_get_match_requests = mocker.patch(
+        "app.services.match_service.get_match_requests_for_job_application", return_value=[mocker.Mock()]
+    )
+
+    # Act
+    result = job_application_service.view_match_requests(
+        job_application_id=job_application_id,
+        db=mock_db,
+        filter_params=filter_params
+    )
+
+    # Assert
+    mock_get_job_application.assert_called_once_with(job_application_id=job_application_id, db=mock_db)
+    mock_get_match_requests.assert_called_once_with(
+        job_application_id=job_application.id, filter_params=filter_params, db=mock_db
+    )
+
+    assert isinstance(result, list)
+    assert len(result) > 0
