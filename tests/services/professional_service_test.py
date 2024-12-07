@@ -1,8 +1,8 @@
 import json
 
-from fastapi.responses import StreamingResponse
 import pytest
 from fastapi import status
+from fastapi.responses import StreamingResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import City
@@ -1054,14 +1054,21 @@ def test_download_cv_successful(mocker, mock_db):
     mock_professional.first_name = "John"
     mock_professional.last_name = "Doe"
 
-    mock_get_by_id = mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     # Act
-    response = professional_service.download_cv(professional_id=professional_id, db=mock_db)
+    response = professional_service.download_cv(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
     assert isinstance(response, StreamingResponse)
     assert response.media_type == "application/pdf"
-    assert response.headers["Content-Disposition"] == "attachment; filename=John_Doe_CV.pdf"
+    assert (
+        response.headers["Content-Disposition"]
+        == "attachment; filename=John_Doe_CV.pdf"
+    )
     assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
