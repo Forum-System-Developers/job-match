@@ -10,6 +10,7 @@ from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_application import MatchResponseRequest
 from app.schemas.match import MatchRequestAd, MatchRequestApplication, MatchResponse
 from app.services.utils.validators import (
+    ensure_job_ad_exists,
     ensure_no_match_request,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
@@ -335,7 +336,6 @@ def accept_job_application_match_request(
 def send_job_application_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company_id: UUID,
     db: Session,
 ) -> MessageResponse:
     """
@@ -355,7 +355,7 @@ def send_job_application_match_request(
     Returns:
         MessageResponse: The response indicating successful match request.
     """
-    ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    ensure_job_ad_exists(job_ad_id=job_ad_id, db=db)
     ensure_valid_job_application_id(id=job_application_id, db=db)
     ensure_no_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db

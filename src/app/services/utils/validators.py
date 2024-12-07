@@ -75,6 +75,31 @@ def ensure_valid_job_ad_id(
     return job_ad
 
 
+def ensure_job_ad_exists(job_ad_id: UUID, db: Session) -> JobAd:
+    """
+    Ensure that a job advertisement with the given job_ad_id exists in the database.
+
+    Args:
+        job_ad_id (UUID): The unique identifier of the job advertisement.
+        db (Session): The database session used to query the job advertisement.
+
+    Returns:
+        JobAd: The job advertisement object if found.
+
+    Raises:
+        ApplicationError: If the job advertisement with the given job_ad_id is not found.
+    """
+    job_ad = db.query(JobAd).filter(JobAd.id == job_ad_id).first()
+    if job_ad is None:
+        logger.error(f"Job Ad with id {job_ad_id} not found")
+        raise ApplicationError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job Ad with id {job_ad_id} not found",
+        )
+
+    return job_ad
+
+
 def ensure_valid_job_application_id(
     id: UUID, db: Session, professional_id: UUID | None = None
 ) -> JobApplication:
