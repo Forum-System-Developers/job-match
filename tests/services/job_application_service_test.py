@@ -910,7 +910,9 @@ def test_get_skills(mocker, mock_db):
     mock_get_by_id.side_effect = [mock_skill_1, mock_skill_2]
 
     # Act
-    skills = job_application_service.get_skills(job_application=job_application, db=mock_db)
+    skills = job_application_service.get_skills(
+        job_application=job_application, db=mock_db
+    )
 
     # Assert
     mock_get_by_id.assert_any_call(skill_id=td.VALID_SKILL_ID, db=mock_db)
