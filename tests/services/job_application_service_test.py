@@ -824,18 +824,19 @@ def test_view_match_requests_returns_match_requests(mocker, mock_db):
     )
 
     mock_get_match_requests = mocker.patch(
-        "app.services.match_service.get_match_requests_for_job_application", return_value=[mocker.Mock()]
+        "app.services.match_service.get_match_requests_for_job_application",
+        return_value=[mocker.Mock()],
     )
 
     # Act
     result = job_application_service.view_match_requests(
-        job_application_id=job_application_id,
-        db=mock_db,
-        filter_params=filter_params
+        job_application_id=job_application_id, db=mock_db, filter_params=filter_params
     )
 
     # Assert
-    mock_get_job_application.assert_called_once_with(job_application_id=job_application_id, db=mock_db)
+    mock_get_job_application.assert_called_once_with(
+        job_application_id=job_application_id, db=mock_db
+    )
     mock_get_match_requests.assert_called_once_with(
         job_application_id=job_application.id, filter_params=filter_params, db=mock_db
     )
