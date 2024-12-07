@@ -15,9 +15,9 @@ router = APIRouter()
     description="Retrieve all categories.",
     dependencies=[Depends(get_current_user)],
 )
-def get_all_categories(db: Session = Depends(get_db)) -> JSONResponse:
+def get_all_categories() -> JSONResponse:
     def _get_all_categories():
-        return category_service.get_all(db)
+        return category_service.get_all()
 
     return process_request(
         get_entities_fn=_get_all_categories,
