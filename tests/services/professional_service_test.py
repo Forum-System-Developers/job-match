@@ -1164,12 +1164,22 @@ def test_get_skills_success(mocker, mock_db):
     mock_job_application.skills = [mock_application_skill_1, mock_application_skill_2]
     mock_professional.job_applications = [mock_job_application]
 
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     # Act
-    response = professional_service.get_skills(professional_id=professional_id, db=mock_db)
+    response = professional_service.get_skills(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert len(response) == 2
-    assert any(skill.id == td.VALID_SKILL_ID and skill.name == td.VALID_SKILL_NAME for skill in response)
-    assert any(skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2 for skill in response)
+    assert any(
+        skill.id == td.VALID_SKILL_ID and skill.name == td.VALID_SKILL_NAME
+        for skill in response
+    )
+    assert any(
+        skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2
+        for skill in response
+    )
