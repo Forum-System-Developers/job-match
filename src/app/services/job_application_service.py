@@ -7,7 +7,7 @@ from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
-from app.schemas.common import FilterParams, SearchParams
+from app.schemas.common import FilterParams, SearchJobApplication
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
@@ -20,7 +20,9 @@ from app.services import city_service, job_ad_service, match_service, skill_serv
 from app.services.utils.validators import ensure_valid_professional_id
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application.job_application_status import JobStatus
+from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
 from app.sql_app.professional.professional import Professional
+from app.sql_app.skill.skill import Skill
 from app.utils.processors import process_db_transaction
 
 logger = logging.getLogger(__name__)
@@ -112,7 +114,7 @@ def update(
 
 def get_all(
     filter_params: FilterParams,
-    search_params: SearchParams,
+    search_params: SearchJobApplication,
     db: Session,
 ) -> list[JobApplicationResponse]:
     """
@@ -133,14 +135,13 @@ def get_all(
         )
     )
 
-    # TODO
-    # if search_params.skills:
-    #     query = (
-    #         query.join(JobApplicationSkill)
-    #         .join(Skill)
-    #         .filter(Skill.name.in_(search_params.skills))
-    #     )
-    #     logger.info("Filtered applications by skills.")
+    if search_params.skills:
+        query = (
+            query.join(JobApplicationSkill)
+            .join(Skill)
+            .filter(Skill.name.in_(search_params.skills))
+        )
+        logger.info("Filtered applications by skills.")
 
     if search_params.order == "desc":
         query.order_by(getattr(JobApplication, search_params.order_by).desc())
