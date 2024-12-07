@@ -1079,10 +1079,14 @@ def test_download_cv_no_cv(mocker, mock_db):
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
     mock_professional.cv = None
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     # Act
-    response = professional_service.download_cv(professional_id=professional_id, db=mock_db)
+    response = professional_service.download_cv(
+        professional_id=professional_id, db=mock_db
+    )
 
     # Assert
     assert isinstance(response, JSONResponse)
