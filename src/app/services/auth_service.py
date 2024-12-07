@@ -282,7 +282,7 @@ def _verify_user(user_role: str, user_id: UUID, db: Session) -> str:
     """
     if user_role == UserRole.COMPANY.value:
         try:
-            company_service.get_by_id(id=user_id, db=db)
+            company_service.get_by_id(company_id=user_id)
         except HTTPException:
             logger.error(f"Company {user_id} not found")
             raise HTTPException(
@@ -443,7 +443,7 @@ def require_company_role(
             detail="Requires Company Role", status_code=status.HTTP_403_FORBIDDEN
         )
     try:
-        company = company_service.get_by_id(id=user.id, db=db)
+        company = company_service.get_by_id(company_id=user.id)
     except ApplicationError:
         raise HTTPException(
             detail="Company not found", status_code=status.HTTP_404_NOT_FOUND

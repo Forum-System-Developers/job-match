@@ -46,9 +46,7 @@ def create(
         professional_id=professional_id, db=db
     )
 
-    city: CityResponse = city_service.get_by_name(
-        city_name=application_create.city, db=db
-    )
+    city: CityResponse = city_service.get_by_name(city_name=application_create.city)
 
     job_application = _create(
         professional=professional,
@@ -264,9 +262,7 @@ def _update_attributes(
     if (
         application_update.city is not None
     ) and application_update.city != job_application_model.city.name:
-        city: CityResponse = city_service.get_by_name(
-            city_name=application_update.city, db=db
-        )
+        city: CityResponse = city_service.get_by_name(city_name=application_update.city)
 
         job_application_model.city_id = city.id
         logger.info(f"Job Application id {job_application_model.id} city updated")

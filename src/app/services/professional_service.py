@@ -54,7 +54,7 @@ def create(
     professional_create = professional_request.professional
     professional_status = professional_request.status
 
-    city = city_service.get_by_name(city_name=professional_create.city, db=db)
+    city = city_service.get_by_name(city_name=professional_create.city)
     if city is None:
         logger.error(f"City name {professional_create.city} not found")
         raise ApplicationError(
@@ -399,7 +399,7 @@ def _update_attributes(
     if (
         professional_update.city is not None
     ) and professional_update.city != professional.city.name:
-        city = city_service.get_by_name(city_name=professional_update.city, db=db)
+        city = city_service.get_by_name(city_name=professional_update.city)
         professional.city_id = city.id
         logger.info("professional city updated successfully")
 

@@ -90,7 +90,7 @@ def test_getById_returnsCompany_whenCompanyIsFound(
     )
 
     # Act
-    result = company_service.get_by_id(id=td.VALID_COMPANY_ID, db=mock_db)
+    result = company_service.get_by_id(company_id=td.VALID_COMPANY_ID, db=mock_db)
 
     # Assert
     mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
