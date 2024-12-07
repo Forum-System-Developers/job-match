@@ -1124,11 +1124,16 @@ def test_delete_cv_not_found(mocker, mock_db):
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
     mock_professional.cv = None
-    mocker.patch("app.services.professional_service._get_by_id", return_value=mock_professional)
+    mocker.patch(
+        "app.services.professional_service._get_by_id", return_value=mock_professional
+    )
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
         professional_service.delete_cv(professional_id=professional_id, db=mock_db)
-    
+
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"CV for Job Application with id {professional_id} not found"
+    assert (
+        exc.value.data.detail
+        == f"CV for Job Application with id {professional_id} not found"
+    )
