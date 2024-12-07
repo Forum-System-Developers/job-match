@@ -40,6 +40,7 @@ VALID_PASSWORD = "test_password"
 
 VALID_PROFESSIONAL_ID = uuid.uuid4()
 VALID_SKILL_ID = uuid.uuid4()
+VALID_SKILL_ID_2 = uuid.uuid4()
 
 VALID_CITY_ID = uuid.uuid4()
 VALID_CITY_NAME = "Test City"
@@ -143,12 +144,13 @@ VALID_JOB_AD_DESCRIPTION_2 = "Test Description 2"
 VALID_JOB_AD_MIN_SALARY_2 = 2000.00
 VALID_JOB_AD_MAX_SALARY_2 = 3000.00
 
-
+VALID_JOB_APPLICATION_NAME = "Testest"
 VALID_JOB_APPLICATION_ID = uuid.uuid4()
 VALID_JOB_APPLICATION_DESCRIPTION = "Test Description"
 VALID_JOB_APPLICATION_MIN_SALARY = 1000.00
 VALID_JOB_APPLICATION_MAX_SALARY = 2000.00
 
+VALID_JOB_APPLICATION_NAME_2 = "TesTest"
 VALID_JOB_APPLICATION_ID_2 = uuid.uuid4()
 VALID_JOB_APPLICATION_DESCRIPTION_2 = "Test Description 2"
 VALID_JOB_APPLICATION_MIN_SALARY_2 = 2000.00
@@ -242,6 +244,15 @@ JOB_APPLICATION = {
     "professional_id": VALID_PROFESSIONAL_ID,
     "min_salary": 1000.00,
     "max_salary": 2000.00,
+    "status": JobStatus.ACTIVE,
+}
+
+JOB_APPLICATION_CREATE = {
+    "name": VALID_JOB_APPLICATION_NAME,
+    "min_salary": 1000.00,
+    "max_salary": 2000.00,
+    "description": VALID_JOB_APPLICATION_DESCRIPTION,
+    "is_main": True,
     "status": JobStatus.ACTIVE,
 }
 
