@@ -1051,8 +1051,8 @@ def test_download_cv_successful(mocker, mock_db):
     professional_id = td.VALID_PROFESSIONAL_ID
     mock_professional = mocker.Mock()
     mock_professional.cv = b"PDF content"
-    mock_professional.first_name = "John"
-    mock_professional.last_name = "Doe"
+    mock_professional.first_name = td.VALID_PROFESSIONAL_FIRST_NAME
+    mock_professional.last_name = td.VALID_PROFESSIONAL_LAST_NAME
 
     mock_get_by_id = mocker.patch(
         "app.services.professional_service._get_by_id", return_value=mock_professional
@@ -1069,7 +1069,7 @@ def test_download_cv_successful(mocker, mock_db):
     assert response.media_type == "application/pdf"
     assert (
         response.headers["Content-Disposition"]
-        == "attachment; filename=John_Doe_CV.pdf"
+        == "attachment; filename=Test_Professional_CV.pdf"
     )
     assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
 
