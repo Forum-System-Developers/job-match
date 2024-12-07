@@ -894,3 +894,25 @@ def test_create_job_application_creates_application_and_increments_count(
     mock_db.add.assert_called_once_with(job_application)
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(job_application)
+
+
+def test_get_skills(mocker, mock_db):
+    # Arrange
+    job_application = mocker.Mock()
+    job_application.skills = [
+        mocker.Mock(skill_id=td.VALID_SKILL_ID),
+        mocker.Mock(skill_id=td.VALID_SKILL_ID_2),
+    ]
+
+    mock_get_by_id = mocker.patch("app.services.skill_service.get_by_id")
+    mock_skill_1 = mocker.Mock()
+    mock_skill_2 = mocker.Mock()
+    mock_get_by_id.side_effect = [mock_skill_1, mock_skill_2]
+
+    # Act
+    skills = job_application_service.get_skills(job_application=job_application, db=mock_db)
+
+    # Assert
+    mock_get_by_id.assert_any_call(skill_id=td.VALID_SKILL_ID, db=mock_db)
+    mock_get_by_id.assert_any_call(skill_id=td.VALID_SKILL_ID_2, db=mock_db)
+    assert skills == [mock_skill_1, mock_skill_2]
