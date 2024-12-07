@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from app.schemas.match import MatchRequestAd
 from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
@@ -316,7 +316,7 @@ MATCH_REQUEST_1 = MatchRequestAd(
     min_salary=80000,
     max_salary=120000,
     position="Data Scientist",
-    created_at=VALID_CREATED_AT
+    created_at=VALID_CREATED_AT,
 )
 
 MATCH_REQUEST_2 = MatchRequestAd(
@@ -331,5 +331,5 @@ MATCH_REQUEST_2 = MatchRequestAd(
     min_salary=80000,
     max_salary=120000,
     position="Data Scientist",
-    created_at=VALID_CREATED_AT
+    created_at=VALID_CREATED_AT,
 )
