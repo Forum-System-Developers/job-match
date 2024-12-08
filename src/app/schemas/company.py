@@ -2,7 +2,7 @@ import re
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
-from fastapi import status
+from fastapi import HTTPException, status
 from pydantic import BaseModel, EmailStr, HttpUrl, field_validator, model_validator
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -62,7 +62,7 @@ class CompanyCreate(BaseModel):
         return password
 
 
-class CompanyCreateComplete(BaseModel):
+class CompanyCreateFinal(BaseModel):
     username: Username  # type: ignore
     password_hash: str  # type: ignore
     name: str
@@ -91,12 +91,23 @@ class CompanyUpdate(BaseModel):
             query_params = parse_qs(url_parts.query)
             video_id = query_params.get("v")
             if not video_id:
-                raise ApplicationError(
+                raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid YouTube video URL provided.",
                 )
             values["youtube_video_id"] = video_id[0]
         return values
+    
+
+class CompanyUpdateFinal(BaseModel):
+    name: str | None = None
+    address_line: str | None = None
+    city_id: UUID | None = None
+    description: str | None = None
+    email: EmailStr | None = None
+    phone_number: str | None = None
+    website_url: HttpUrl | None = None
+    youtube_video_id: str | None = None
 
 
 class CompanyResponse(CompanyBase):
