@@ -108,14 +108,13 @@ def update(
         if not professional.has_private_matches
         else None
     )
-
-    db.commit()
-    db.refresh(professional)
+    skills = get_skills(professional_id=professional_id, db=db)
 
     logger.info(f"Professional with id {professional.id} updated successfully")
     return ProfessionalResponse.create(
         professional=professional,
         matched_ads=matched_ads,
+        skills=skills,
     )
 
 
@@ -234,17 +233,21 @@ def delete_cv(professional_id: UUID, db: Session) -> MessageResponse:
         ApplicationError: If the professional's CV is not found.
     """
     professional = _get_by_id(professional_id=professional_id, db=db)
-    if professional.cv is None:
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"CV for Job Application with id {professional_id} not found",
-        )
-    professional.cv = None
-    professional.updated_at = datetime.now()
-    db.commit()
-    logger.info(f"Deleted CV of professional with id {professional_id}")
 
-    return MessageResponse(message="CV deleted successfully")
+    def _handle_delete():
+        if professional.cv is None:
+            raise ApplicationError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"CV for Job Application with id {professional_id} not found",
+            )
+        professional.cv = None
+        professional.updated_at = datetime.now()
+        db.commit()
+        logger.info(f"Deleted CV of professional with id {professional_id}")
+
+        return MessageResponse(message="CV deleted successfully")
+
+    return process_db_transaction(transaction_func=_handle_delete, db=db)
 
 
 def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
@@ -266,8 +269,12 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
         else None
     )
 
+    skills = get_skills(professional_id=professional_id, db=db)
+
+    logger.info(f"Professional with id {professional_id} fetched")
+
     return ProfessionalResponse.create(
-        professional=professional, matched_ads=matched_ads
+        professional=professional, matched_ads=matched_ads, skills=skills
     )
 
 
@@ -297,10 +304,6 @@ def get_all(
 
     logger.info("Retreived all professional profiles that are with status ACTIVE")
 
-    # if search_params.skills:
-    #     query = query.filter(Skill.name.in_(search_params.skills))
-    #     logger.info(f"Filtered Professionals by skills: {search_params.skills}")
-
     if search_params.order == "desc":
         query.order_by(getattr(Professional, search_params.order_by).desc())
     else:
@@ -316,7 +319,10 @@ def get_all(
     logger.info("Limited public topics based on offset and limit")
 
     return [
-        ProfessionalResponse.create(professional=professional)
+        ProfessionalResponse.create(
+            professional=professional,
+            skills=get_skills(professional_id=professional.id, db=db),
+        )
         for professional in result
     ]
 

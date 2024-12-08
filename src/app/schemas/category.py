@@ -2,6 +2,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.sql_app.category.category import Category
+
 
 class CategoryResponse(BaseModel):
     id: UUID
@@ -14,11 +16,11 @@ class CategoryResponse(BaseModel):
         from_attributes = True
 
     @classmethod
-    def create(cls, category) -> "CategoryResponse":
+    def create(cls, category: Category) -> "CategoryResponse":
         return cls(
             id=category.id,
             title=category.title,
             description=category.description,
             job_ads_count=len(category.job_ads),
-            job_applications_count=len(category.category_job_applications),
+            job_applications_count=len(category.job_applications),
         )
