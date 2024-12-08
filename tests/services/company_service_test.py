@@ -209,7 +209,7 @@ def test_update_updatesCompany_whenDataIsValid(
 
     # Act
     result = company_service.update(
-        id=mock_company.id, company_data=mock_company_data, db=mock_db
+        company_id=mock_company.id, company_data=mock_company_data, db=mock_db
     )
 
     # Assert

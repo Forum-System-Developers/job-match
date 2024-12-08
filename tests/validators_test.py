@@ -192,7 +192,7 @@ def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker, mock_db)
     mock_filter.first.return_value = company
 
     # Act
-    result = ensure_valid_company_id(id=td.VALID_COMPANY_ID, db=mock_db)
+    result = ensure_valid_company_id(company_id=td.VALID_COMPANY_ID, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Company)
@@ -208,7 +208,7 @@ def test_ensureValidCompanyId_raisesApplicationError_whenCompanyIsNotFound(mock_
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_company_id(id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_company_id(company_id=td.NON_EXISTENT_ID, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Company)

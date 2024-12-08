@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
+from app.schemas.company import CompanyResponse
 from app.services.enums.match_status import MatchStatus
 from app.services.utils.common import (
     get_company_by_email,
@@ -22,7 +23,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITIES_URL, PROFESSIONALS_URL
+from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL, PROFESSIONALS_URL
 
 logger = logging.getLogger(__name__)
 
@@ -118,28 +119,23 @@ def ensure_valid_job_application_id(
     return job_application
 
 
-def ensure_valid_company_id(id: UUID, db: Session) -> Company:
+def ensure_valid_company_id(company_id: UUID) -> CompanyResponse:
     """
-    Ensures that a company with the given ID exists in the database.
+    Ensures that the given company ID is valid by performing a GET request to retrieve the company details.
 
     Args:
-        id (UUID): The unique identifier of the company.
-        db (Session): The database session to use for querying.
+        company_id (UUID): The unique identifier of the company.
 
     Returns:
-        Company: The company object if found.
+        CompanyResponse: The response object containing the company details.
 
     Raises:
-        ApplicationError: If no company with the given ID is found, raises an error with a 404 status code.
+        HTTPError: If the GET request fails or the company is not found.
     """
-    company = db.query(Company).filter(Company.id == id).first()
-    if company is None:
-        logger.error(f"Company with id {id} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company with id {id} not found",
-        )
-    return company
+    company = perform_get_request(url=COMPANY_BY_ID_URL.format(company_id=company_id))
+    logger.info(f"Company with id {company_id} found")
+
+    return CompanyResponse(**company)
 
 
 def ensure_no_match_request(
