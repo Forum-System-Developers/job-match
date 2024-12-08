@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy.orm import Session
 
+from app.schemas.city import City
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
 from app.sql_app.job_application.job_application import JobApplication
@@ -112,11 +113,11 @@ class JobApplicationResponse(JobAplicationBase):
         photo bytes | None: Photo of the professional.
     """
 
-    application_id: UUID
+    id: UUID
     professional_id: UUID
     first_name: str
     last_name: str
-    city: str
+    city: City
     email: EmailStr
     photo: bytes | None = None
     status: str
@@ -143,8 +144,8 @@ class JobApplicationResponse(JobAplicationBase):
                 job_application=job_application, db=db
             )
         return cls(
+            id=job_application.id,
             name=job_application.name,
-            application_id=job_application.id,
             professional_id=professional.id,
             category_id=job_application.category_id,
             category_title=job_application.category.title,
