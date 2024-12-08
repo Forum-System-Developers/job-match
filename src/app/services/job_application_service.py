@@ -3,27 +3,40 @@ from uuid import UUID
 
 from fastapi import status
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.query import Query
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import (
     JobApplicationCreate,
+    JobApplicationCreateFinal,
     JobApplicationResponse,
     JobApplicationUpdate,
+    JobApplicationUpdateFinal,
     MatchResponseRequest,
 )
 from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillBase, SkillResponse
 from app.services import city_service, job_ad_service, match_service, skill_service
 from app.services.enums.job_application_status import JobStatus
-from app.services.utils.validators import ensure_valid_professional_id
+from app.services.utils.validators import (
+    ensure_valid_city,
+    ensure_valid_job_application_id,
+    ensure_valid_professional_id,
+)
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
 from app.utils.processors import process_db_transaction
-from app.utils.request_handlers import perform_post_request
-from tests.services.urls import JOB_APPLICATIONS_ALL_URL
+from app.utils.request_handlers import (
+    perform_get_request,
+    perform_post_request,
+    perform_put_request,
+)
+from tests.services.urls import (
+    JOB_APPLICATIONS_ALL_URL,
+    JOB_APPLICATIONS_BY_ID_URL,
+    JOB_APPLICATIONS_URL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,107 +60,80 @@ def get_all(
 
 def create(
     professional_id: UUID,
-    application_create: JobApplicationCreate,
-    db: Session,
+    job_application_data: JobApplicationCreate,
 ) -> JobApplicationResponse:
     """
-    Creates an instance of the Job Application model.
+    Creates a new job application.
 
     Args:
-        professional (ProfessionalResponse): Current logged in Professional.
-        application_create (JobApplicationCreate): Pydantic schema for collecting data.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
+        job_application_data (JobApplicationCreate): The data required to create a job application.
 
     Returns:
-        JobApplicationResponse: JobApplication Pydantic response model.
+        JobApplicationResponse: The response containing the details of the created job application.
     """
-    professional: Professional = ensure_valid_professional_id(
-        professional_id=professional_id, db=db
-    )
-
-    city: CityResponse = city_service.get_by_name(city_name=application_create.city)
-
-    job_application = _create(
-        professional=professional,
-        application_create=application_create,
+    city = city_service.get_by_name(city_name=job_application_data.city)
+    job_application_final_data = JobApplicationCreateFinal.create(
+        job_application_create=job_application_data,
         city_id=city.id,
-        db=db,
+        professional_id=professional_id,
+    )
+    job_application = perform_post_request(
+        url=JOB_APPLICATIONS_URL,
+        json=job_application_final_data.model_dump(mode="json"),
     )
 
-    if application_create.skills:
-        skills = _create_skillset(
-            db=db,
-            job_application_model=job_application,
-            skills=application_create.skills,
-        )
-        logger.info(f"Job Application id {job_application.id} skillset created")
-
-    return JobApplicationResponse.create(
-        professional=professional,
-        job_application=job_application,
-        skills=skills if skills else [],
-        db=db,
-    )
+    return JobApplicationResponse(**job_application)
 
 
 def update(
     job_application_id: UUID,
+    job_application_update: JobApplicationUpdate,
     professional_id: UUID,
-    application_update: JobApplicationUpdate,
-    db: Session,
 ) -> JobApplicationResponse:
     """
-    Updates an instance of the Job Application model.
+    Update a job application with the given ID using the provided update data.
 
     Args:
-        job_application_id (UUID): The identifier of the Job Application.
-        application_update (JobApplicationUpdate): Pydantic schema for collecting data.
-        db (Session): Database dependency.
+        job_application_id (UUID): The unique identifier of the job application to be updated.
+        job_application_update (JobApplicationUpdate): The data to update the job application with.
+        professional_id (UUID): The unique identifier of the professional associated with the job application.
 
     Returns:
-        JobApplicationResponse: JobApplication Pydantic response model.
+        JobApplicationResponse: The response containing the updated job application data.
     """
-    job_application: JobApplication = _get_by_id(
-        job_application_id=job_application_id, db=db
+    ensure_valid_job_application_id(
+        job_application_id=job_application_id,
+        professional_id=professional_id,
     )
-    professional = ensure_valid_professional_id(professional_id=professional_id, db=db)
-
-    job_application = _update_attributes(
-        application_update=application_update,
-        job_application_model=job_application,
-        db=db,
+    job_application_final_data = _prepare_job_application_update_final_data(
+        job_application_update=job_application_update
     )
 
-    logger.info(f"Job Application with id {job_application.id} updated")
-
-    return JobApplicationResponse.create(
-        professional=professional,
-        job_application=job_application,
-        db=db,
+    job_application = perform_put_request(
+        url=JOB_APPLICATIONS_BY_ID_URL.format(job_application_id=job_application_id),
+        json=job_application_final_data.model_dump(mode="json"),
     )
+    logger.info(f"Job application with id {job_application_id} updated")
+
+    return JobApplicationResponse(**job_application)
 
 
-def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
+def get_by_id(job_application_id: UUID) -> JobApplicationResponse:
     """
     Fetches a Job Application by its ID.
 
     Args:
         job_application_id (UUID): The identifier of the Job application.
-        db (Session): Database dependency.
 
     Returns:
         JobApplicationResponse: JobApplication reponse model.
     """
-
-    job_application: JobApplication = _get_by_id(
-        job_application_id=job_application_id, db=db
+    job_application = perform_get_request(
+        url=JOB_APPLICATIONS_BY_ID_URL.format(job_application_id=job_application_id)
     )
 
-    return JobApplicationResponse.create(
-        professional=job_application.professional,
-        job_application=job_application,
-        db=db,
-    )
+    return JobApplicationResponse(**job_application)
 
 
 def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
@@ -178,160 +164,43 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
     return job_application
 
 
-def _update_attributes(
-    application_update: JobApplicationUpdate,
-    job_application_model: JobApplication,
-    db: Session,
-) -> JobApplication:
-    """
-    Updates the attributes of a Job Application.
+# def _update_skillset(
+#     db: Session,
+#     job_application_model: JobApplication,
+#     skills: list[SkillBase],
+# ) -> None:
+#     """
+#     Updates the skillset for a Job Application.
 
-    Args:
+#     Args:
 
-        application_update (JobAplicationUpdate): Pydantic schema for collecting data.
-        job_application_model (JobApplication): The Job Application to be updated.
-        city (CityResponse): The city the professional is located in.
+#         db (Session): Database dependency.
+#         job_application_model (JobApplication): The ORM model instance for Job Application.
+#         skills (list[SkillBase]): Set of Pydantic schemas representing each skill in the skillset.
 
-    Returns:
-        JobApplication: Updated Job Application ORM model.
-    """
-    is_main = application_update.is_main
-    application_status = application_update.application_status
+#     Returns:
+#         None:
+#     """
 
-    if (
-        job_application_model.min_salary is not None
-    ) and job_application_model.min_salary != application_update.min_salary:
-        job_application_model.min_salary = application_update.min_salary
-        logger.info(f"Job Application id {job_application_model.id} min_salary updated")
+#     def _handle_update():
+#         skills_ids = {skill.skill_id for skill in job_application_model.skills}
+#         for skill in skills:
+#             if not skill_service.exists(db=db, skill_name=skill.name):
+#                 skill_id = skill_service.create_skill(db=db, skill_data=skill)
+#             else:
+#                 skill_id = skill_service.get_id(skill_name=skill.name, db=db)
 
-    if (
-        job_application_model.max_salary is not None
-    ) and job_application_model.max_salary != application_update.max_salary:
-        job_application_model.max_salary = application_update.max_salary
-        logger.info(f"Job Application id {job_application_model.id} max_salary updated")
+#             if skill_id not in skills_ids:
+#                 skill_service.create_job_application_skill(
+#                     db=db,
+#                     skill_id=skill_id,
+#                     job_application_id=job_application_model.id,
+#                 )
 
-    if job_application_model.description != application_update.description:
-        job_application_model.description = application_update.description
-        logger.info(
-            f"Job Application id {job_application_model.id} description updated"
-        )
+#         db.flush()
+#         logger.info(f"Job Application id {job_application_model.id} skillset updated")
 
-    if job_application_model.is_main != is_main:
-        job_application_model.is_main = is_main
-        logger.info(
-            f"Job Application id {job_application_model.id} isMain status updated"
-        )
-
-    if job_application_model.status.value != application_status.value:
-        job_application_model.status = JobStatus(application_status.value)
-        logger.info(f"Job Application id {job_application_model.id} status updated")
-
-    if (
-        application_update.city is not None
-    ) and application_update.city != job_application_model.city.name:
-        city: CityResponse = city_service.get_by_name(city_name=application_update.city)
-
-        job_application_model.city_id = city.id
-        logger.info(f"Job Application id {job_application_model.id} city updated")
-
-    if application_update.skills is not None:
-        _update_skillset(
-            db=db,
-            job_application_model=job_application_model,
-            skills=application_update.skills,
-        )
-
-    def _handle_update():
-        db.commit()
-        db.refresh(job_application_model)
-        logger.info(
-            f"Job application with id {job_application_model.id} updated successfully."
-        )
-
-        return job_application_model
-
-    return process_db_transaction(transaction_func=_handle_update, db=db)
-
-
-def _update_skillset(
-    db: Session,
-    job_application_model: JobApplication,
-    skills: list[SkillBase],
-) -> None:
-    """
-    Updates the skillset for a Job Application.
-
-    Args:
-
-        db (Session): Database dependency.
-        job_application_model (JobApplication): The ORM model instance for Job Application.
-        skills (list[SkillBase]): Set of Pydantic schemas representing each skill in the skillset.
-
-    Returns:
-        None:
-    """
-
-    def _handle_update():
-        skills_ids = {skill.skill_id for skill in job_application_model.skills}
-        for skill in skills:
-            if not skill_service.exists(db=db, skill_name=skill.name):
-                skill_id = skill_service.create_skill(db=db, skill_data=skill)
-            else:
-                skill_id = skill_service.get_id(skill_name=skill.name, db=db)
-
-            if skill_id not in skills_ids:
-                skill_service.create_job_application_skill(
-                    db=db,
-                    skill_id=skill_id,
-                    job_application_id=job_application_model.id,
-                )
-
-        db.flush()
-        logger.info(f"Job Application id {job_application_model.id} skillset updated")
-
-    return process_db_transaction(transaction_func=_handle_update, db=db)
-
-
-def _create_skillset(
-    db: Session,
-    job_application_model: JobApplication,
-    skills: list[SkillBase],
-) -> list[SkillResponse]:
-    """
-    Creates the skillset for a Job Application.
-
-    Args:
-
-        db (Session): Database dependency.
-        job_application_model (JobApplication): The ORM model instance for Job Application.
-        skills (list[SkillBase]): Set of Pydantic schemas representing each skill in the skillset.
-
-    Returns:
-        list[SkillBase]: List of Pydantic schemas representing each skill in the newly created skillset.
-    """
-    skillset = []
-
-    def _handle_create():
-        for skill in skills:
-            if not skill_service.exists(db=db, skill_name=skill.name):
-                skill_id = skill_service.create_skill(db=db, skill_data=skill)
-            else:
-                skill_id = skill_service.get_id(skill_name=skill.name, db=db)
-
-            skill_service.create_job_application_skill(
-                db=db,
-                skill_id=skill_id,
-                job_application_id=job_application_model.id,
-            )
-            skill = skill_service.get_by_id(skill_id=skill_id, db=db)
-            skillset.append(skill)
-
-        db.flush()
-        logger.info(f"Job Application id {job_application_model.id} skillset updated")
-
-        return skillset
-
-    return process_db_transaction(transaction_func=_handle_create, db=db)
+#     return process_db_transaction(transaction_func=_handle_update, db=db)
 
 
 def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
@@ -407,50 +276,14 @@ def view_match_requests(
     )
 
 
-def _create(
-    professional: Professional,
-    application_create: JobApplicationCreate,
-    city_id: UUID,
-    db: Session,
-) -> JobApplication:
-    """
-    Creates an instance of the Job Application model.
+def _prepare_job_application_update_final_data(
+    job_application_update: JobApplicationUpdate,
+) -> JobApplicationUpdateFinal:
+    job_application_final_data = JobApplicationUpdateFinal.create(
+        job_application_update=job_application_update
+    )
+    if job_application_update.city is not None:
+        city = ensure_valid_city(name=job_application_update.city)
+        job_application_final_data.city_id = city.id
 
-    Args:
-        professional (Professional): Professional associated with the Job Application.
-        application_create (JobApplicationCreate): DTO for data collection.
-        city_id (UUID): Identifier for the city the Application is associated with.
-        db (Session): Database dependency.
-
-    Returns:
-        JobApplication: The new instance of the Job Aplication model.
-    """
-
-    def _handle_create() -> JobApplication:
-        professional.active_application_count += 1
-
-        job_application: JobApplication = JobApplication(
-            **application_create.model_dump(exclude={"city", "skills", "status"}),
-            city_id=city_id,
-            status=JobStatus(application_create.status.value),
-            professional_id=professional.id,
-        )
-        logger.info(f"Job Application with id {job_application.id} created")
-
-        db.add(job_application)
-        db.commit()
-        db.refresh(job_application)
-
-        return job_application
-
-    return process_db_transaction(transaction_func=_handle_create, db=db)
-
-
-def get_skills(job_application: JobApplication, db: Session) -> list[SkillResponse]:
-    skills_ids = [s.skill_id for s in job_application.skills]
-    skills = []
-    for skill_id in skills_ids:
-        skill = skill_service.get_by_id(skill_id=skill_id, db=db)
-        skills.append(skill)
-
-    return skills
+    return job_application_final_data
