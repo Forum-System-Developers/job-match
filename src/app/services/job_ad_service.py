@@ -86,11 +86,11 @@ def create(
     Raises:
         ApplicationError: If the company or city is not found.
     """
-    company = ensure_valid_company_id(company_id=company_id, db=db)
+    company = ensure_valid_company_id(company_id=company_id)
     job_ad = JobAd(**job_ad_data.model_dump(), status=JobAdStatus.ACTIVE)
 
-    company.job_ads.append(job_ad)
-    company.active_job_count += 1
+    # company.job_ads.append(job_ad)
+    # company.active_job_count += 1
 
     db.add(job_ad)
     db.commit()
@@ -189,7 +189,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         JobAd: The updated job advertisement object.
     """
     if job_ad_data.location is not None:
-        job_ad.location = ensure_valid_city(name=job_ad_data.location)
+        # job_ad.location = ensure_valid_city(name=job_ad_data.location)
         logger.info(f"Updated job ad (id: {id}) location to {job_ad_data.location}")
 
     if job_ad_data.title is not None:
