@@ -59,9 +59,7 @@ def create_job_ad(
     company: CompanyResponse = Depends(require_company_role),
 ) -> JSONResponse:
     def _create_job_ad():
-        return job_ad_service.create(
-            job_ad_data=job_ad_data, company_id=company.id
-        )
+        return job_ad_service.create(job_ad_data=job_ad_data, company_id=company.id)
 
     return process_request(
         get_entities_fn=_create_job_ad,
@@ -80,9 +78,7 @@ def update_job_ad(
     job_ad_data: JobAdUpdate,
 ) -> JSONResponse:
     def _update_job_ad():
-        return job_ad_service.update(
-            job_ad_id=job_ad_id, job_ad_data=job_ad_data
-        )
+        return job_ad_service.update(job_ad_id=job_ad_id, job_ad_data=job_ad_data)
 
     return process_request(
         get_entities_fn=_update_job_ad,
