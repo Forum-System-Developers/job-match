@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
+from requests import Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.custom_exceptions import ApplicationError
@@ -23,7 +24,7 @@ from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
 from app.services.enums.job_application_status import JobStatus
-from app.services.utils.file_utils import validate_uploaded_file
+from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.validators import is_unique_email, is_unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
@@ -33,6 +34,17 @@ from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.utils.password_utils import hash_password
 from app.utils.processors import process_db_transaction
+from app.utils.request_handlers import (
+    perform_delete_request,
+    perform_get_request,
+    perform_post_request,
+)
+from tests.services.urls import (
+    PROFESSIONALS_BY_ID_URL,
+    PROFESSIONALS_CV_URL,
+    PROFESSIONALS_PHOTO_URL,
+    PROFESSIONALS_URL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,204 +131,144 @@ def update(
     )
 
 
-def upload_photo(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
+def upload_photo(professional_id: UUID, photo: UploadFile) -> MessageResponse:
     """
-    Upload Professional photo to the database
+    Uploads a photo for a professional.
 
     Args:
-        professional_id (UUID): The identifier of the Professional.
-        photo (UploadFile): The upload file.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
+        photo (UploadFile): The photo file to be uploaded.
 
     Returns:
-        dict: Confirmation message.
+        MessageResponse: A response message indicating the result of the upload operation.
     """
-    profesional = _get_by_id(professional_id=professional_id, db=db)
+    validate_uploaded_file(photo)
+    perform_post_request(
+        url=PROFESSIONALS_PHOTO_URL.format(professional_id=professional_id),
+        files={"photo": (photo.filename, photo.file, photo.content_type)},
+    )
+    logger.info(f"Uploaded photo for professional with id {professional_id}")
 
-    def _handle_upload():
-        upload_photo = validate_uploaded_file(photo)
-        profesional.photo = upload_photo
-        profesional.updated_at = datetime.now()
-        db.commit()
-        return {"msg": "Photo successfully uploaded"}
-
-    return process_db_transaction(transaction_func=_handle_upload, db=db)
+    return MessageResponse(message="Logo uploaded successfully")
 
 
-def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
+def upload_cv(professional_id: UUID, cv: UploadFile) -> MessageResponse:
     """
-    Upload Professional photo to the database
+    Uploads a CV for a professional.
 
     Args:
-        professional_id (UUID): The identifier of the Professional.
-        cv (UploadFile): The upload file.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
+        cv (UploadFile): The CV file to be uploaded.
 
     Returns:
-        dict: Confirmation message.
+        MessageResponse: A response message indicating the result of the upload.
     """
-    profesional = _get_by_id(professional_id=professional_id, db=db)
+    validate_uploaded_cv(cv)
+    perform_post_request(
+        url=PROFESSIONALS_CV_URL.format(professional_id=professional_id),
+        files={"cv": (cv.filename, cv.file, cv.content_type)},
+    )
+    logger.info(f"Uploaded CV for professional with id {professional_id}")
 
-    def _handle_upload():
-        if cv.content_type != "application/pdf":
-            raise ApplicationError(
-                detail="Only PDF files are allowed.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        upload_cv = validate_uploaded_file(cv)
-        profesional.cv = upload_cv
-        profesional.updated_at = datetime.now()
-        db.commit()
-        return {"msg": "CV successfully uploaded"}
-
-    return process_db_transaction(transaction_func=_handle_upload, db=db)
+    return MessageResponse(message="CV uploaded successfully")
 
 
-def download_photo(
-    professional_id: UUID, db: Session
-) -> StreamingResponse | JSONResponse:
+def download_photo(professional_id: UUID) -> StreamingResponse:
     """
-    Fetches the photo of the Professional with the given UUID.
+    Downloads the photo of a professional given their ID.
 
     Args:
-        professional_id (UUID): Identifier of the Professional.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
 
     Returns:
-        bytes | dict:
+        StreamingResponse: A streaming response containing the photo in PNG format.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-    photo = professional.photo
-    if photo is None:
-        return JSONResponse(content={"msg": "No available photo"})
+    response = perform_get_request(
+        url=PROFESSIONALS_PHOTO_URL.format(professional_id=professional_id)
+    )
+    logger.info(f"Downloaded photo of professional with id {professional_id}")
 
-    return StreamingResponse(io.BytesIO(photo), media_type="image/png")
+    return StreamingResponse(io.BytesIO(response.content), media_type="image/png")
 
 
-def download_cv(professional_id: UUID, db: Session) -> StreamingResponse | JSONResponse:
+def download_cv(professional_id: UUID) -> StreamingResponse:
     """
-    Fetches the CV of the Professional with the given UUID.
+    Downloads the CV of a professional by their ID.
 
     Args:
-        professional_id (UUID): Identifier of the Professional.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
 
     Returns:
-        bytes | dict:
+        StreamingResponse: A streaming response containing the professional's CV.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-    cv = professional.cv
-    if cv is None:
-        return JSONResponse(content={"msg": "No available CV"})
+    response = perform_get_request(
+        url=PROFESSIONALS_CV_URL.format(professional_id=professional_id)
+    )
+    logger.info(f"Downloaded CV of professional with id {professional_id}")
 
-    filename = f"{professional.first_name}_{professional.last_name}_CV.pdf"
-    response = StreamingResponse(io.BytesIO(cv), media_type="application/pdf")
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
-
-    return response
+    return _create_cv_streaming_response(response)
 
 
-def delete_cv(professional_id: UUID, db: Session) -> MessageResponse:
+def delete_cv(professional_id: UUID) -> MessageResponse:
     """
-    Deletes the CV of a professional by setting the CV attribute to None and updating the updated_at timestamp.
+    Deletes the CV of a professional given their ID.
 
     Args:
         professional_id (UUID): The unique identifier of the professional whose CV is to be deleted.
-        db (Session): The database session used to perform the operation.
 
     Returns:
-        MessageResponse: A response object containing a success message.
-
-    Raises:
-        ApplicationError: If the professional's CV is not found.
+        MessageResponse: A response object containing a message indicating the result of the operation.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-    if professional.cv is None:
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"CV for Job Application with id {professional_id} not found",
-        )
-    professional.cv = None
-    professional.updated_at = datetime.now()
-    db.commit()
+    perform_delete_request(
+        url=PROFESSIONALS_CV_URL.format(professional_id=professional_id)
+    )
     logger.info(f"Deleted CV of professional with id {professional_id}")
 
     return MessageResponse(message="CV deleted successfully")
 
 
-def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
+def get_by_id(professional_id: UUID) -> ProfessionalResponse:
     """
     Retrieve a Professional profile by its ID.
 
     Args:
         professional_id (UUID): The identifier of the professional.
-        db (Session): Database session dependency.
 
     Returns:
         ProfessionalResponse: The created professional profile response.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-
-    matched_ads = (
-        _get_matches(professional_id=professional_id, db=db)
-        if not professional.has_private_matches
-        else None
+    professional = perform_get_request(
+        url=PROFESSIONALS_BY_ID_URL.format(professional_id=professional_id)
     )
+    logger.info(f"Retrieved professional with id {professional_id}")
 
-    return ProfessionalResponse.create(
-        professional=professional, matched_ads=matched_ads
-    )
+    return ProfessionalResponse(**professional)
 
 
 def get_all(
-    db: Session, filter_params: FilterParams, search_params: SearchParams
+    filter_params: FilterParams,
+    search_params: SearchParams,
 ) -> list[ProfessionalResponse]:
     """
     Retrieve all Professional profiles.
 
     Args:
-        db (Session): The database session.
         filer_params (FilterParams): Pydantic schema for filtering params.
         search_params (SearchParams): Search parameter for limiting search results.
     Returns:
         list[ProfessionalResponse]: A list of Professional Profiles that are visible for Companies.
     """
-
-    query = (
-        db.query(Professional)
-        .options(
-            joinedload(Professional.job_applications)
-            .joinedload(JobApplication.skills)
-            .joinedload(JobApplicationSkill.skill)
-        )
-        .filter(Professional.status == ProfessionalStatus.ACTIVE)
+    params = {
+        **search_params.model_dump(mode="json"),
+        **filter_params.model_dump(mode="json"),
+    }
+    professionals = perform_get_request(
+        url=PROFESSIONALS_URL,
+        params=params,
     )
+    logger.info(f"Retrieved {len(professionals)} professionals")
 
-    logger.info("Retreived all professional profiles that are with status ACTIVE")
-
-    # if search_params.skills:
-    #     query = query.filter(Skill.name.in_(search_params.skills))
-    #     logger.info(f"Filtered Professionals by skills: {search_params.skills}")
-
-    if search_params.order == "desc":
-        query.order_by(getattr(Professional, search_params.order_by).desc())
-    else:
-        query.order_by(getattr(Professional, search_params.order_by).asc())
-    logger.info(
-        f"Order Professionals based on search params order {search_params.order} and order_by {search_params.order_by}"
-    )
-
-    result: list[Professional] = (
-        query.offset(filter_params.offset).limit(filter_params.limit).all()
-    )
-
-    logger.info("Limited public topics based on offset and limit")
-
-    return [
-        ProfessionalResponse.create(professional=professional)
-        for professional in result
-    ]
+    return [ProfessionalResponse(**professional) for professional in professionals]
 
 
 def _get_by_id(professional_id: UUID, db: Session) -> Professional:
@@ -346,31 +298,6 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
 
     logger.info(f"Professional with id {professional_id} fetched")
     return professional
-
-
-def _get_matches(professional_id: UUID, db: Session) -> list[JobAdPreview]:
-    """
-    Fetches Matched Job Ads for the given Professional.
-
-    Args:
-        professional (Professional): The existing professional object to be updated.
-        db (Session): Database dependency.
-
-    Returns:
-        list[JobAdPreview]: List of Pydantic models containing basic information about the matched Job Ad.
-    """
-    ads: list[JobAd] = (
-        db.query(JobAd)
-        .join(Match, Match.job_ad_id == JobAd.id)
-        .join(JobApplication, Match.job_application_id == JobApplication.id)
-        .filter(
-            JobApplication.professional_id == professional_id,
-            JobApplication.status == JobStatus.MATCHED,
-        )
-        .all()
-    )
-
-    return [JobAdPreview.create(ad) for ad in ads]
 
 
 def _update_attributes(
@@ -651,3 +578,24 @@ def get_match_requests(professional_id: UUID, db: Session) -> list[MatchRequestA
     )
 
     return match_requests
+
+
+def _create_cv_streaming_response(response: Response) -> StreamingResponse:
+    """
+    Create a StreamingResponse from the given response, including specific headers.
+
+    Args:
+        response: The response object containing the content and headers.
+
+    Returns:
+        StreamingResponse: The streaming response with the appropriate headers.
+    """
+    streaming_response = StreamingResponse(
+        io.BytesIO(response.content), media_type="application/pdf"
+    )
+    streaming_response.headers["Content-Disposition"] = response.headers[
+        "Content-Disposition"
+    ]
+    streaming_response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+
+    return streaming_response
