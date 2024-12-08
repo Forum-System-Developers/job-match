@@ -2,13 +2,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services import company_service, match_service
 from app.services.auth_service import get_current_user, require_company_role
-from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
 router = APIRouter()
@@ -35,10 +33,9 @@ def get_all_companies(filter_params: FilterParams = Depends()) -> JSONResponse:
 )
 def view_match_requests(
     company: CompanyResponse = Depends(require_company_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():
-        return match_service.get_company_match_requests(company_id=company.id, db=db)
+        return match_service.get_company_match_requests(company_id=company.id)
 
     return process_request(
         get_entities_fn=_view_match_requests,
@@ -84,10 +81,9 @@ def create_company(company_data: CompanyCreate) -> JSONResponse:
 def update_company(
     company_data: CompanyUpdate,
     company: CompanyResponse = Depends(require_company_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update_company():
-        return company_service.update(id=company.id, company_data=company_data, db=db)
+        return company_service.update(company_id=company.id, company_data=company_data)
 
     return process_request(
         get_entities_fn=_update_company,
@@ -103,10 +99,9 @@ def update_company(
 def upload_logo(
     logo: UploadFile = File(),
     company: CompanyResponse = Depends(require_company_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload_logo():
-        return company_service.upload_logo(company_id=company.id, logo=logo, db=db)
+        return company_service.upload_logo(company_id=company.id, logo=logo)
 
     return process_request(
         get_entities_fn=_upload_logo,
@@ -122,9 +117,8 @@ def upload_logo(
 )
 def download_logo(
     company_id: UUID,
-    db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    return company_service.download_logo(company_id=company_id, db=db)
+    return company_service.download_logo(company_id=company_id)
 
 
 @router.delete(
@@ -133,10 +127,9 @@ def download_logo(
 )
 def delete_logo(
     company: CompanyResponse = Depends(require_company_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _delete_logo():
-        return company_service.delete_logo(company_id=company.id, db=db)
+        return company_service.delete_logo(company_id=company.id)
 
     return process_request(
         get_entities_fn=_delete_logo,
