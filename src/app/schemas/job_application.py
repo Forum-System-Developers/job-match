@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.schemas.city import City
+from app.schemas.custom_types import Salary
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
 from app.sql_app.job_application.job_application import JobApplication
@@ -87,11 +88,67 @@ class JobApplicationCreate(JobAplicationBase):
     status: JobStatus
 
 
-class JobApplicationUpdate(JobAplicationBase):
-    city: str | None = Field(examples=["Sofia"], default=None)
-    skills: list[SkillBase] | None = Field(default=None)
+class JobApplicationCreateFinal(JobAplicationBase):
     is_main: bool
-    application_status: JobStatus
+    skills: list[SkillBase] = Field(default_factory=list)
+    status: JobStatus
+    city_id: UUID
+    professional_id: UUID
+
+    @classmethod
+    def create(
+        cls,
+        job_application_create: JobApplicationCreate,
+        city_id: UUID,
+        professional_id: UUID,
+    ) -> "JobApplicationCreateFinal":
+        return cls(
+            name=job_application_create.name,
+            min_salary=job_application_create.min_salary,
+            max_salary=job_application_create.max_salary,
+            description=job_application_create.description,
+            category_id=job_application_create.category_id,
+            city_id=city_id,
+            professional_id=professional_id,
+            is_main=job_application_create.is_main,
+            skills=job_application_create.skills,
+            status=job_application_create.status,
+        )
+
+
+class JobApplicationUpdateBase(BaseModel):
+    name: str | None = None
+    min_salary: Salary | None = None  # type: ignore
+    max_salary: Salary | None = None  # type: ignore
+    description: str | None = None
+    skills: list[SkillBase] | None = Field(default=None)
+    is_main: bool | None = Field(default=None)
+    application_status: JobStatus | None = Field(default=None)
+
+
+class JobApplicationUpdate(JobApplicationUpdateBase):
+    city: str | None = Field(examples=["Sofia"], default=None)
+
+
+class JobApplicationUpdateFinal(JobApplicationUpdateBase):
+    city_id: UUID | None = None
+
+    @classmethod
+    def create(
+        cls,
+        job_application_update: JobApplicationUpdate,
+        city_id: UUID | None = None,
+    ) -> "JobApplicationUpdateFinal":
+        return cls(
+            name=job_application_update.name,
+            min_salary=job_application_update.min_salary,
+            max_salary=job_application_update.max_salary,
+            description=job_application_update.description,
+            skills=job_application_update.skills,
+            is_main=job_application_update.is_main,
+            application_status=job_application_update.application_status,
+            city_id=city_id,
+        )
 
 
 class JobApplicationResponse(JobAplicationBase):
