@@ -45,10 +45,13 @@ def get_all(
     filter_params: FilterParams,
     search_params: SearchParams,
 ) -> list[JobApplicationResponse]:
+    params = {
+        **search_params.model_dump(mode="json"),
+        **filter_params.model_dump(mode="json"),
+    }
     job_applications = perform_post_request(
         url=JOB_APPLICATIONS_ALL_URL,
-        json=search_params.model_dump(mode="json"),
-        params=filter_params.model_dump(),
+        params=params,
     )
     logger.info(f"Retrieved {len(job_applications)} job applications")
 
