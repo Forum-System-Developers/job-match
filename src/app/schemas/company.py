@@ -62,6 +62,17 @@ class CompanyCreate(BaseModel):
         return password
 
 
+class CompanyCreateComplete(BaseModel):
+    username: Username  # type: ignore
+    password_hash: str  # type: ignore
+    name: str
+    address_line: str
+    city_id: UUID
+    description: str
+    email: EmailStr
+    phone_number: str
+
+
 class CompanyUpdate(BaseModel):
     name: str | None = None
     address_line: str | None = None
