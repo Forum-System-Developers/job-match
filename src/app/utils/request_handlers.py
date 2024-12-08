@@ -24,7 +24,9 @@ def perform_http_request(method: str, url: str, **kwargs):
                 status_code=response.status_code,
                 detail=response.json().get("detail"),
             )
-        return response.json()
+        if response.headers.get("Content-Type") == "application/json":
+            return response.json()
+        return response
     except requests.RequestException as e:
         raise HTTPException(
             status_code=response.status_code if response else 500,
