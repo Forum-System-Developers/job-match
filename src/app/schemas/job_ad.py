@@ -72,6 +72,10 @@ class JobAdCreate(BaseJobAd):
     location_id: UUID
 
 
+class JobAdCreateFull(JobAdCreate):
+    company_id: UUID
+
+
 class JobAdUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
