@@ -80,7 +80,7 @@ def update(
 )
 def get_all(
     filter_params: FilterParams = Depends(),
-    search_params: SearchParams = Body(),
+    search_params: SearchParams = Depends(),
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(

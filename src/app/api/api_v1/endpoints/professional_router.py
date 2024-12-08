@@ -100,13 +100,11 @@ def private_matches(
 def upload_photo(
     professional: ProfessionalResponse = Depends(require_professional_role),
     photo: UploadFile = File(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_photo(
             professional_id=professional.id,
             photo=photo,
-            db=db,
         )
 
     return process_request(
@@ -120,13 +118,11 @@ def upload_photo(
 def upload_cv(
     professional: ProfessionalResponse = Depends(require_professional_role),
     cv: UploadFile = File(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_cv(
             professional_id=professional.id,
             cv=cv,
-            db=db,
         )
 
     return process_request(
@@ -143,10 +139,8 @@ def upload_cv(
     status_code=status_code.HTTP_200_OK,
     description="Fetch a Photo of a Professional",
 )
-def download_photo(
-    professional_id: UUID, db: Session = Depends(get_db)
-) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download_photo(professional_id=professional_id, db=db)
+def download_photo(professional_id: UUID) -> StreamingResponse:
+    return professional_service.download_photo(professional_id=professional_id)
 
 
 @router.get(
@@ -155,10 +149,8 @@ def download_photo(
     dependencies=[Depends(get_current_user)],
     status_code=status_code.HTTP_200_OK,
 )
-def download_cv(
-    professional_id: UUID, db: Session = Depends(get_db)
-) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download_cv(professional_id=professional_id, db=db)
+def download_cv(professional_id: UUID) -> StreamingResponse:
+    return professional_service.download_cv(professional_id=professional_id)
 
 
 @router.delete(
@@ -167,18 +159,16 @@ def download_cv(
 )
 def delete_cv(
     professional: ProfessionalResponse = Depends(require_professional_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
-    def _delete_logo():
+    def _delete_cv():
         return professional_service.delete_cv(
             professional_id=professional.id,
-            db=db,
         )
 
     return process_request(
-        get_entities_fn=_delete_logo,
+        get_entities_fn=_delete_cv,
         status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not delete logo",
+        not_found_err_msg="Could not delete CV",
     )
 
 
@@ -190,11 +180,10 @@ def delete_cv(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
         return professional_service.get_all(
-            db=db, filter_params=filter_params, search_params=search_params
+            filter_params=filter_params, search_params=search_params
         )
 
     return process_request(
@@ -209,12 +198,9 @@ def get_all(
     description="Retreive a Professional profile by its ID.",
     dependencies=[Depends(get_current_user)],
 )
-def get_by_id(
-    professional_id: UUID,
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def get_by_id(professional_id: UUID) -> JSONResponse:
     def _get_by_id():
-        return professional_service.get_by_id(professional_id=professional_id, db=db)
+        return professional_service.get_by_id(professional_id=professional_id)
 
     return process_request(
         get_entities_fn=_get_by_id,
