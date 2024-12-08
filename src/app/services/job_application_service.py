@@ -22,8 +22,27 @@ from app.services.utils.validators import ensure_valid_professional_id
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.professional.professional import Professional
 from app.utils.processors import process_db_transaction
+from app.utils.request_handlers import perform_post_request
+from tests.services.urls import JOB_APPLICATIONS_ALL_URL
 
 logger = logging.getLogger(__name__)
+
+
+def get_all(
+    filter_params: FilterParams,
+    search_params: SearchParams,
+) -> list[JobApplicationResponse]:
+    job_applications = perform_post_request(
+        url=JOB_APPLICATIONS_ALL_URL,
+        json=search_params.model_dump(mode="json"),
+        params=filter_params.model_dump(),
+    )
+    logger.info(f"Retrieved {len(job_applications)} job applications")
+
+    return [
+        JobApplicationResponse(**job_application)
+        for job_application in job_applications
+    ]
 
 
 def create(
@@ -106,58 +125,6 @@ def update(
         job_application=job_application,
         db=db,
     )
-
-
-def get_all(
-    filter_params: FilterParams,
-    search_params: SearchParams,
-    db: Session,
-) -> list[JobApplicationResponse]:
-    """
-    Retrieve all Job Applications that match the filtering parameters and keywords.
-
-    Args:
-        filer_params (FilterParams): Pydantic schema for filtering params.
-        search_params (SearchParams): Pydantic for search parameteres.
-        db (Session): The database session.
-    Returns:
-        list[JobApplicationResponse]: A list of Job Applications that are visible for Companies.
-    """
-    query: Query = (
-        db.query(JobApplication, Professional)
-        .join(Professional, JobApplication.professional_id == Professional.id)
-        .filter(
-            JobApplication.status == JobStatus.ACTIVE,
-        )
-    )
-
-    # TODO
-    # if search_params.skills:
-    #     query = (
-    #         query.join(JobApplicationSkill)
-    #         .join(Skill)
-    #         .filter(Skill.name.in_(search_params.skills))
-    #     )
-    #     logger.info("Filtered applications by skills.")
-
-    if search_params.order == "desc":
-        query.order_by(getattr(JobApplication, search_params.order_by).desc())
-    else:
-        query.order_by(getattr(JobApplication, search_params.order_by).asc())
-    logger.info(
-        f"Order applications based on search params order {search_params.order} and order_by {search_params.order_by}"
-    )
-
-    result = query.offset(filter_params.offset).limit(filter_params.limit).all()
-
-    logger.info("Limited applications based on offset and limit")
-
-    return [
-        JobApplicationResponse.create(
-            job_application=row[0], professional=row[1], db=db
-        )
-        for row in result
-    ]
 
 
 def get_by_id(job_application_id: UUID, db: Session) -> JobApplicationResponse:
@@ -381,7 +348,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
-    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
+    job_ad = job_ad_service.get_by_id(job_ad_id=job_ad_id)
 
     return match_service.create_if_not_exists(
         job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
@@ -408,7 +375,7 @@ def handle_match_response(
 
     """
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
-    job_ad = job_ad_service.get_by_id(id=job_ad_id, db=db)
+    job_ad = job_ad_service.get_by_id(job_ad_id=job_ad_id)
 
     return match_service.process_request_from_company(
         job_application_id=job_application.id,
