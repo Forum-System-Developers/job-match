@@ -196,10 +196,10 @@ class JobApplicationResponse(JobAplicationBase):
             if isinstance(professional, Professional)
             else professional.city
         )
-        if skills is None:
-            skills = job_application_service.get_skills(
-                job_application=job_application, db=db
-            )
+        # if skills is None:
+        #     skills = job_application_service.get_skills(
+        #         job_application=job_application, db=db
+        #     )
         return cls(
             id=job_application.id,
             name=job_application.name,

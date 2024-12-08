@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
 from app.schemas.company import CompanyResponse
+from app.schemas.job_application import JobApplicationResponse
 from app.services.enums.match_status import MatchStatus
 from app.services.utils.common import (
     get_company_by_email,
     get_company_by_username,
+    get_job_application_by_id,
     get_professional_by_email,
     get_professional_by_username,
 )
@@ -23,7 +25,12 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL, PROFESSIONALS_URL
+from tests.services.urls import (
+    CITIES_URL,
+    COMPANY_BY_ID_URL,
+    PROFESSIONALS_JOB_APPLICATION_URL,
+    PROFESSIONALS_URL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,15 +86,14 @@ def ensure_valid_job_ad_id(
 
 
 def ensure_valid_job_application_id(
-    id: UUID, db: Session, professional_id: UUID | None = None
-) -> JobApplication:
+    job_application_id: UUID, professional_id: UUID | None = None
+) -> JobApplicationResponse:
     """
     Ensures that a job application with the given ID exists and optionally
     belongs to the specified professional.
 
     Args:
-        id (UUID): The ID of the job application to validate.
-        db (Session): The database session to use for querying.
+        job_application_id (UUID): The ID of the job application to validate.
         professional_id (UUID | None, optional): The ID of the professional
             to validate ownership. Defaults to None.
 
@@ -98,23 +104,23 @@ def ensure_valid_job_application_id(
         ApplicationError: If the job application does not exist or does not
             belong to the specified professional.
     """
-    job_application = db.query(JobApplication).filter(JobApplication.id == id).first()
+    job_application = get_job_application_by_id(job_application_id=job_application_id)
     if job_application is None:
-        logger.error(f"Job Application with id {id} not found")
+        logger.error(f"Job Application with id {job_application_id} not found")
         raise ApplicationError(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job Application with id {id} not found",
+            detail=f"Job Application with id {job_application_id} not found",
         )
     if (
         professional_id is not None
         and job_application.professional_id != professional_id
     ):
         logger.error(
-            f"Job Application with id {id} does not belong to professional with id {professional_id}"
+            f"Job Application with id {job_application_id} does not belong to professional with id {professional_id}"
         )
         raise ApplicationError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Job Application with id {id} does not belong to professional with id {professional_id}",
+            detail=f"Job Application with id {job_application_id} does not belong to professional with id {professional_id}",
         )
     return job_application
 
