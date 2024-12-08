@@ -9,19 +9,31 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.schemas.company import (
+    CompanyCreate,
+    CompanyCreateComplete,
+    CompanyResponse,
+    CompanyUpdate,
+)
 from app.schemas.user import User
+from app.services.utils.common import get_company_by_phone_number
 from app.services.utils.file_utils import handle_file_upload
 from app.services.utils.validators import (
     ensure_valid_city,
     ensure_valid_company_id,
-    unique_email,
-    unique_username,
+    is_unique_email,
+    is_unique_username,
 )
 from app.sql_app.company.company import Company
 from app.utils.password_utils import hash_password
-from app.utils.request_handlers import perform_get_request
-from tests.services.urls import COMPANIES_URL, COMPANY_BY_ID_URL
+from app.utils.request_handlers import perform_get_request, perform_post_request
+from tests.services.urls import (
+    COMPANIES_URL,
+    COMPANY_BY_EMAIL_URL,
+    COMPANY_BY_ID_URL,
+    COMPANY_BY_PHONE_NUMBER_URL,
+    COMPANY_BY_USERNAME_URL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +72,12 @@ def get_by_id(company_id: UUID) -> CompanyResponse:
     return CompanyResponse(**company)
 
 
-def get_by_username(username: str, db: Session) -> User:
+def get_by_username(username: str) -> User:
     """
     Retrieve a company by its username.
 
     Args:
         username (str): The username of the company to retrieve.
-        db (Session): The database session to use for the query.
 
     Returns:
         User: A User object representing the retrieved company.
@@ -74,46 +85,37 @@ def get_by_username(username: str, db: Session) -> User:
     Raises:
         ApplicationError: If no company with the given username is found.
     """
-    company = db.query(Company).filter(Company.username == username).first()
-    if company is None:
-        logger.error(f"Company with username {username} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company with username {username} not found",
-        )
+    company = perform_get_request(url=COMPANY_BY_USERNAME_URL.format(username=username))
     logger.info(f"Retrieved company with username {username}")
 
     return User(id=company.id, username=company.username, password=company.password)
 
 
-def create(company_data: CompanyCreate, db: Session) -> CompanyResponse:
+def create(company_data: CompanyCreate) -> CompanyResponse:
     """
     Create a new company record in the database.
 
     Args:
         company_data (CompanyCreate): The data required to create a new company.
-        db (Session): The database session to use for the operation.
 
     Returns:
         CompanyResponse: The response object containing the created company details.
     """
-    _ensure_valid_company_creation_data(company_data=company_data, db=db)
-    city = ensure_valid_city(name=company_data.city, db=db)
+    _ensure_valid_company_creation_data(company_data=company_data)
+    city = ensure_valid_city(name=company_data.city)
 
     password_hash = hash_password(company_data.password)
 
-    company = Company(
+    data = CompanyCreateComplete(
         **company_data.model_dump(exclude={"password", "city"}),
-        password=password_hash,
+        password_hash=password_hash,
         city_id=city.id,
     )
 
-    db.add(company)
-    db.commit()
-    db.refresh(company)
-    logger.info(f"Created company with id {company.id}")
+    company = perform_post_request(url=COMPANIES_URL, json=data.model_dump(mode="json"))
+    logger.info(f"Created company with id {company['id']}")
 
-    return CompanyResponse.create(company)
+    return CompanyResponse(**company)
 
 
 def update(
@@ -242,17 +244,17 @@ def _update_company(
         )
 
     if company_data.city is not None:
-        city = ensure_valid_city(name=company_data.city, db=db)
+        city = ensure_valid_city(name=company_data.city)
         company.city = city
         logger.info(f"Updated company (id: {company.id}) city to {city.name}")
 
     if company_data.email is not None:
-        _ensure_unique_email(email=company_data.email, db=db)
+        _ensure_unique_email(email=company_data.email)
         company.email = company_data.email
         logger.info(f"Updated company (id: {company.id}) email to {company_data.email}")
 
     if company_data.phone_number is not None:
-        _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)
+        _ensure_unique_phone_number(phone_number=company_data.phone_number)
         company.phone_number = company_data.phone_number
         logger.info(
             f"Updated company (id: {company.id}) phone number to {company_data.phone_number}"
@@ -276,18 +278,17 @@ def _update_company(
     return company
 
 
-def _ensure_unique_email(email: str, db: Session) -> None:
+def _ensure_unique_email(email: str) -> None:
     """
     Ensure that the email is unique in the database.
 
     Args:
         email (str): The email to check.
-        db (Session): The database session used to query the company.
 
     Raises:
         ApplicationError: If the email is not unique.
     """
-    company = db.query(Company).filter(Company.email == email).first()
+    company = perform_get_request(url=COMPANY_BY_EMAIL_URL.format(email=email))
     if company is not None:
         logger.error(f"Company with email {email} already exists")
         raise ApplicationError(
@@ -296,18 +297,17 @@ def _ensure_unique_email(email: str, db: Session) -> None:
         )
 
 
-def _ensure_unique_phone_number(phone_number: str, db: Session) -> None:
+def _ensure_unique_phone_number(phone_number: str) -> None:
     """
     Ensure that the phone number is unique in the database.
 
     Args:
         phone_number (str): The phone number to check.
-        db (Session): The database session used to query the company.
 
     Raises:
         ApplicationError: If the phone number is not unique.
     """
-    company = db.query(Company).filter(Company.phone_number == phone_number).first()
+    company = get_company_by_phone_number(phone_number=phone_number)
     if company is not None:
         logger.error(f"Company with phone number {phone_number} already exists")
         raise ApplicationError(
@@ -316,19 +316,16 @@ def _ensure_unique_phone_number(phone_number: str, db: Session) -> None:
         )
 
 
-def _ensure_valid_company_creation_data(
-    company_data: CompanyCreate, db: Session
-) -> None:
+def _ensure_valid_company_creation_data(company_data: CompanyCreate) -> None:
     """
     Ensure that the company data is valid for creation.
 
     Args:
         company_data (CompanyCreate): The company data to validate.
-        db (Session): The database session used to query the company.
 
     Raises:
         ApplicationError: If the company data is invalid.
     """
-    unique_username(username=company_data.username, db=db)
-    unique_email(email=company_data.email, db=db)
-    _ensure_unique_phone_number(phone_number=company_data.phone_number, db=db)
+    is_unique_username(username=company_data.username)
+    is_unique_email(email=company_data.email)
+    _ensure_unique_phone_number(phone_number=company_data.phone_number)
