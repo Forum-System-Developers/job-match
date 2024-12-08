@@ -97,7 +97,7 @@ class CompanyUpdate(BaseModel):
                 )
             values["youtube_video_id"] = video_id[0]
         return values
-    
+
 
 class CompanyUpdateFinal(BaseModel):
     name: str | None = None

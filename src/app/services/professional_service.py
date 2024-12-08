@@ -23,7 +23,7 @@ from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
 from app.services.enums.job_application_status import JobStatus
-from app.services.utils.file_utils import handle_file_upload
+from app.services.utils.file_utils import validate_uploaded_file
 from app.services.utils.validators import is_unique_email, is_unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
@@ -134,7 +134,7 @@ def upload_photo(professional_id: UUID, photo: UploadFile, db: Session) -> dict:
     profesional = _get_by_id(professional_id=professional_id, db=db)
 
     def _handle_upload():
-        upload_photo = handle_file_upload(file_to_upload=photo)
+        upload_photo = validate_uploaded_file(photo)
         profesional.photo = upload_photo
         profesional.updated_at = datetime.now()
         db.commit()
@@ -163,7 +163,7 @@ def upload_cv(professional_id: UUID, cv: UploadFile, db: Session) -> dict:
                 detail="Only PDF files are allowed.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        upload_cv = handle_file_upload(file_to_upload=cv)
+        upload_cv = validate_uploaded_file(cv)
         profesional.cv = upload_cv
         profesional.updated_at = datetime.now()
         db.commit()
