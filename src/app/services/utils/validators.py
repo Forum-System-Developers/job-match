@@ -25,12 +25,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import (
-    CITIES_URL,
-    COMPANY_BY_ID_URL,
-    PROFESSIONALS_JOB_APPLICATION_URL,
-    PROFESSIONALS_URL,
-)
+from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL
 
 logger = logging.getLogger(__name__)
 

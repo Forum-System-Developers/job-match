@@ -29,5 +29,11 @@ JOB_APPLICATIONS_BY_ID_URL = f"{JOB_APPLICATIONS_URL}/{{job_application_id}}"
 
 
 PROFESSIONALS_URL = f"{API_BASE_URL}/professionals"
+PROFESSIONALS_BY_ID_URL = f"{PROFESSIONALS_URL}/{{professional_id}}"
+PROFESSIONALS_PHOTO_URL = f"{PROFESSIONALS_URL}/{{professional_id}}/photo"
+PROFESSIONALS_CV_URL = f"{PROFESSIONALS_URL}/{{professional_id}}/cv"
+PROFESSIONALS_JOB_APPLICATIONS_URL = (
+    f"{PROFESSIONALS_URL}/{{professional_id}}/job-applications"
+)
 PROFESSIONAL_BY_USERNAME_URL = f"{PROFESSIONALS_URL}/by-username/{{username}}"
 PROFESSIONAL_BY_EMAIL_URL = f"{PROFESSIONALS_URL}/by-email/{{email}}"
