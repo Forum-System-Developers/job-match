@@ -151,7 +151,9 @@ def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsF
     mock_filter.first.return_value = job_application
 
     # Act
-    result = ensure_valid_job_application_id(id=td.VALID_JOB_APPLICATION_ID, db=mock_db)
+    result = ensure_valid_job_application_id(
+        job_application_id=td.VALID_JOB_APPLICATION_ID, db=mock_db
+    )
 
     # Assert
     mock_db.query.assert_called_once_with(JobApplication)
@@ -171,7 +173,9 @@ def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIs
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_job_application_id(id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_job_application_id(
+            job_application_id=td.NON_EXISTENT_ID, db=mock_db
+        )
 
     # Assert
     mock_db.query.assert_called_once_with(JobApplication)

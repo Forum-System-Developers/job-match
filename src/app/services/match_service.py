@@ -288,7 +288,9 @@ def accept_job_application_match_request(
         AcceptRequestMatchResponse: The response indicating successful match acceptance.
     """
     job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    job_application = ensure_valid_job_application_id(id=job_application_id, db=db)
+    job_application = ensure_valid_job_application_id(
+        job_application_id=job_application_id
+    )
     match = ensure_valid_match_request(
         job_ad_id=job_ad_id,
         job_application_id=job_application_id,
@@ -334,7 +336,7 @@ def send_job_application_match_request(
         MessageResponse: The response indicating successful match request.
     """
     ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    ensure_valid_job_application_id(id=job_application_id, db=db)
+    ensure_valid_job_application_id(job_application_id=job_application_id)
     ensure_no_match_request(
         job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
     )

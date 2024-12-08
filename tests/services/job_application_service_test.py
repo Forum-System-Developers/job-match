@@ -68,7 +68,7 @@ def test_create_job_application(mocker, mock_db):
 
     result = job_application_service.create(
         professional_id=mock_professional.id,
-        application_create=job_application_data,
+        job_application_data=job_application_data,
         db=mock_db,
     )
 
@@ -131,7 +131,7 @@ def test_update_job_application(mocker, mock_db):
     result = job_application_service.update(
         job_application_id=mock_job_application.id,
         professional_id=mock_professional.id,
-        application_update=application_update,
+        job_application_update=application_update,
         db=mock_db,
     )
 
