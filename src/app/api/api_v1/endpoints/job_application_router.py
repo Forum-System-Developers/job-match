@@ -34,13 +34,11 @@ def create(
     application_create: JobApplicationCreate = Body(
         description="Job Application creation form"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return job_application_service.create(
             professional_id=professional.id,
-            application_create=application_create,
-            db=db,
+            job_application_data=application_create,
         )
 
     return process_request(
@@ -51,24 +49,21 @@ def create(
 
 
 @router.put(
-    "/{job_application_id}/{professional_id}",
+    "/{job_application_id}",
     description="Update a Job Application.",
-    dependencies=[Depends(require_professional_role)],
 )
 def update(
     job_application_id: UUID,
-    professional_id: UUID,
+    professional=Depends(require_professional_role),
     application_update: JobApplicationUpdate = Body(
         description="Job Application update form"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
         return job_application_service.update(
-            professional_id=professional_id,
+            professional_id=professional.id,
             job_application_id=job_application_id,
-            application_update=application_update,
-            db=db,
+            job_application_update=application_update,
         )
 
     return process_request(
@@ -85,13 +80,11 @@ def update(
 )
 def get_all(
     filter_params: FilterParams = Depends(),
-    search_params: SearchParams = Depends(),
-    db: Session = Depends(get_db),
+    search_params: SearchParams = Body(),
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
-            db=db,
             search_params=search_params,
         )
 
@@ -109,12 +102,9 @@ def get_all(
 )
 def get_by_id(
     job_application_id: UUID,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
-        return job_application_service.get_by_id(
-            job_application_id=job_application_id, db=db
-        )
+        return job_application_service.get_by_id(job_application_id=job_application_id)
 
     return process_request(
         get_entities_fn=_get_by_id,
