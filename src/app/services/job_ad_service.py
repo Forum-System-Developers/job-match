@@ -189,7 +189,7 @@ def _update_job_ad(job_ad_data: JobAdUpdate, job_ad: JobAd, db: Session) -> JobA
         JobAd: The updated job advertisement object.
     """
     if job_ad_data.location is not None:
-        job_ad.location = ensure_valid_city(name=job_ad_data.location, db=db)
+        job_ad.location = ensure_valid_city(name=job_ad_data.location)
         logger.info(f"Updated job ad (id: {id}) location to {job_ad_data.location}")
 
     if job_ad_data.title is not None:

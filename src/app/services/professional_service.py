@@ -24,7 +24,7 @@ from app.schemas.user import User
 from app.services import city_service, match_service
 from app.services.enums.job_application_status import JobStatus
 from app.services.utils.file_utils import handle_file_upload
-from app.services.utils.validators import unique_email, unique_username
+from app.services.utils.validators import is_unique_email, is_unique_username
 from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
@@ -553,11 +553,11 @@ def _register_professional(
     password = professional_create.password
     email = professional_create.email
 
-    if not unique_username(username=username, db=db):
+    if not is_unique_username(username=username):
         raise ApplicationError(
             detail="Username already taken", status_code=status.HTTP_409_CONFLICT
         )
-    if not unique_email(email=email, db=db):
+    if not is_unique_email(email=email):
         raise ApplicationError(
             detail="Email already taken", status_code=status.HTTP_409_CONFLICT
         )

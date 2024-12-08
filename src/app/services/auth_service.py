@@ -125,7 +125,7 @@ def _get_user_role(login_data: UserLogin, db: Session) -> tuple[UserRole, User]:
     except ApplicationError:
         pass
     try:
-        user = company_service.get_by_username(username=login_data.username, db=db)
+        user = company_service.get_by_username(username=login_data.username)
         if user is not None:
             logger.info(f"Fetched user with user_role {UserRole.COMPANY.value}")
             return UserRole.COMPANY, user
