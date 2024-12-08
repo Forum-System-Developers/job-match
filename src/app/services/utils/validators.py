@@ -1,12 +1,19 @@
 import logging
 from uuid import UUID
 
-from fastapi import status
+from fastapi import HTTPException, status
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.city import CityResponse
 from app.services.enums.match_status import MatchStatus
+from app.services.utils.common import (
+    get_company_by_email,
+    get_company_by_username,
+    get_professional_by_email,
+    get_professional_by_username,
+)
 from app.sql_app.city.city import City
 from app.sql_app.company.company import Company
 from app.sql_app.job_ad.job_ad import JobAd
@@ -14,17 +21,18 @@ from app.sql_app.job_application.job_application import JobApplication
 from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
+from app.utils.request_handlers import perform_get_request
+from tests.services.urls import CITIES_URL, PROFESSIONALS_URL
 
 logger = logging.getLogger(__name__)
 
 
-def ensure_valid_city(name: str, db: Session) -> City:
+def ensure_valid_city(name: str) -> CityResponse:
     """
-    Ensure that a city with the given name exists in the database.
+    Ensure that a city with the given name exists.
 
     Args:
         name (str): The name of the city to validate.
-        db (Session): The database session to use for querying.
 
     Returns:
         City: The City object if found.
@@ -32,14 +40,8 @@ def ensure_valid_city(name: str, db: Session) -> City:
     Raises:
         ApplicationError: If no city with the given name is found, raises an error with status code 404.
     """
-    city = db.query(City).filter(City.name == name).first()
-    if city is None:
-        logger.error(f"City with name {name} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"City with name {name} not found",
-        )
-    return city
+    city = perform_get_request(f"{CITIES_URL}/by-name/{name}")
+    return CityResponse(**city)
 
 
 def ensure_valid_job_ad_id(
@@ -266,30 +268,24 @@ def ensure_valid_skill_id(
     return skill
 
 
-def unique_username(username: str, db: Session) -> bool:
-    professional = (
-        db.query(Professional.username)
-        .filter(Professional.username == username)
-        .first()
-    )
+def is_unique_username(username: str) -> bool:
+    professional = get_professional_by_username(username)
     if professional is not None:
         return False
 
-    company = db.query(Company.username).filter(Company.username == username).first()
+    company = get_company_by_username(username)
     if company is not None:
         return False
 
     return True
 
 
-def unique_email(email: str, db: Session) -> bool:
-    professional = (
-        db.query(Professional.email).filter(Professional.email == email).first()
-    )
+def is_unique_email(email: str) -> bool:
+    professional = get_professional_by_email(email)
     if professional is not None:
         return False
 
-    company = db.query(Company.email).filter(Company.email == email).first()
+    company = get_company_by_email(email)
     if company is not None:
         return False
 
