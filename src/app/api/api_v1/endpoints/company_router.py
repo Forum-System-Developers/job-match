@@ -66,12 +66,9 @@ def get_company_by_id(company_id: UUID) -> JSONResponse:
     "/",
     description="Create a new company.",
 )
-def create_company(
-    company_data: CompanyCreate,
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def create_company(company_data: CompanyCreate) -> JSONResponse:
     def _create_company():
-        return company_service.create(company_data=company_data, db=db)
+        return company_service.create(company_data=company_data)
 
     return process_request(
         get_entities_fn=_create_company,
