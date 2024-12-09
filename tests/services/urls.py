@@ -37,3 +37,21 @@ PROFESSIONALS_JOB_APPLICATIONS_URL = (
 )
 PROFESSIONAL_BY_USERNAME_URL = f"{PROFESSIONALS_URL}/by-username/{{username}}"
 PROFESSIONAL_BY_EMAIL_URL = f"{PROFESSIONALS_URL}/by-email/{{email}}"
+
+
+MATCH_REQUESTS_URL = f"{API_BASE_URL}/match-requests"
+MATCH_REQUESTS_BY_ID_URL = f"{MATCH_REQUESTS_URL}/job-ads/{{job_ad_id}}/job-applications/{{job_application_id}}"
+MATCH_REQUESTS_BY_ID_URL = f"{MATCH_REQUESTS_URL}/{{match_request_id}}"
+MATCH_REQUESTS_JOB_ADS_RECEIVED_URL = (
+    f"{MATCH_REQUESTS_URL}/job-ads/{{job_ad_id}}/received-matches"
+)
+MATCH_REQUESTS_JOB_ADS_SENT_URL = (
+    f"{MATCH_REQUESTS_URL}/job-ads/{{job_ad_id}}/sent-matches"
+)
+MATCH_REQUESTS_JOB_APPLICATIONS_URL = (
+    f"{MATCH_REQUESTS_URL}/job-applications/{{job_application_id}}"
+)
+MATCH_REQUESTS_PROFESSIONALS_URL = (
+    f"{MATCH_REQUESTS_URL}/professionals/{{professional_id}}"
+)
+MATCH_REQUESTS_COMPANIES_URL = f"{MATCH_REQUESTS_URL}/companies/{{company_id}}"
