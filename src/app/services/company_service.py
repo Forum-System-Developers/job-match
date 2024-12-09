@@ -85,10 +85,10 @@ def get_by_username(username: str) -> User:
     Returns:
         User: A User object containing the company's id, username, and password.
     """
-    company = perform_get_request(url=COMPANY_BY_USERNAME_URL.format(username=username))
+    user = perform_get_request(url=COMPANY_BY_USERNAME_URL.format(username=username))
     logger.info(f"Retrieved company with username {username}")
 
-    return User(id=company.id, username=company.username, password=company.password)
+    return User(id=user.id, username=user.username, password=user.password)
 
 
 def create(company_data: CompanyCreate) -> CompanyResponse:
