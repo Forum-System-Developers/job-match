@@ -1,9 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import HTTPException, status
-from sqlalchemy import and_
-from sqlalchemy.orm import Session
+from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
@@ -177,96 +175,6 @@ def ensure_no_match_request(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Match request between job ad with id {job_ad_id} and job application with id {job_application_id} already exists",
         )
-
-
-def ensure_valid_match_request(
-    job_ad_id: UUID,
-    job_application_id: UUID,
-    match_status: MatchStatus,
-    db: Session,
-) -> Match:
-    """
-    Ensures that a match request exists and is in the REQUESTED status.
-
-    Args:
-        job_ad_id (UUID): The ID of the job advertisement.
-        job_application_id (UUID): The ID of the job application.
-        match_status (MatchStatus): The status of the match request.
-        db (Session): The database session.
-
-    Returns:
-        Match: The match object if it exists and is in the REQUESTED status.
-
-    Raises:
-        ApplicationError: If the match request is not found or is not in the REQUESTED status.
-    """
-    match = (
-        db.query(Match)
-        .filter(
-            and_(
-                Match.job_ad_id == job_ad_id,
-                Match.job_application_id == job_application_id,
-            )
-        )
-        .first()
-    )
-    if match is None:
-        logger.error(
-            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} not found"
-        )
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Match request with job ad id {job_ad_id} and job application id {job_application_id} not found",
-        )
-    if match.status != match_status:
-        logger.error(
-            f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is in {match.status} status - requires {match_status.name} status"
-        )
-        raise ApplicationError(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Match request with job ad id {job_ad_id} and job application id {job_application_id} is not in {match_status.name} status",
-        )
-
-    return match
-
-
-def ensure_valid_skill_id(
-    skill_id: UUID,
-    category_id: UUID,
-    db: Session,
-) -> Skill:
-    """
-    Ensure that a skill with the given skill_id and category_id exists in the database.
-
-    Args:
-        skill_id (UUID): The unique identifier of the skill.
-        category_id (UUID): The unique identifier of the category to which the skill belongs.
-        db (Session): The database session used to query the skill.
-
-    Returns:
-        Skill: The skill object if found.
-
-    Raises:
-        ApplicationError: If the skill with the given skill_id and category_id is not found.
-    """
-    skill = (
-        db.query(Skill)
-        .filter(
-            and_(
-                Skill.id == skill_id,
-                Skill.category_id == category_id,
-            )
-        )
-        .first()
-    )
-    if skill is None:
-        logger.error(f"Skill with id {skill_id} not found")
-        raise ApplicationError(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Skill with id {skill_id} not found",
-        )
-
-    return skill
 
 
 def is_unique_username(username: str) -> bool:
