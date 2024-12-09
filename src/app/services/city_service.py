@@ -78,3 +78,17 @@ def get_id(db: Session, city_name: str) -> UUID:
             status_code=status.HTTP_404_NOT_FOUND,
         )
     return city.id
+
+
+def get_all(db: Session) -> list[CityResponse]:
+    """
+    Retrieve all cities from the database.
+
+    Args:
+        db (Session): The database session used to query the cities.
+
+    Returns:
+        list[CityResponse]: A list of CityResponse objects representing all cities in the database.
+    """
+    cities = db.query(City).all()
+    return [CityResponse(id=city.id, name=city.name) for city in cities]
