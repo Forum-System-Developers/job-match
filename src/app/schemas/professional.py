@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
 from app.schemas.job_ad import JobAdPreview
+from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillResponse
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
@@ -93,6 +94,7 @@ class ProfessionalResponse(ProfessionalBase):
     skills: list[SkillResponse] = []
     active_application_count: int
     matched_ads: list[JobAdPreview] | None = None
+    sent_match_requests: list[MatchRequestAd] | None = None
 
     @classmethod
     def create(
@@ -100,6 +102,7 @@ class ProfessionalResponse(ProfessionalBase):
         professional: Professional,
         matched_ads: list[JobAdPreview] | None = None,
         skills: list[SkillResponse] = [],
+        sent_requests: list[MatchRequestAd] | None = None,
     ) -> "ProfessionalResponse":
         return cls(
             id=professional.id,
@@ -113,6 +116,7 @@ class ProfessionalResponse(ProfessionalBase):
             skills=skills,
             active_application_count=professional.active_application_count,
             matched_ads=matched_ads if not professional.has_private_matches else None,
+            sent_requests=sent_requests,
         )
 
     class Config:
