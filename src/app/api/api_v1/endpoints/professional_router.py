@@ -14,10 +14,7 @@ from app.schemas.professional import (
     ProfessionalUpdate,
 )
 from app.services import professional_service
-from app.services.auth_service import (
-    get_current_user,
-    require_professional_role,
-)
+from app.services.auth_service import get_current_user, require_professional_role
 from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
