@@ -478,3 +478,34 @@ def get_company_match_requests(
         MatchRequestApplication.create_response(match, job_application)
         for (match, job_application) in requests
     ]
+
+
+def get_sent_match_requests_for_professional(
+    professional_id: UUID, db: Session
+) -> list[MatchRequestAd]:
+    """
+    Fetch match requests sent by the given Professional.
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        list[MatchRequestAd]: Response models containing basic information for the Job Ads that sent the match request.
+    """
+
+    result = (
+        db.query(Match, JobAd)
+        .join(JobApplication, Match.job_application_id == JobApplication.id)
+        .join(JobAd, Match.job_ad_id == JobAd.id)
+        .filter(
+            JobApplication.professional_id == professional_id,
+            JobApplication.status == JobStatus.ACTIVE,
+            Match.status == MatchStatus.REQUESTED_BY_JOB_APP,
+        )
+        .all()
+    )
+
+    return [
+        MatchRequestAd.create_response(match=match, job_ad=ad) for (match, ad) in result
+    ]

@@ -109,12 +109,14 @@ def update(
         else None
     )
     skills = get_skills(professional_id=professional_id, db=db)
+    sent_requests = _get_sent_match_requests(professional_id=professional_id, db=db)
 
     logger.info(f"Professional with id {professional.id} updated successfully")
     return ProfessionalResponse.create(
         professional=professional,
         matched_ads=matched_ads,
         skills=skills,
+        sent_requests=sent_requests,
     )
 
 
@@ -270,11 +272,15 @@ def get_by_id(professional_id: UUID, db: Session) -> ProfessionalResponse:
     )
 
     skills = get_skills(professional_id=professional_id, db=db)
+    sent_requests = _get_sent_match_requests(professional_id=professional_id, db=db)
 
     logger.info(f"Professional with id {professional_id} fetched")
 
     return ProfessionalResponse.create(
-        professional=professional, matched_ads=matched_ads, skills=skills
+        professional=professional,
+        matched_ads=matched_ads,
+        skills=skills,
+        sent_requests=sent_requests,
     )
 
 
@@ -655,6 +661,29 @@ def get_match_requests(professional_id: UUID, db: Session) -> list[MatchRequestA
     professional = _get_by_id(professional_id=professional_id, db=db)
 
     match_requests = match_service.get_match_requests_for_professional(
+        professional_id=professional.id, db=db
+    )
+
+    return match_requests
+
+
+def _get_sent_match_requests(
+    professional_id: UUID, db: Session
+) -> list[MatchRequestAd]:
+    """
+    Fetches Match Requests sent by the given Professional.
+
+    Args:
+        professional_id (UUID): The identifier of the Professional.
+        db (Session): Database dependency.
+
+    Returns:
+        list[MatchRequest]: List of Pydantic models containing basic information about the match request.
+    """
+
+    professional = _get_by_id(professional_id=professional_id, db=db)
+
+    match_requests = match_service.get_sent_match_requests_for_professional(
         professional_id=professional.id, db=db
     )
 
