@@ -8,13 +8,18 @@ from sqlalchemy.orm import Session
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
 from app.schemas.company import CompanyResponse
+from app.schemas.job_ad import JobAdResponse
 from app.schemas.job_application import JobApplicationResponse
+from app.schemas.professional import ProfessionalResponse
 from app.services.enums.match_status import MatchStatus
 from app.services.utils.common import (
     get_company_by_email,
     get_company_by_username,
+    get_job_ad_by_id,
     get_job_application_by_id,
+    get_match_request_by_id,
     get_professional_by_email,
+    get_professional_by_id,
     get_professional_by_username,
 )
 from app.sql_app.city.city import City
@@ -25,7 +30,7 @@ from app.sql_app.match.match import Match
 from app.sql_app.professional.professional import Professional
 from app.sql_app.skill.skill import Skill
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL
+from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL, JOB_AD_BY_ID_URL
 
 logger = logging.getLogger(__name__)
 
@@ -48,20 +53,26 @@ def ensure_valid_city(name: str) -> CityResponse:
 
 
 def ensure_valid_job_ad_id(
-    job_ad_id: UUID, db: Session, company_id: UUID | None = None
-) -> JobAd:
+    job_ad_id: UUID,
+    company_id: UUID | None = None,
+) -> JobAdResponse:
     """
-    Ensures that the provided job advertisement ID is valid and optionally belongs to the specified company.
+    Ensures that the provided job advertisement ID is valid and optionally
+    belongs to the specified company.
+
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for querying.
-        company_id (UUID | None, optional): The unique identifier of the company to which the job advertisement should belong. Defaults to None.
+        company_id (UUID | None, optional): The unique identifier of the company.
+            Defaults to None.
+
     Returns:
-        JobAd: The job advertisement object if it is found and valid.
+        JobAdResponse: The job advertisement details if the ID is valid.
+
     Raises:
-        ApplicationError: If the job advertisement is not found or does not belong to the specified company.
+        ApplicationError: If the job advertisement is not found or does not
+            belong to the specified company.
     """
-    job_ad = db.query(JobAd).filter(JobAd.id == job_ad_id).first()
+    job_ad = get_job_ad_by_id(job_ad_id=job_ad_id)
     if job_ad is None:
         logger.error(f"Job Ad with id {job_ad_id} not found")
         raise ApplicationError(
@@ -140,7 +151,8 @@ def ensure_valid_company_id(company_id: UUID) -> CompanyResponse:
 
 
 def ensure_no_match_request(
-    job_ad_id: UUID, job_application_id: UUID, db: Session
+    job_ad_id: UUID,
+    job_application_id: UUID,
 ) -> None:
     """
     Ensures that there is no existing match request between the given job advertisement
@@ -149,21 +161,13 @@ def ensure_no_match_request(
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
-        db (Session): The database session used to query the Match table.
 
     Raises:
         ApplicationError: If a match request already exists between the given job advertisement
                           and job application, an ApplicationError is raised with a 400 status code.
     """
-    match = (
-        db.query(Match)
-        .filter(
-            and_(
-                Match.job_ad_id == job_ad_id,
-                Match.job_application_id == job_application_id,
-            )
-        )
-        .first()
+    match = get_match_request_by_id(
+        job_ad_id=job_ad_id, job_application_id=job_application_id
     )
     if match is not None:
         logger.error(
@@ -289,10 +293,20 @@ def is_unique_email(email: str) -> bool:
     return True
 
 
-def ensure_valid_professional_id(professional_id: UUID, db: Session) -> Professional:
-    professional = (
-        db.query(Professional).filter(Professional.id == professional_id).first()
-    )
+def ensure_valid_professional_id(professional_id: UUID) -> ProfessionalResponse:
+    """
+    Ensures that a professional with the given ID exists.
+
+    Args:
+        professional_id (UUID): The unique identifier of the professional.
+
+    Returns:
+        ProfessionalResponse: The professional object if found.
+
+    Raises:
+        ApplicationError: If no professional is found with the given ID.
+    """
+    professional = get_professional_by_id(professional_id)
     if professional is None:
         raise ApplicationError(
             detail=f"Professional with id {professional_id} not found.",
