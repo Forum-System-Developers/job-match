@@ -5,7 +5,6 @@ from uuid import UUID
 from fastapi import UploadFile, status
 from fastapi.responses import StreamingResponse
 from requests import Response
-from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse, SearchParams
@@ -22,16 +21,14 @@ from app.schemas.professional import (
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
-from app.services.enums.job_application_status import JobStatus
 from app.services.utils.common import get_professional_by_id
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.validators import is_unique_email, is_unique_username
-from app.sql_app.job_application.job_application import JobApplication
 from app.utils.password_utils import hash_password
-from app.utils.processors import process_db_transaction
 from app.utils.request_handlers import (
     perform_delete_request,
     perform_get_request,
+    perform_patch_request,
     perform_post_request,
     perform_put_request,
 )
@@ -39,7 +36,10 @@ from tests.services.urls import (
     PROFESSIONAL_BY_USERNAME_URL,
     PROFESSIONALS_BY_ID_URL,
     PROFESSIONALS_CV_URL,
+    PROFESSIONALS_JOB_APPLICATIONS_URL,
     PROFESSIONALS_PHOTO_URL,
+    PROFESSIONALS_SKILLS_URL,
+    PROFESSIONALS_TOGGLE_STATUS_URL,
     PROFESSIONALS_URL,
 )
 
@@ -52,7 +52,6 @@ def create(professional_data: ProfessionalCreate) -> ProfessionalResponse:
 
     Args:
         professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
-        db (Session): Database dependency.
 
     Returns:
         Professional: Pydantic response model for Professional.
@@ -279,19 +278,17 @@ def _get_by_id(professional_id: UUID) -> ProfessionalResponse:
 
 
 def set_matches_status(
-    professional_id: UUID, db: Session, private_matches: PrivateMatches
-) -> dict:
-    professional = _get_by_id(professional_id=professional_id, db=db)
+    professional_id: UUID,
+    private_matches: PrivateMatches,
+) -> MessageResponse:
+    perform_patch_request(
+        url=PROFESSIONALS_TOGGLE_STATUS_URL.format(professional_id=professional_id),
+        json={**private_matches.model_dump(mode="json")},
+    )
 
-    def _update_status():
-        professional.has_private_matches = private_matches.status
-        db.commit()
-
-        return {
-            "msg": f"Matches set as {'private' if private_matches.status else 'public'}"
-        }
-
-    return process_db_transaction(transaction_func=_update_status, db=db)
+    return MessageResponse(
+        message=f"Matches set as {'private' if private_matches.status else 'public'}"
+    )
 
 
 def get_by_username(username: str) -> User:
@@ -300,7 +297,6 @@ def get_by_username(username: str) -> User:
 
     Args:
         username (str): The username of the Professional
-        db (Session): Database dependency
 
     Raises:
         ApplicationError: When username does not exist.
@@ -324,7 +320,6 @@ def get_by_username(username: str) -> User:
 def get_applications(
     professional_id: UUID,
     # current_user: ProfessionalResponse | CompanyResponse,
-    db: Session,
     application_status: JobSearchStatus,
     filter_params: FilterParams,
 ) -> list[JobApplicationResponse]:
@@ -333,63 +328,37 @@ def get_applications(
 
     Args:
         professional_id (UUID): The identifier of the Professional.
-        db (Session): Database dependency.
 
     Returns:
         list[JobApplicationResponse]: List of Job Applications Pydantic models.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-    if (
-        professional.has_private_matches
-        and application_status.value == JobSearchStatus.MATCHED
-        # and isinstance(current_user, CompanyResponse)
-    ):
-        raise ApplicationError(
-            detail="Professional has set their Matches to Private",
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
-    search_status = JobStatus(application_status.value)
-
-    applications = (
-        db.query(JobApplication)
-        .filter(
-            JobApplication.professional_id == professional_id,
-            JobApplication.status == search_status,
-        )
-        .offset(filter_params.offset)
-        .limit(filter_params.limit)
-        .all()
+    job_applications = perform_get_request(
+        url=PROFESSIONALS_JOB_APPLICATIONS_URL.format(professional_id=professional_id),
+        params={
+            **filter_params.model_dump(mode="json"),
+            "application_status": application_status.value,
+        },
     )
 
     return [
-        JobApplicationResponse.create(
-            professional=professional, job_application=application, db=db
-        )
-        for application in applications
+        JobApplicationResponse.create(**job_application)
+        for job_application in job_applications
     ]
 
 
-def get_skills(professional_id: UUID, db: Session) -> list[SkillResponse]:
+def get_skills(professional_id: UUID) -> list[SkillResponse]:
     """
     Fetch skillset for professional.
 
     Args:
         professional_id (UUID): The identifier of the professional.
-        db (Session): The database dependency.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-    professional_job_applications = professional.job_applications
-    skills = {
-        skill.skill
-        for application in professional_job_applications
-        for skill in application.skills
-    }
+    skills = perform_get_request(
+        url=PROFESSIONALS_SKILLS_URL.format(professional_id=professional_id)
+    )
+    logger.info(f"Retrieved skills for professional with id {professional_id}")
 
-    return [
-        SkillResponse(id=skill.id, name=skill.name, category_id=skill.category_id)
-        for skill in skills
-    ]
+    return [SkillResponse(**skill) for skill in skills]
 
 
 def get_match_requests(professional_id: UUID) -> list[MatchRequestAd]:
