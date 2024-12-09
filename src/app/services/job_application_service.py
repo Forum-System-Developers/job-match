@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.city import CityResponse
-from app.schemas.common import FilterParams, SearchParams
+from app.schemas.common import FilterParams, MessageResponse, SearchParams
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationCreateFinal,
@@ -206,7 +206,9 @@ def _get_by_id(job_application_id: UUID, db: Session) -> JobApplication:
 #     return process_db_transaction(transaction_func=_handle_update, db=db)
 
 
-def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dict:
+def request_match(
+    job_application_id: UUID, job_ad_id: UUID, db: Session
+) -> MessageResponse:
     """
     Verifies Job Application and Job Ad and initiates a Match request for a Job Ad.
 
@@ -223,7 +225,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> dic
     job_ad = job_ad_service.get_by_id(job_ad_id=job_ad_id)
 
     return match_service.create_if_not_exists(
-        job_application_id=job_application.id, job_ad_id=job_ad.id, db=db
+        job_application_id=job_application.id, job_ad_id=job_ad.id
     )
 
 
@@ -253,7 +255,6 @@ def handle_match_response(
         job_application_id=job_application.id,
         job_ad_id=job_ad.id,
         accept_request=accept_request,
-        db=db,
     )
 
 
@@ -275,7 +276,7 @@ def view_match_requests(
     job_application = _get_by_id(job_application_id=job_application_id, db=db)
 
     return match_service.get_match_requests_for_job_application(
-        job_application_id=job_application.id, filter_params=filter_params, db=db
+        job_application_id=job_application.id, filter_params=filter_params
     )
 
 

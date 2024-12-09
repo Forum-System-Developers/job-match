@@ -18,20 +18,15 @@ from app.schemas.professional import (
     ProfessionalResponse,
     ProfessionalUpdate,
     ProfessionalUpdateFinal,
-    ProfessionalUpdateRequestBody,
 )
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
 from app.services.enums.job_application_status import JobStatus
+from app.services.utils.common import get_professional_by_id
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.validators import is_unique_email, is_unique_username
-from app.sql_app.job_ad.job_ad import JobAd
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.match.match import Match
-from app.sql_app.professional.professional import Professional
-from app.sql_app.professional.professional_status import ProfessionalStatus
 from app.utils.password_utils import hash_password
 from app.utils.processors import process_db_transaction
 from app.utils.request_handlers import (
@@ -257,13 +252,12 @@ def get_all(
     return [ProfessionalResponse(**professional) for professional in professionals]
 
 
-def _get_by_id(professional_id: UUID, db: Session) -> Professional:
+def _get_by_id(professional_id: UUID) -> ProfessionalResponse:
     """
     Retrieves an instance of the Professional model or None.
 
     Args:
         professional_id (UUID): The identifier of the Professional.
-        db (Session): Database dependency.
 
     Returns:
         Professional: SQLAlchemy model for Professional.
@@ -272,17 +266,15 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
         ApplicationError: If the professional with the given id is
             not found in the database.
     """
-    professional = (
-        db.query(Professional).filter(Professional.id == professional_id).first()
-    )
+    professional = get_professional_by_id(professional_id=professional_id)
     if professional is None:
         logger.error(f"Professional with id {professional_id} not found")
         raise ApplicationError(
             detail=f"Professional with id {professional_id} not found",
             status_code=status.HTTP_404_NOT_FOUND,
         )
-
     logger.info(f"Professional with id {professional_id} fetched")
+
     return professional
 
 
@@ -400,21 +392,20 @@ def get_skills(professional_id: UUID, db: Session) -> list[SkillResponse]:
     ]
 
 
-def get_match_requests(professional_id: UUID, db: Session) -> list[MatchRequestAd]:
+def get_match_requests(professional_id: UUID) -> list[MatchRequestAd]:
     """
     Fetches Match Requests for the given Professional.
 
     Args:
         professional_id (UUID): The identifier of the Professional.
-        db (Session): Database dependency.
 
     Returns:
         list[MatchRequest]: List of Pydantic models containing basic information about the match request.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
+    professional = _get_by_id(professional_id=professional_id)
 
     match_requests = match_service.get_match_requests_for_professional(
-        professional_id=professional.id, db=db
+        professional_id=professional.id
     )
 
     return match_requests
