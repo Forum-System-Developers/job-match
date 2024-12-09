@@ -37,6 +37,10 @@ PROFESSIONALS_JOB_APPLICATIONS_URL = (
 )
 PROFESSIONAL_BY_USERNAME_URL = f"{PROFESSIONALS_URL}/by-username/{{username}}"
 PROFESSIONAL_BY_EMAIL_URL = f"{PROFESSIONALS_URL}/by-email/{{email}}"
+PROFESSIONALS_TOGGLE_STATUS_URL = (
+    f"{PROFESSIONALS_URL}/{{professional_id}}/private-matches"
+)
+PROFESSIONALS_SKILLS_URL = f"{PROFESSIONALS_URL}/{{professional_id}}/skills"
 
 
 MATCH_REQUESTS_URL = f"{API_BASE_URL}/match-requests"
@@ -55,3 +59,6 @@ MATCH_REQUESTS_PROFESSIONALS_URL = (
     f"{MATCH_REQUESTS_URL}/professionals/{{professional_id}}"
 )
 MATCH_REQUESTS_COMPANIES_URL = f"{MATCH_REQUESTS_URL}/companies/{{company_id}}"
+
+
+SKILLS_URL = f"{API_BASE_URL}/skills"
