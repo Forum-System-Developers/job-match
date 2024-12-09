@@ -3,7 +3,6 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, Form
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.company import CompanyResponse
@@ -121,11 +120,10 @@ def get_by_id(
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _request_match():
         return job_application_service.request_match(
-            job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+            job_application_id=job_application_id, job_ad_id=job_ad_id
         )
 
     return process_request(
@@ -144,14 +142,12 @@ def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():
         return job_application_service.handle_match_response(
             job_application_id=job_application_id,
             job_ad_id=job_ad_id,
             accept_request=accept_request,
-            db=db,
         )
 
     return process_request(
@@ -169,13 +165,11 @@ def handle_match_response(
 def view_match_requests(
     job_application_id: UUID,
     filter_params: FilterParams = Depends(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():
         return job_application_service.view_match_requests(
             job_application_id=job_application_id,
             filter_params=filter_params,
-            db=db,
         )
 
     return process_request(

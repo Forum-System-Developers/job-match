@@ -3,7 +3,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
@@ -15,7 +14,6 @@ from app.schemas.professional import (
 )
 from app.services import professional_service
 from app.services.auth_service import get_current_user, require_professional_role
-from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
 router = APIRouter()
@@ -68,11 +66,10 @@ def update(
 def private_matches(
     professional_id: UUID,
     private_matches: PrivateMatches = Form(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _private_matches():
         return professional_service.set_matches_status(
-            professional_id=professional_id, db=db, private_matches=private_matches
+            professional_id=professional_id, private_matches=private_matches
         )
 
     return process_request(
@@ -209,14 +206,12 @@ def get_applications(
     application_status: JobSearchStatus = Query(
         description="Status of the Job Application"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_applications():
         return professional_service.get_applications(
             professional_id=professional_id,
             application_status=application_status,
             filter_params=filter_params,
-            db=db,
         )
 
     return process_request(
@@ -231,9 +226,9 @@ def get_applications(
     description="Fetch Skills for a professional",
     dependencies=[Depends(get_current_user)],
 )
-def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+def get_skills(professional_id: UUID) -> JSONResponse:
     def _get_skills():
-        return professional_service.get_skills(professional_id=professional_id, db=db)
+        return professional_service.get_skills(professional_id=professional_id)
 
     return process_request(
         get_entities_fn=_get_skills,
@@ -247,12 +242,10 @@ def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResp
     description="Fetch Match Requests for a professional",
     dependencies=[Depends(require_professional_role)],
 )
-def get_match_requests(
-    professional_id: UUID, db: Session = Depends(get_db)
-) -> JSONResponse:
+def get_match_requests(professional_id: UUID) -> JSONResponse:
     def _get_match_requests():
         return professional_service.get_match_requests(
-            professional_id=professional_id, db=db
+            professional_id=professional_id,
         )
 
     return process_request(

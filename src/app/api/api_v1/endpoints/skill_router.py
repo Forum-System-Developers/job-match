@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.company import CompanyResponse
 from app.schemas.skill import SkillCreate
@@ -16,11 +15,10 @@ router = APIRouter()
 def create_skill(
     skill_data: SkillCreate,
     company: CompanyResponse = Depends(require_company_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create_job_requirement():
-        return skill_service.add_pending_skill(
-            company_id=company.id, skill_data=skill_data, db=db
+        return skill_service.create_pending_skill(
+            company_id=company.id, skill_data=skill_data
         )
 
     return process_request(
