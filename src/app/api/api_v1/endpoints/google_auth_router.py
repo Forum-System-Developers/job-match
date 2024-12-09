@@ -42,15 +42,3 @@ async def protected_route(user=Depends(google_get_current_user)):
         status_code=200,
         not_found_err_msg="Protected route not found.",
     )
-
-
-@router.get("/logout")
-async def logout_route():
-    async def _logout():
-        return await logout()
-
-    return await process_async_request(
-        get_entities_fn=_logout,
-        status_code=200,
-        not_found_err_msg="Logout route not found.",
-    )
