@@ -2,50 +2,59 @@ import logging
 from uuid import UUID
 
 from fastapi import status
-from sqlalchemy import and_
-from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse
 from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchRequestAd, MatchRequestApplication, MatchResponse
-from app.services.enums.job_ad_status import JobAdStatus
-from app.services.enums.job_application_status import JobStatus
+from app.schemas.match import (
+    MatchRequestAd,
+    MatchRequestApplication,
+    MatchRequestCreate,
+    MatchResponse,
+)
+from app.services.utils.common import get_match_request_by_id
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
-    ensure_valid_match_request,
 )
-from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.match.match import Match, MatchStatus
-from app.sql_app.professional.professional import ProfessionalStatus
-from app.utils.processors import process_db_transaction
+from app.sql_app.match.match import MatchStatus
+from app.utils.request_handlers import (
+    perform_get_request,
+    perform_patch_request,
+    perform_post_request,
+    perform_put_request,
+)
+from tests.services.urls import (
+    MATCH_REQUESTS_BY_ID_URL,
+    MATCH_REQUESTS_COMPANIES_URL,
+    MATCH_REQUESTS_JOB_ADS_RECEIVED_URL,
+    MATCH_REQUESTS_JOB_ADS_SENT_URL,
+    MATCH_REQUESTS_JOB_APPLICATIONS_URL,
+    MATCH_REQUESTS_PROFESSIONALS_URL,
+    MATCH_REQUESTS_URL,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def create_if_not_exists(
-    job_application_id: UUID, job_ad_id: UUID, db: Session
-) -> dict:
+def create_if_not_exists(job_application_id: UUID, job_ad_id: UUID) -> MessageResponse:
     """
     Creates a Match request for a Job Application from a Company.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
-        db (Session): Database dependency.
 
     Raises:
         ApplicationError: If there is an existing Match already
 
     Returns:
-        dict: A dictionary containing a success message if the match request is created successfully.
+        MessageResponse: A message response indicating the success of the operation.
 
     """
     existing_match = _get_match(
-        job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+        job_application_id=job_application_id, job_ad_id=job_ad_id
     )
     if existing_match is not None:
         match existing_match.status:
@@ -64,60 +73,44 @@ def create_if_not_exists(
                     detail="Match Request was rejested, cannot create a new Match request",
                     status_code=status.HTTP_403_FORBIDDEN,
                 )
+    match_create = MatchRequestCreate(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        status=MatchStatus.REQUESTED_BY_JOB_AD,
+    )
+    perform_post_request(
+        url=MATCH_REQUESTS_URL,
+        json={**match_create.model_dump(mode="json")},
+    )
+    logger.info(
+        f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED_BY_JOB_AD}"
+    )
 
-    def _handle_create():
-        match_request = Match(
-            job_ad_id=job_ad_id,
-            job_application_id=job_application_id,
-            status=MatchStatus(MatchStatus.REQUESTED_BY_JOB_AD),
-        )
-        logger.info(
-            f"Match created for JobApplication id{job_application_id} and JobAd id {job_ad_id} with status {MatchStatus.REQUESTED_BY_JOB_AD}"
-        )
-        db.add(match_request)
-        db.commit()
-        db.refresh(match_request)
-
-        logger.info(
-            f"Match for JobApplication id{job_application_id} and JobAd id {job_ad_id} added to the database"
-        )
-        return {"msg": "Match Request successfully sent"}
-
-    return process_db_transaction(transaction_func=_handle_create, db=db)
+    return MessageResponse(message="Match Request successfully sent")
 
 
-def _get_match(job_application_id: UUID, job_ad_id: UUID, db: Session) -> Match | None:
+def _get_match(job_application_id: UUID, job_ad_id: UUID) -> MatchResponse | None:
     """
     Fetch Match instance.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
-        db (Session): Database dependency.
 
     Returns:
-        Optional[Match]: An existing entity or None.
+        MatchResponse | None: The Match instance or None if it does not exist.
 
     """
-    match = (
-        db.query(Match)
-        .filter(
-            and_(
-                Match.job_ad_id == job_ad_id,
-                Match.job_application_id == job_application_id,
-            )
-        )
-        .first()
+    return get_match_request_by_id(
+        job_ad_id=job_ad_id, job_application_id=job_application_id
     )
-    return match
 
 
 def process_request_from_company(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest,
-    db: Session,
-) -> dict:
+) -> MessageResponse:
     """
     Accepts or Rejects a Match request for a Job Application from a Company.
 
@@ -125,17 +118,17 @@ def process_request_from_company(
         job_application_id (UUID): The identifier of the Job Application.
         job_ad_id (UUID): The identifier of the Job Ad.
         accept_request (MatchResponseRequest): Accept or reject a Match request.
-        db (Session): Database dependency.
 
     Raises:
         ApplicationError: If there is no existing Match.
 
     Returns:
-        dict: A dictionary containing a success message if the match request is accepted or rejected.
+        MessageResponse: A message response indicating the success of the operation.
 
     """
     existing_match = _get_match(
-        job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
     )
     if existing_match is None:
         logger.error(
@@ -148,128 +141,99 @@ def process_request_from_company(
 
     if accept_request.accept_request:
         return accept_match_request(
-            match=existing_match,
-            db=db,
             job_application_id=job_application_id,
             job_ad_id=job_ad_id,
         )
 
     else:
         return reject_match_request(
-            match=existing_match,
-            db=db,
             job_application_id=job_application_id,
             job_ad_id=job_ad_id,
         )
 
 
 def reject_match_request(
-    match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
-) -> dict:
-    def _handle_reject():
-        match.status = MatchStatus.REJECTED
-        db.commit()
-        logger.info(
-            f"Updated status for Match with JobAplication with id {job_application_id}, JobAd id {job_ad_id}"
-        )
-        return {"msg": "Match Request rejected"}
+    job_ad_id: UUID,
+    job_application_id: UUID,
+) -> MessageResponse:
+    perform_patch_request(
+        url=MATCH_REQUESTS_BY_ID_URL.format(
+            job_ad_id=job_ad_id, job_application_id=job_application_id
+        ),
+        json={"status": MatchStatus.REJECTED},
+    )
+    logger.info(
+        f"Match Request rejected for JobApplication id{job_application_id} and JobAd id {job_ad_id}"
+    )
 
-    return process_db_transaction(transaction_func=_handle_reject, db=db)
+    return MessageResponse(message="Match Request rejected")
 
 
 def accept_match_request(
-    match: Match, db: Session, job_application_id: UUID, job_ad_id: UUID
-) -> dict:
+    job_application_id: UUID,
+    job_ad_id: UUID,
+) -> MessageResponse:
     """
-    Updates .
+    Accepts a match request for a given job application and job advertisement.
 
     Args:
-        match (MATCH): The Match instance.
-        db (Session): Database dependency.
+        job_application_id (UUID): The unique identifier of the job application.
+        job_ad_id (UUID): The unique identifier of the job advertisement.
 
     Returns:
-        dict: Confirmation message.
-
+        MessageResponse: A response object containing a message indicating the match request was accepted.
     """
-    match_job_application = match.job_application
-    professional = match_job_application.professional
+    perform_put_request(
+        url=MATCH_REQUESTS_BY_ID_URL.format(
+            job_ad_id=job_ad_id, job_application_id=job_application_id
+        ),
+    )
+    logger.info(
+        f"Match Request accepted for JobApplication id{job_application_id} and JobAd id {job_ad_id}"
+    )
 
-    def _handle_accept():
-        match.status = MatchStatus.ACCEPTED
-        professional.status = ProfessionalStatus.BUSY
-        professional.active_application_count -= 1
-        match_job_application.status = JobStatus.MATCHED
-        match.job_ad.status = JobAdStatus.ARCHIVED
-
-        db.commit()
-        logger.info(
-            f"Updated statuses for JobAplication with id {job_application_id}, JobAd id {job_ad_id}, Professional with id {professional.id}"
-        )
-        return {"msg": "Match Request accepted"}
-
-    return process_db_transaction(transaction_func=_handle_accept, db=db)
+    return MessageResponse(message="Match Request accepted")
 
 
 def get_match_requests_for_job_application(
-    job_application_id: UUID, db: Session, filter_params: FilterParams
+    job_application_id: UUID,
+    filter_params: FilterParams,
 ) -> list[MatchRequestAd]:
     """
     Fetch match requests for the given Job Application.
 
     Args:
         job_application_id (UUID): The identifier of the Job Application.
-        db (Session): Database dependency.
         filter_params (FilterParams): Filtering options for pagination.
 
     Returns:
         list[MatchRequestAd]: Response models containing basic information for the Job Ads that sent the match request.
     """
 
-    requests = (
-        db.query(Match, JobAd)
-        .join(JobAd, Match.job_ad_id == JobAd.id)
-        .filter(
-            and_(
-                Match.job_application_id == job_application_id,
-                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
-            )
-        )
-        .offset(filter_params.offset)
-        .limit(filter_params.limit)
-        .all()
+    requests = perform_get_request(
+        url=MATCH_REQUESTS_JOB_APPLICATIONS_URL.format(
+            job_application_id=job_application_id
+        ),
+        params=filter_params.model_dump(),
     )
 
-    return [
-        MatchRequestAd.create_response(match=match, job_ad=job_ad)
-        for (match, job_ad) in requests
-    ]
+    return [MatchRequestAd(**request) for request in requests]
 
 
 def get_match_requests_for_professional(
-    professional_id: UUID, db: Session
+    professional_id: UUID,
 ) -> list[MatchRequestAd]:
-    result = (
-        db.query(Match, JobAd)
-        .join(JobApplication, Match.job_application_id == JobApplication.id)
-        .join(JobAd, Match.job_ad_id == JobAd.id)
-        .filter(
-            JobApplication.professional_id == professional_id,
-            JobApplication.status == JobStatus.ACTIVE,
-            Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
-        )
-        .all()
+    requests = perform_get_request(
+        url=MATCH_REQUESTS_PROFESSIONALS_URL.format(professional_id=professional_id)
     )
 
-    return [
-        MatchRequestAd.create_response(match=match, job_ad=ad) for (match, ad) in result
-    ]
+    return [MatchRequestAd(**request) for request in requests]
 
 
 def accept_job_application_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
     company_id: UUID,
-    db: Session,
 ) -> MessageResponse:
     """
     Accepts a match request between a job advertisement and a job application.
@@ -282,41 +246,22 @@ def accept_job_application_match_request(
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
-        db (Session): The database session to use for the operation.
 
     Returns:
         AcceptRequestMatchResponse: The response indicating successful match acceptance.
     """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    job_application = ensure_valid_job_application_id(
-        job_application_id=job_application_id
-    )
-    match = ensure_valid_match_request(
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
+
+    return accept_match_request(
         job_ad_id=job_ad_id,
         job_application_id=job_application_id,
-        match_status=MatchStatus.REQUESTED_BY_JOB_APP,
-        db=db,
     )
-
-    job_ad.status = JobAdStatus.ARCHIVED
-    job_application.status = JobStatus.MATCHED
-    match.status = MatchStatus.ACCEPTED
-
-    job_ad.company.successfull_matches_count += 1
-
-    db.commit()
-    logger.info(
-        f"Matched job ad with id {job_ad_id} to job application with id {job_application_id}"
-    )
-
-    return MessageResponse(message="Match request accepted")
 
 
 def send_job_application_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
     company_id: UUID,
-    db: Session,
 ) -> MessageResponse:
     """
     Sends a match request from a job advertisement to a job application.
@@ -330,25 +275,25 @@ def send_job_application_match_request(
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
         company_id (UUID): The unique identifier of the company.
-        db (Session): The database session to use for the operation.
 
     Returns:
         MessageResponse: The response indicating successful match request.
     """
-    ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
     ensure_valid_job_application_id(job_application_id=job_application_id)
     ensure_no_match_request(
-        job_ad_id=job_ad_id, job_application_id=job_application_id, db=db
-    )
-
-    match = Match(
         job_ad_id=job_ad_id,
         job_application_id=job_application_id,
-        status=MatchStatus.REQUESTED_BY_JOB_AD,
     )
 
-    db.add(match)
-    db.commit()
+    perform_post_request(
+        url=MATCH_REQUESTS_URL,
+        json=MatchRequestCreate(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            status=MatchStatus.REQUESTED_BY_JOB_AD,
+        ).model_dump(mode="json"),
+    )
     logger.info(
         f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
@@ -356,103 +301,69 @@ def send_job_application_match_request(
     return MessageResponse(message="Match request sent")
 
 
-def view_received_job_application_match_requests(
+def view_received_job_ad_match_requests(
     job_ad_id: UUID,
     company_id: UUID,
-    db: Session,
 ) -> list[MatchResponse]:
     """
     Retrieve match requests for a given job advertisement.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
 
     Returns:
         list[MatchResponse]: A list of match responses for the specified job advertisement.
     """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = requests = (
-        db.query(Match)
-        .join(Match.job_ad)
-        .filter(
-            and_(
-                JobAd.id == job_ad.id, Match.status == MatchStatus.REQUESTED_BY_JOB_APP
-            )
-        )
-        .all()
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
+    requests = perform_get_request(
+        url=MATCH_REQUESTS_JOB_ADS_RECEIVED_URL.format(job_ad_id=job_ad_id),
     )
-
     logger.info(f"Retrieved {len(requests)} requests for job ad with id {job_ad_id}")
 
-    return [MatchResponse.create(request) for request in requests]
+    return [MatchResponse(**request) for request in requests]
 
 
 def view_sent_job_application_match_requests(
     job_ad_id: UUID,
     company_id: UUID,
-    db: Session,
 ) -> list[MatchResponse]:
     """
     Retrieve sent match requests for a given job advertisement.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
-        db (Session): The database session to use for the query.
 
     Returns:
         list[MatchResponse]: A list of match responses for the specified job advertisement.
     """
-    job_ad = ensure_valid_job_ad_id(job_ad_id=job_ad_id, db=db, company_id=company_id)
-    requests = (
-        db.query(Match)
-        .filter(
-            and_(
-                Match.job_ad_id == job_ad.id,
-                Match.status == MatchStatus.REQUESTED_BY_JOB_AD,
-            )
-        )
-        .all()
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
+    requests = perform_get_request(
+        url=MATCH_REQUESTS_JOB_ADS_SENT_URL.format(job_ad_id=job_ad_id),
     )
-
     logger.info(
         f"Retrieved {len(requests)} sent requests for job ad with id {job_ad_id}"
     )
 
-    return [MatchResponse.create(request) for request in requests]
+    return [MatchResponse(**request) for request in requests]
 
 
 def get_company_match_requests(
-    company_id: UUID, db: Session, filter_params: FilterParams
+    company_id: UUID,
+    filter_params: FilterParams,
 ) -> list[MatchRequestApplication]:
     """
     Retrieve match requests for a given company.
 
     Args:
         company_id (UUID): The unique identifier of the company.
-        db (Session): The database session to use for the query.
 
     Returns:
         list[MatchRequestApplication]: A list of match responses for the specified company.
     """
-    requests = (
-        db.query(Match, JobApplication)
-        .join(Match.job_application)
-        .join(Match.job_ad)
-        .filter(
-            and_(
-                JobAd.company_id == company_id,
-                Match.status == MatchStatus.REQUESTED_BY_JOB_APP,
-            )
-        )
-        .offset(filter_params.offset)
-        .limit(filter_params.limit)
-        .all()
+    requests = perform_get_request(
+        url=MATCH_REQUESTS_COMPANIES_URL.format(company_id=company_id),
+        params=filter_params.model_dump(),
     )
-
     logger.info(f"Retrieved {len(requests)} requests for company with id {company_id}")
 
-    return [
-        MatchRequestApplication.create_response(match, job_application)
-        for (match, job_application) in requests
-    ]
+    return [MatchRequestApplication(**request) for request in requests]
