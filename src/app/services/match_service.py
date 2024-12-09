@@ -298,7 +298,9 @@ def send_job_application_match_request(
         f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
-    return MessageResponse(message="Match request sent")
+        return MessageResponse(message="Match request sent")
+
+    return process_db_transaction(transaction_func=_handle_create, db=db)
 
 
 def view_received_job_ad_match_requests(

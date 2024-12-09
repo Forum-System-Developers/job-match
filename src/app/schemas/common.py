@@ -108,6 +108,11 @@ class SearchJobApplication(SearchParams):
         description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application",
         default=JobAdStatus.ACTIVE,
     )
+    skills: list[str] = Field(
+        examples=[["Python", "Linux", "React"]],
+        default=[],
+        description="List a set of skills to be included in the search",
+    )
 
 
 class JobAdSearchParams(SearchParams):

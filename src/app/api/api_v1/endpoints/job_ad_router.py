@@ -7,7 +7,12 @@ from app.schemas.common import FilterParams, JobAdSearchParams
 from app.schemas.company import CompanyResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
 from app.services import job_ad_service, match_service
-from app.services.auth_service import get_current_user, require_company_role
+from app.services.auth_service import (
+    get_current_user,
+    require_company_role,
+    require_professional_role,
+)
+from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
 router = APIRouter()
@@ -155,7 +160,8 @@ def accept_match_request(
 
 @router.post(
     "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
-    description="Send a match request to a job application.",
+    description="Send a match request to a Job Ad.",
+    dependencies=[Depends(require_professional_role)],
 )
 def send_match_request(
     job_ad_id: UUID,

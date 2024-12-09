@@ -25,6 +25,7 @@ def test_create_job_application(mocker, mock_db):
         **td.JOB_APPLICATION_CREATE,
         city=td.VALID_CITY_NAME,
         skills=[skill_1],
+        category_id=td.VALID_CATEGORY_ID,
     )
 
     mock_professional = mocker.Mock(
@@ -102,6 +103,7 @@ def test_update_job_application(mocker, mock_db):
         name=td.VALID_JOB_APPLICATION_NAME,
         is_main=True,
         application_status=JobStatus.ACTIVE,
+        category_id=td.VALID_CATEGORY_ID,
     )
 
     mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
@@ -162,15 +164,18 @@ def test_update_job_application(mocker, mock_db):
 def test_get_all_job_applications_withAsc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
-    search_params = mocker.Mock(order="asc", order_by="created_at")
+    search_params = mocker.Mock(order="asc", order_by="created_at", skills=["Python", "Linux", "React"])
 
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]
 
     mock_query = mock_db.query.return_value
-    mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
-    mock_offset = mock_filter.offset.return_value
+    mock_join_1 = mock_query.join.return_value
+    mock_filter_1 = mock_join_1.filter.return_value
+    mock_join_2 = mock_filter_1.join.return_value
+    mock_join_3 = mock_join_2.join.return_value
+    mock_filter_2 = mock_join_3.filter.return_value
+    mock_offset = mock_filter_2.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = mock_job_app
 
@@ -193,15 +198,18 @@ def test_get_all_job_applications_withAsc(mocker, mock_db):
 def test_get_all_job_applications_WithDesc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
-    search_params = mocker.Mock(order="desc", order_by="created_at")
+    search_params = mocker.Mock(order="desc", order_by="created_at", skills=["Python", "Linux", "React"])
 
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]
 
     mock_query = mock_db.query.return_value
-    mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
-    mock_offset = mock_filter.offset.return_value
+    mock_join_1 = mock_query.join.return_value
+    mock_filter_1 = mock_join_1.filter.return_value
+    mock_join_2 = mock_filter_1.join.return_value
+    mock_join_3 = mock_join_2.join.return_value
+    mock_filter_2 = mock_join_3.filter.return_value
+    mock_offset = mock_filter_2.offset.return_value
     mock_limit = mock_offset.limit.return_value
     mock_limit.all.return_value = mock_job_app
 

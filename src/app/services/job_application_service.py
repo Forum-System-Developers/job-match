@@ -1,7 +1,13 @@
 import logging
 from uuid import UUID
 
-from app.schemas.common import FilterParams, MessageResponse, SearchParams
+from fastapi import status
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.query import Query
+
+from app.exceptions.custom_exceptions import ApplicationError
+from app.schemas.city import CityResponse
+from app.schemas.common import FilterParams, MessageResponse, SearchJobApplication
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationCreateFinal,
@@ -138,7 +144,7 @@ def request_match(job_application_id: UUID, job_ad_id: UUID) -> MessageResponse:
         job_ad_id (UUID): The identifier of the Job Ad.
 
     Returns:
-        dict: A dictionary containing a success message if the match request is created successfully.
+        MessageResponse: A dictionary containing a success message if the match request is created successfully.
 
     """
     ensure_valid_job_application_id(job_application_id=job_application_id)

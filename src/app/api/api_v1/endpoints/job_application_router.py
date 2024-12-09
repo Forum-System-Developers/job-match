@@ -1,11 +1,10 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Form
+from fastapi import APIRouter, Body, Depends
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
 
-from app.schemas.common import FilterParams, SearchParams
-from app.schemas.company import CompanyResponse
+from app.schemas.common import FilterParams, SearchJobApplication
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationUpdate,
@@ -79,7 +78,7 @@ def update(
 )
 def get_all(
     filter_params: FilterParams = Depends(),
-    search_params: SearchParams = Depends(),
+    search_params: SearchJobApplication = Depends()
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(

@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.custom_types import Password, Username
 from app.schemas.job_ad import JobAdPreview
+from app.schemas.skill import SkillResponse
 from app.sql_app.professional.professional import Professional
 from app.sql_app.professional.professional_status import ProfessionalStatus
 
@@ -89,12 +90,18 @@ class ProfessionalResponse(ProfessionalBase):
     Pydantic schema representing the FastAPI response for Professional.
 
     Attributes:
+        id (UUID): Unique identifier of the professional.
         first_name (str): First name of the professional.
         last_name (str): Last name of the professional.
         description (str): Description of the professional.
         photo bytes | None: Photo of the professional.
         active_application_count (int): Number of active applications.
         city (str): The city the professional is located in.
+        status (ProfessionalStatus): Status of the professional.
+        skills (list[SkillResponse]): List of skills associated with the professional.
+        matched_ads (list[JobAdPreview] | None): List of matched
+                job advertisements or None if the professional has private matches.
+
 
     """
 
@@ -102,6 +109,7 @@ class ProfessionalResponse(ProfessionalBase):
     email: EmailStr
     photo: bytes | None = None
     status: ProfessionalStatus
+    skills: list[SkillResponse] = []
     active_application_count: int
     matched_ads: list[JobAdPreview] | None = None
 
@@ -110,6 +118,7 @@ class ProfessionalResponse(ProfessionalBase):
         cls,
         professional: Professional,
         matched_ads: list[JobAdPreview] | None = None,
+        skills: list[SkillResponse] = [],
     ) -> "ProfessionalResponse":
         return cls(
             id=professional.id,
@@ -120,6 +129,7 @@ class ProfessionalResponse(ProfessionalBase):
             description=professional.description,
             photo=professional.photo,
             status=professional.status,
+            skills=skills,
             active_application_count=professional.active_application_count,
             matched_ads=matched_ads if not professional.has_private_matches else None,
         )
