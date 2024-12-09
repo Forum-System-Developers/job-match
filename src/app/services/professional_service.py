@@ -1,23 +1,23 @@
 import io
 import logging
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import UploadFile, status
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from requests import Response
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams, MessageResponse, SearchParams
-from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
 from app.schemas.match import MatchRequestAd
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
-    ProfessionalRequestBody,
+    ProfessionalCreateFinal,
     ProfessionalResponse,
+    ProfessionalUpdate,
+    ProfessionalUpdateFinal,
     ProfessionalUpdateRequestBody,
 )
 from app.schemas.skill import SkillResponse
@@ -38,6 +38,7 @@ from app.utils.request_handlers import (
     perform_delete_request,
     perform_get_request,
     perform_post_request,
+    perform_put_request,
 )
 from tests.services.urls import (
     PROFESSIONALS_BY_ID_URL,
@@ -49,10 +50,7 @@ from tests.services.urls import (
 logger = logging.getLogger(__name__)
 
 
-def create(
-    professional_request: ProfessionalRequestBody,
-    db: Session,
-) -> ProfessionalResponse:
+def create(professional_data: ProfessionalCreate) -> ProfessionalResponse:
     """
     Creates an instance of the Professional model.
 
@@ -63,72 +61,59 @@ def create(
     Returns:
         Professional: Pydantic response model for Professional.
     """
-    professional_create = professional_request.professional
-    professional_status = professional_request.status
 
-    city = city_service.get_by_name(city_name=professional_create.city)
-    if city is None:
-        logger.error(f"City name {professional_create.city} not found")
-        raise ApplicationError(
-            detail=f"City with name {professional_create.city} was not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-    logger.info(f"City {city} fetched")
+    _validate_unique_professional_details(professional_create=professional_data)
+    city = city_service.get_by_name(city_name=professional_data.city)
 
-    professional = _register_professional(
-        professional_create=professional_create,
-        professional_status=professional_status,
+    hashed_password = hash_password(password=professional_data.password)
+
+    professional_create_data = ProfessionalCreateFinal(
+        **professional_data.model_dump(exclude={"city", "password"}, mode="json"),
         city_id=city.id,
-        db=db,
+        password_hash=hashed_password,
     )
 
-    logger.info(f"Professional with id {professional.id} created")
-    return ProfessionalResponse.create(professional=professional)
+    professional = perform_post_request(
+        url=PROFESSIONALS_URL,
+        json={
+            **professional_create_data.model_dump(mode="json"),
+        },
+    )
+    logger.info(f"Professional with id {professional['id']} created")
+
+    return ProfessionalResponse(**professional)
 
 
 def update(
     professional_id: UUID,
-    professional_request: ProfessionalUpdateRequestBody,
-    db: Session,
+    professional_data: ProfessionalUpdate,
 ) -> ProfessionalResponse:
     """
-    Upates an instance of the Professional model.
+    Update the professional's information.
 
     Args:
-        professional_id (UUID): The identifier of the professional.
-        professional_request (ProfessionalRequestBody): Pydantic schema for collecting data.
-        db (Session): Database dependency.
+        professional_id (UUID): The unique identifier of the professional.
+        professional_data (ProfessionalUpdate): The data to update the professional with.
 
     Returns:
-        Professional: Professional Pydantic response model.
-
-    Raises:
-        ApplicationError: If the professional with the given id is
-            not found in the database.
-        ApplicationError: If the city with the given name is
-            not found in the database.
-
+        ProfessionalResponse: The updated professional information.
     """
-    professional = _get_by_id(professional_id=professional_id, db=db)
-
-    professional = _update_attributes(
-        professional_request=professional_request, professional=professional, db=db
+    professional_update_data = ProfessionalUpdateFinal(
+        **professional_data.model_dump(exclude={"city"}, mode="json")
     )
+    if professional_data.city is not None:
+        city = city_service.get_by_name(city_name=professional_data.city)
+        professional_update_data.city_id = city.id
 
-    matched_ads = (
-        _get_matches(professional_id=professional_id, db=db)
-        if not professional.has_private_matches
-        else None
+    professional = perform_put_request(
+        url=PROFESSIONALS_BY_ID_URL.format(professional_id=professional_id),
+        json={
+            **professional_update_data.model_dump(mode="json"),
+        },
     )
+    logger.info(f"Professional with id {professional_id} updated successfully")
 
-    db.commit()
-    db.refresh(professional)
-
-    logger.info(f"Professional with id {professional.id} updated successfully")
-    return ProfessionalResponse.create(
-        professional=professional,
-        matched_ads=matched_ads,
-    )
+    return ProfessionalResponse(**professional)
 
 
 def upload_photo(professional_id: UUID, photo: UploadFile) -> MessageResponse:
@@ -300,64 +285,6 @@ def _get_by_id(professional_id: UUID, db: Session) -> Professional:
     return professional
 
 
-def _update_attributes(
-    professional_request: ProfessionalUpdateRequestBody,
-    professional: Professional,
-    db: Session,
-) -> Professional:
-    """
-    Updates the attributes of a professional's profile based on the provided ProfessionalUpdate model.
-
-    Args:
-        professional_request (ProfessionalUpdateRequestBody): The updated information for the professional.
-        professional (Professional): The existing professional object to be updated.
-        db (Session): The database session used for querying or interacting with the database.
-
-    Returns:
-        Professional (Professional): The updated professional object with modified attributes.
-    """
-    professional_update = professional_request.professional
-    professional_status = professional_request.status
-
-    if professional.status != professional_status:
-        professional.status = professional_status
-        logger.info("Professional status updated successfully")
-
-    if (
-        professional_update.city is not None
-    ) and professional_update.city != professional.city.name:
-        city = city_service.get_by_name(city_name=professional_update.city)
-        professional.city_id = city.id
-        logger.info("professional city updated successfully")
-
-    if (
-        professional_update.description is not None
-    ) and professional.description != professional_update.description:
-        professional.description = professional_update.description
-        logger.info("Professional description updated successfully")
-
-    if (
-        professional_update.first_name is not None
-    ) and professional.first_name != professional_update.first_name:
-        professional.first_name = professional_update.first_name
-        logger.info("Professional first name updated successfully")
-
-    if (
-        professional_update.last_name is not None
-    ) and professional.last_name != professional_update.last_name:
-        professional.last_name = professional_update.last_name
-        logger.info("Professional last name updated successfully")
-
-    def _handle_update():
-        db.commit()
-        db.refresh(professional)
-        logger.info(f"Professional {professional.id} updated successfully.")
-
-        return professional
-
-    return process_db_transaction(transaction_func=_handle_update, db=db)
-
-
 def set_matches_status(
     professional_id: UUID, db: Session, private_matches: PrivateMatches
 ) -> dict:
@@ -455,89 +382,6 @@ def get_applications(
     ]
 
 
-def _register_professional(
-    professional_create: ProfessionalCreate,
-    professional_status: ProfessionalStatus,
-    city_id: UUID,
-    db: Session,
-) -> Professional:
-    """
-    Handles a unique username check and password hashing from user data.
-
-    Args:
-        professional_create (ProfessionalCreate): DTO for Professional creation.
-        professional_status (ProfessionalStatus): The status of the Professional.
-        city_id (UUID): The identifier of the city.
-        db (Session): Database dependency.
-
-    Raises:
-        ApplicationError: If the username already exists in either Company of Professional tables.
-
-    Returns:
-        Professional: The newly created Professional model.
-    """
-    username = professional_create.username
-    password = professional_create.password
-    email = professional_create.email
-
-    if not is_unique_username(username=username):
-        raise ApplicationError(
-            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
-        )
-    if not is_unique_email(email=email):
-        raise ApplicationError(
-            detail="Email already taken", status_code=status.HTTP_409_CONFLICT
-        )
-
-    hashed_password = hash_password(password=password)
-
-    professional = _create(
-        professional_create=professional_create,
-        city_id=city_id,
-        professional_status=professional_status,
-        hashed_password=hashed_password,
-        db=db,
-    )
-
-    return professional
-
-
-def _create(
-    professional_create: ProfessionalCreate,
-    city_id: UUID,
-    professional_status: ProfessionalStatus,
-    hashed_password: str,
-    db: Session,
-) -> Professional:
-    """
-    Handle creation of a Professional entity.
-
-    Args:
-        professional_create (ProfessionalCreate): Pydantic DTO for collecting data.
-        city_id (UUID): The identifier of the city.
-        professional_status (ProfessionalStatus): The status of the Professional upon creation.
-        hashed_password (str): Hashed password of the user for insertion into the database.
-        db (Session): Database dependency.
-
-    Returns:
-        Professional: Newly created entity.
-    """
-
-    def _handle_create():
-        professional = Professional(
-            **professional_create.model_dump(exclude={"city", "password"}),
-            city_id=city_id,
-            password=hashed_password,
-            status=professional_status,
-        )
-        db.add(professional)
-        db.commit()
-        db.refresh(professional)
-        return professional
-
-    return process_db_transaction(transaction_func=_handle_create, db=db)
-
-
 def get_skills(professional_id: UUID, db: Session) -> list[SkillResponse]:
     """
     Fetch skillset for professional.
@@ -599,3 +443,25 @@ def _create_cv_streaming_response(response: Response) -> StreamingResponse:
     streaming_response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
 
     return streaming_response
+
+
+def _validate_unique_professional_details(
+    professional_create: ProfessionalCreate,
+) -> None:
+    """
+    Check if the username and email provided for creating a Professional are unique.
+
+    Args:
+        professional_create (ProfessionalCreate): The data for creating a Professional.
+
+    Raises:
+        ApplicationError: If the username or email is already taken.
+    """
+    if not is_unique_username(username=professional_create.username):
+        raise ApplicationError(
+            detail="Username already taken", status_code=status.HTTP_409_CONFLICT
+        )
+    if not is_unique_email(email=professional_create.email):
+        raise ApplicationError(
+            detail="Email already taken", status_code=status.HTTP_409_CONFLICT
+        )
