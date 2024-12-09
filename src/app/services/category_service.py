@@ -1,5 +1,3 @@
-from sqlalchemy.orm import Session
-
 from app.schemas.category import CategoryResponse
 from app.sql_app.category.category import Category
 from app.utils.request_handlers import perform_get_request

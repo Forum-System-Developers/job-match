@@ -3,19 +3,7 @@ from uuid import UUID
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdCreateFull, JobAdResponse, JobAdUpdate
-from app.services.enums.job_ad_status import JobAdStatus
-from app.services.utils.validators import (
-    ensure_no_match_request,
-    ensure_valid_city,
-    ensure_valid_company_id,
-    ensure_valid_job_ad_id,
-    ensure_valid_job_application_id,
-    ensure_valid_match_request,
-    ensure_valid_skill_id,
-)
-from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
-from app.sql_app.skill.skill import Skill
+from app.services.utils.validators import ensure_valid_city
 from app.utils.request_handlers import (
     perform_get_request,
     perform_post_request,

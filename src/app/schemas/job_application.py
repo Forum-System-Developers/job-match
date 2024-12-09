@@ -2,7 +2,6 @@ from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
-from sqlalchemy.orm import Session
 
 from app.schemas.city import City
 from app.schemas.custom_types import Salary
@@ -186,7 +185,6 @@ class JobApplicationResponse(JobAplicationBase):
         cls,
         professional: ProfessionalResponse | Professional,
         job_application: JobApplication,
-        db: Session,
         skills: list[SkillResponse] | None = None,
     ) -> "JobApplicationResponse":
         from app.services import job_application_service

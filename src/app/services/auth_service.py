@@ -26,7 +26,6 @@ def login(username: str, password: str, response: Response) -> Token:
     Args:
         username (str): The username of the user.
         password (str): The password of the user.
-        db (Session): The database session for querying user information.
         response (Response): The HTTP response object to set cookies.
 
     Returns:
@@ -232,7 +231,6 @@ def verify_token(token: str) -> tuple[dict, str]:
 
     Args:
         token (str): The JWT token to be verified.
-        db (Session): The database session to use for querying user information.
 
     Returns:
         tuple[dict, str]: The decoded token payload if verification is successful, and the user_role.
@@ -305,7 +303,6 @@ def authenticate_user(login_data: UserLogin) -> tuple[UserRole, User]:
 
     Args:
         login_data (UserLogin): The login data containing user credentials.
-        db (Session): The database session used to query the user information.
 
     Returns:
         tuple[UserRole, User]: A tuple containing the user role and the authenticated user object.
@@ -336,7 +333,6 @@ def refresh_access_token(request: Request, response: Response) -> Token:
 
     Args:
         request (Request): The HTTP request object containing cookies.
-        db (Session): The database session used for token verification.
 
     Returns:
         Token: A new access token for the user.
@@ -394,7 +390,6 @@ def require_professional_role(
 
     Args:
         user (UserResponse): The current user.
-        db (Session): The database session dependency.
 
     Returns:
         ProfessionalResponse: The professional user information.
@@ -424,7 +419,6 @@ def require_company_role(
 
     Args:
         user (UserResponse): The current user.
-        db (Session): The database session dependency.
 
     Returns:
         CompanyResponse: The company user information.
