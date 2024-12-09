@@ -1,7 +1,6 @@
-from typing import Union
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -10,14 +9,13 @@ from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
-    ProfessionalRequestBody,
+    ProfessionalCreate,
     ProfessionalResponse,
-    ProfessionalUpdateRequestBody,
+    ProfessionalUpdate,
 )
 from app.services import professional_service
 from app.services.auth_service import (
     get_current_user,
-    require_company_role,
     require_professional_role,
 )
 from app.sql_app.database import get_db
@@ -30,14 +28,10 @@ router = APIRouter()
     "/",
     description="Create a profile for a Professional.",
 )
-def create(
-    professional_request: ProfessionalRequestBody = Body(),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def create(professional_data: ProfessionalCreate) -> JSONResponse:
     def _create():
         return professional_service.create(
-            professional_request=professional_request,
-            db=db,
+            professional_data=professional_data,
         )
 
     return process_request(
@@ -54,14 +48,12 @@ def create(
 )
 def update(
     professional_id: UUID,
-    professional: ProfessionalUpdateRequestBody = Body(),
-    db: Session = Depends(get_db),
+    professional_update: ProfessionalUpdate,
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
             professional_id=professional_id,
-            professional_request=professional,
-            db=db,
+            professional_data=professional_update,
         )
 
     return process_request(
