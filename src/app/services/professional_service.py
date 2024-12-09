@@ -41,6 +41,7 @@ from app.utils.request_handlers import (
     perform_put_request,
 )
 from tests.services.urls import (
+    PROFESSIONAL_BY_USERNAME_URL,
     PROFESSIONALS_BY_ID_URL,
     PROFESSIONALS_CV_URL,
     PROFESSIONALS_PHOTO_URL,
@@ -301,7 +302,7 @@ def set_matches_status(
     return process_db_transaction(transaction_func=_update_status, db=db)
 
 
-def get_by_username(username: str, db: Session) -> User:
+def get_by_username(username: str) -> User:
     """
     Fetch a Professional by their username.
 
@@ -316,15 +317,10 @@ def get_by_username(username: str, db: Session) -> User:
         User (User): Pydantic DTO containing User information.
 
     """
-
-    professional = (
-        db.query(Professional).filter(Professional.username == username).first()
+    professional = perform_get_request(
+        url=PROFESSIONAL_BY_USERNAME_URL.format(username=username)
     )
-    if professional is None:
-        raise ApplicationError(
-            detail=f"User with username {username} does not exist",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
+    logger.info(f"Retrieved professional with username {username}")
 
     return User(
         id=professional.id,
