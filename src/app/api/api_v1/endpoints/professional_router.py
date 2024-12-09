@@ -14,6 +14,7 @@ from app.schemas.professional import (
     ProfessionalResponse,
     ProfessionalUpdateRequestBody,
 )
+from app.schemas.user import UserResponse
 from app.services import professional_service
 from app.services.auth_service import (
     get_current_user,
@@ -268,17 +269,15 @@ def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResp
 
 
 @router.get(
-    "/{professional_id}/match-requests",
+    "/match-requests",
     description="Fetch Match Requests for a professional",
-    dependencies=[Depends(require_professional_role)],
 )
 def get_match_requests(
-    professional_id: UUID, db: Session = Depends(get_db)
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_match_requests():
-        return professional_service.get_match_requests(
-            professional_id=professional_id, db=db
-        )
+        return professional_service.get_match_requests(professional_id=user.id, db=db)
 
     return process_request(
         get_entities_fn=_get_match_requests,
