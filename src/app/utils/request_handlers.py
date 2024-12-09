@@ -1,5 +1,9 @@
+import logging
+
 import requests
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 
 def perform_http_request(method: str, url: str, **kwargs):
@@ -20,6 +24,7 @@ def perform_http_request(method: str, url: str, **kwargs):
     try:
         response = requests.request(method=method, url=url, **kwargs)
         if 400 <= response.status_code < 600:
+            logger.error(f"Error response from {url}: {response.json()}")
             raise HTTPException(
                 status_code=response.status_code,
                 detail=response.json().get("detail"),
@@ -28,6 +33,7 @@ def perform_http_request(method: str, url: str, **kwargs):
             return response.json()
         return response
     except requests.RequestException as e:
+        logger.error(f"Error sending request to {url}: {e}")
         raise HTTPException(
             status_code=response.status_code if response else 500,
             detail=str(e),
@@ -74,6 +80,20 @@ def perform_put_request(url: str, **kwargs):
         Response: The response object resulting from the PUT request.
     """
     return perform_http_request("PUT", url, **kwargs)
+
+
+def perform_patch_request(url: str, **kwargs):
+    """
+    Perform an HTTP PATCH request to the specified URL.
+
+    Args:
+        url (str): The URL to which the PATCH request is sent.
+        **kwargs: Additional keyword arguments to pass to the request.
+
+    Returns:
+        Response: The response object resulting from the PATCH request.
+    """
+    return perform_http_request("PATCH", url, **kwargs)
 
 
 def perform_delete_request(url: str, **kwargs):
