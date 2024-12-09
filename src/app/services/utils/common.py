@@ -8,6 +8,7 @@ from app.schemas.job_ad import JobAdResponse
 from app.schemas.job_application import JobApplicationResponse
 from app.schemas.match import MatchResponse
 from app.schemas.professional import ProfessionalResponse
+from app.schemas.skill import SkillResponse
 from app.utils.request_handlers import perform_get_request
 from tests.services.urls import (
     COMPANY_BY_EMAIL_URL,
@@ -19,6 +20,7 @@ from tests.services.urls import (
     PROFESSIONAL_BY_EMAIL_URL,
     PROFESSIONAL_BY_USERNAME_URL,
     PROFESSIONALS_BY_ID_URL,
+    SKILLS_URL,
 )
 
 logger = logging.getLogger(__name__)
@@ -125,5 +127,14 @@ def get_match_request_by_id(
             f"Retrieved match request for job ad with id {job_ad_id} and job application with id {job_application_id}"
         )
         return MatchResponse(**match)
+    except HTTPException:
+        return None
+
+
+def get_skill_by_id(skill_id: UUID) -> SkillResponse | None:
+    try:
+        skill = perform_get_request(url=SKILLS_URL.format(skill_id=skill_id))
+        logger.info(f"Retrieved skill with id {skill_id}")
+        return SkillResponse(**skill)
     except HTTPException:
         return None
