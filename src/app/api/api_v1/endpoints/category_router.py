@@ -11,7 +11,6 @@ router = APIRouter()
 @router.get(
     "/",
     description="Retrieve all categories.",
-    dependencies=[Depends(get_current_user)],
 )
 def get_all_categories() -> JSONResponse:
     def _get_all_categories():

@@ -41,3 +41,17 @@ def get_by_id(city_id: UUID) -> CityResponse:
     logger.info(f"City {city} fetched")
 
     return CityResponse(**city)
+
+
+def get_all(db: Session) -> list[CityResponse]:
+    """
+    Retrieve all cities from the database.
+
+    Args:
+        db (Session): The database session used to query the cities.
+
+    Returns:
+        list[CityResponse]: A list of CityResponse objects representing all cities in the database.
+    """
+    cities = db.query(City).all()
+    return [CityResponse(id=city.id, name=city.name) for city in cities]
