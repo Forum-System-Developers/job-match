@@ -18,6 +18,6 @@ def get_all(
 
     return process_request(
         get_entities_fn=_get_all,
-        status_code=status.HTTP_201_CREATED,
+        status_code=status.HTTP_200_OK,
         not_found_err_msg="Job Requirement not created",
     )
