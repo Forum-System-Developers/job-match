@@ -40,13 +40,10 @@ def create(professional_request: ProfessionalRequestBody = Body()) -> JSONRespon
 
 
 @router.put(
-    "/{professional_id}",
+    "/",
     description="Update a profile for a Professional.",
 )
 def update(
-    # its kept only for compatibility with the frontend
-    # the professional_id to be updated is actually fetched from the token
-    professional_id: UUID,
     professional_request: ProfessionalUpdateRequestBody = Body(),
     professional=Depends(require_professional_role),
 ) -> JSONResponse:
@@ -64,17 +61,16 @@ def update(
 
 
 @router.patch(
-    "/{professional_id}/private-matches",
+    "/private-matches",
     description="Set matches to Private or Public",
-    dependencies=[Depends(require_professional_role)],
 )
 def private_matches(
-    professional_id: UUID,
+    professional=Depends(require_professional_role),
     private_matches: PrivateMatches = Form(),
 ) -> JSONResponse:
     def _private_matches():
         return professional_service.set_matches_status(
-            professional_id=professional_id, private_matches=private_matches
+            professional_id=professional.id, private_matches=private_matches
         )
 
     return process_request(
