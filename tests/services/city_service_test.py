@@ -2,7 +2,11 @@ import pytest
 
 from app.schemas.city import CityResponse
 from app.services import city_service
-from app.services.external_db_service_urls import CITIES_URL, CITY_BY_ID_URL, CITY_BY_NAME_URL
+from app.services.external_db_service_urls import (
+    CITIES_URL,
+    CITY_BY_ID_URL,
+    CITY_BY_NAME_URL,
+)
 from tests import test_data as td
 
 
@@ -51,6 +55,7 @@ def test_getById_returnsCity_whenCityExists(mocker) -> None:
     mock_city_response.assert_called_once_with(**city)
     assert isinstance(result, CityResponse)
 
+
 def test_getAll_returnsListOfCities_whenCitiesExist(mocker) -> None:
     # Arrange
     cities = [td.CITY, td.CITY_2]
@@ -71,4 +76,3 @@ def test_getAll_returnsListOfCities_whenCitiesExist(mocker) -> None:
     assert mock_city_response.call_count == len(cities)
     assert all(isinstance(city, CityResponse) for city in result)
     assert len(result) == len(cities)
-    
