@@ -10,11 +10,9 @@ router = APIRouter()
 
 
 @router.get("/", description="Fetch all cities.")
-def get_all(
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def get_all() -> JSONResponse:
     def _get_all():
-        return city_service.get_all(db=db)
+        return city_service.get_all()
 
     return process_request(
         get_entities_fn=_get_all,

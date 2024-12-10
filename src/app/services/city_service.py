@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.schemas.city import CityResponse
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITY_BY_ID_URL, CITY_BY_NAME_URL
+from tests.services.urls import CITIES_URL, CITY_BY_ID_URL, CITY_BY_NAME_URL
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +43,13 @@ def get_by_id(city_id: UUID) -> CityResponse:
     return CityResponse(**city)
 
 
-def get_all(db: Session) -> list[CityResponse]:
+def get_all() -> list[CityResponse]:
     """
-    Retrieve all cities from the database.
-
-    Args:
-        db (Session): The database session used to query the cities.
+    Retrieves all cities from the database.
 
     Returns:
         list[CityResponse]: A list of CityResponse objects representing all cities in the database.
     """
-    cities = db.query(City).all()
-    return [CityResponse(id=city.id, name=city.name) for city in cities]
+    cities = perform_get_request(url=CITIES_URL)
+
+    return [CityResponse(**city) for city in cities]

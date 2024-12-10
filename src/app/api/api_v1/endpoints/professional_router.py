@@ -244,10 +244,9 @@ def get_skills(professional_id: UUID) -> JSONResponse:
 )
 def get_match_requests(
     user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_match_requests():
-        return professional_service.get_match_requests(professional_id=user.id, db=db)
+        return professional_service.get_match_requests(professional_id=user.id)
 
     return process_request(
         get_entities_fn=_get_match_requests,

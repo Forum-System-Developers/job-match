@@ -119,10 +119,9 @@ class ProfessionalResponse(ProfessionalBase):
     def create(
         cls,
         professional: Professional,
-        skills: list[SkillResponse] = [],
         matched_ads: list[JobAdPreview] | None = None,
         skills: list[SkillResponse] = [],
-        sent_requests: list[MatchRequestAd] | None = None,
+        sent_match_requests: list[MatchRequestAd] | None = None,
     ) -> "ProfessionalResponse":
         return cls(
             id=professional.id,
@@ -136,7 +135,7 @@ class ProfessionalResponse(ProfessionalBase):
             skills=skills,
             active_application_count=professional.active_application_count,
             matched_ads=matched_ads if not professional.has_private_matches else None,
-            sent_requests=sent_requests,
+            sent_match_requests=sent_match_requests,
         )
 
     class Config:
