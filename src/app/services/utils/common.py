@@ -9,8 +9,7 @@ from app.schemas.job_application import JobApplicationResponse
 from app.schemas.match import MatchResponse
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillResponse
-from app.utils.request_handlers import perform_get_request
-from tests.services.urls import (
+from app.services.external_db_service_urls import (
     COMPANY_BY_EMAIL_URL,
     COMPANY_BY_PHONE_NUMBER_URL,
     COMPANY_BY_USERNAME_URL,
@@ -22,6 +21,7 @@ from tests.services.urls import (
     PROFESSIONALS_BY_ID_URL,
     SKILLS_URL,
 )
+from app.utils.request_handlers import perform_get_request
 
 logger = logging.getLogger(__name__)
 

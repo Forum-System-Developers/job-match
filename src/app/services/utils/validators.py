@@ -10,6 +10,7 @@ from app.schemas.job_ad import JobAdResponse
 from app.schemas.job_application import JobApplicationResponse
 from app.schemas.professional import ProfessionalResponse
 from app.services.enums.match_status import MatchStatus
+from app.services.external_db_service_urls import CITIES_URL, COMPANY_BY_ID_URL
 from app.services.utils.common import (
     get_company_by_email,
     get_company_by_username,
@@ -20,15 +21,7 @@ from app.services.utils.common import (
     get_professional_by_id,
     get_professional_by_username,
 )
-from app.sql_app.city.city import City
-from app.sql_app.company.company import Company
-from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.match.match import Match
-from app.sql_app.professional.professional import Professional
-from app.sql_app.skill.skill import Skill
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITIES_URL, COMPANY_BY_ID_URL, JOB_AD_BY_ID_URL
 
 logger = logging.getLogger(__name__)
 
