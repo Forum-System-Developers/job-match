@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -9,8 +9,10 @@ from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
+    ProfessionalRequestBody,
     ProfessionalResponse,
     ProfessionalUpdate,
+    ProfessionalUpdateRequestBody,
 )
 from app.schemas.user import UserResponse
 from app.services import professional_service
@@ -24,10 +26,10 @@ router = APIRouter()
     "/",
     description="Create a profile for a Professional.",
 )
-def create(professional_data: ProfessionalCreate) -> JSONResponse:
+def create(professional_request: ProfessionalRequestBody = Body()) -> JSONResponse:
     def _create():
         return professional_service.create(
-            professional_data=professional_data,
+            professional_request=professional_request,
         )
 
     return process_request(
@@ -40,16 +42,18 @@ def create(professional_data: ProfessionalCreate) -> JSONResponse:
 @router.put(
     "/{professional_id}",
     description="Update a profile for a Professional.",
-    dependencies=[Depends(require_professional_role)],
 )
 def update(
-    professional_update: ProfessionalUpdate,
-    professional: ProfessionalResponse = Depends(require_professional_role),
+    # its kept only for compatibility with the frontend
+    # the professional_id to be updated is actually fetched from the token
+    professional_id: UUID,
+    professional_request: ProfessionalUpdateRequestBody = Body(),
+    professional=Depends(require_professional_role),
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
             professional_id=professional.id,
-            professional_data=professional_update,
+            professional_request=professional_request,
         )
 
     return process_request(

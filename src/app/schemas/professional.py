@@ -42,7 +42,6 @@ class ProfessionalCreate(ProfessionalBase):
     username: Username = Field(examples=["username"])  # type: ignore
     password: Password = Field(examples=["password"])  # type:ignore
     email: EmailStr = Field(examples=["email"])
-    status: ProfessionalStatus = Field(examples=["active"])
 
     @field_validator("password")
     def _validate_password(cls, value: str) -> str:
@@ -75,7 +74,6 @@ class ProfessionalUpdateBase(BaseModel):
     description: str | None = Field(
         examples=["A seasoned web developer with expertise in FastAPI"], default=None
     )
-    status: ProfessionalStatus | None = Field(examples=["active"], default=None)
 
 
 class ProfessionalUpdate(ProfessionalUpdateBase):
@@ -84,6 +82,7 @@ class ProfessionalUpdate(ProfessionalUpdateBase):
 
 class ProfessionalUpdateFinal(ProfessionalUpdateBase):
     city_id: UUID | None = Field(description="City ID", default=None)
+    status: ProfessionalStatus | None = Field(examples=["active"], default=None)
 
 
 class ProfessionalResponse(ProfessionalBase):

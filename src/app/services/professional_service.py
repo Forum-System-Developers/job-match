@@ -14,9 +14,11 @@ from app.schemas.professional import (
     PrivateMatches,
     ProfessionalCreate,
     ProfessionalCreateFinal,
+    ProfessionalRequestBody,
     ProfessionalResponse,
     ProfessionalUpdate,
     ProfessionalUpdateFinal,
+    ProfessionalUpdateRequestBody,
 )
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
@@ -46,7 +48,7 @@ from tests.services.urls import (
 logger = logging.getLogger(__name__)
 
 
-def create(professional_data: ProfessionalCreate) -> ProfessionalResponse:
+def create(professional_request: ProfessionalRequestBody) -> ProfessionalResponse:
     """
     Creates an instance of the Professional model.
 
@@ -56,7 +58,7 @@ def create(professional_data: ProfessionalCreate) -> ProfessionalResponse:
     Returns:
         Professional: Pydantic response model for Professional.
     """
-
+    professional_data = professional_request.professional
     _validate_unique_professional_details(professional_create=professional_data)
     city = city_service.get_by_name(city_name=professional_data.city)
 
@@ -81,7 +83,7 @@ def create(professional_data: ProfessionalCreate) -> ProfessionalResponse:
 
 def update(
     professional_id: UUID,
-    professional_data: ProfessionalUpdate,
+    professional_request: ProfessionalUpdateRequestBody,
 ) -> ProfessionalResponse:
     """
     Update the professional's information.
@@ -93,8 +95,10 @@ def update(
     Returns:
         ProfessionalResponse: The updated professional information.
     """
+    professional_data = professional_request.professional
     professional_update_data = ProfessionalUpdateFinal(
-        **professional_data.model_dump(exclude={"city"}, mode="json")
+        **professional_data.model_dump(exclude={"city"}, mode="json"),
+        status=professional_request.status,
     )
     if professional_data.city is not None:
         city = city_service.get_by_name(city_name=professional_data.city)
