@@ -170,12 +170,12 @@ class JobApplicationResponse(JobAplicationBase):
         photo bytes | None: Photo of the professional.
     """
 
-    id: UUID
+    application_id: UUID
     professional_id: UUID
     created_at: datetime
     first_name: str
     last_name: str
-    city: City
+    city: str
     email: EmailStr
     photo: bytes | None = None
     status: str
@@ -190,20 +190,14 @@ class JobApplicationResponse(JobAplicationBase):
         job_application: JobApplication,
         skills: list[SkillResponse] | None = None,
     ) -> "JobApplicationResponse":
-        from app.services import job_application_service
-
         city = (
             professional.city.name
             if isinstance(professional, Professional)
             else professional.city
         )
-        # if skills is None:
-        #     skills = job_application_service.get_skills(
-        #         job_application=job_application, db=db
-        #     )
         return cls(
-            id=job_application.id,
             name=job_application.name,
+            application_id=job_application.id,
             professional_id=professional.id,
             created_at=job_application.created_at,
             category_id=job_application.category_id,
