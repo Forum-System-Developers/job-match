@@ -15,6 +15,13 @@ from app.schemas.company import (
     CompanyUpdateFinal,
 )
 from app.schemas.user import User
+from app.services.external_db_service_urls import (
+    COMPANIES_URL,
+    COMPANY_BY_ID_URL,
+    COMPANY_BY_USERNAME_URL,
+    COMPANY_LOGO_URL,
+    COMPANY_UPDATE_URL,
+)
 from app.services.utils.common import get_company_by_phone_number
 from app.services.utils.file_utils import validate_uploaded_file
 from app.services.utils.validators import (
@@ -29,13 +36,6 @@ from app.utils.request_handlers import (
     perform_get_request,
     perform_post_request,
     perform_put_request,
-)
-from tests.services.urls import (
-    COMPANIES_URL,
-    COMPANY_BY_ID_URL,
-    COMPANY_BY_USERNAME_URL,
-    COMPANY_LOGO_URL,
-    COMPANY_UPDATE_URL,
 )
 
 logger = logging.getLogger(__name__)

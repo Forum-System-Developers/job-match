@@ -1,7 +1,6 @@
 from app.schemas.category import CategoryResponse
-from app.sql_app.category.category import Category
+from app.services.external_db_service_urls import CATEGORIES_URL
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CATEGORIES_URL
 
 
 def get_all() -> list[CategoryResponse]:

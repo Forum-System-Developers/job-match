@@ -23,6 +23,16 @@ from app.schemas.professional import (
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
+from app.services.external_db_service_urls import (
+    PROFESSIONAL_BY_USERNAME_URL,
+    PROFESSIONALS_BY_ID_URL,
+    PROFESSIONALS_CV_URL,
+    PROFESSIONALS_JOB_APPLICATIONS_URL,
+    PROFESSIONALS_PHOTO_URL,
+    PROFESSIONALS_SKILLS_URL,
+    PROFESSIONALS_TOGGLE_STATUS_URL,
+    PROFESSIONALS_URL,
+)
 from app.services.utils.common import get_professional_by_id
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.validators import is_unique_email, is_unique_username
@@ -33,16 +43,6 @@ from app.utils.request_handlers import (
     perform_patch_request,
     perform_post_request,
     perform_put_request,
-)
-from tests.services.urls import (
-    PROFESSIONAL_BY_USERNAME_URL,
-    PROFESSIONALS_BY_ID_URL,
-    PROFESSIONALS_CV_URL,
-    PROFESSIONALS_JOB_APPLICATIONS_URL,
-    PROFESSIONALS_PHOTO_URL,
-    PROFESSIONALS_SKILLS_URL,
-    PROFESSIONALS_TOGGLE_STATUS_URL,
-    PROFESSIONALS_URL,
 )
 
 logger = logging.getLogger(__name__)

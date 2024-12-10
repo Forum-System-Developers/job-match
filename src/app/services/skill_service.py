@@ -1,14 +1,8 @@
 import logging
 
-from app.schemas.skill import Skill, SkillCreate, SkillResponse
-from app.services.enums.skill_level import SkillLevel
-from app.services.utils.common import get_skill_by_id
-from app.sql_app.job_ad_skill.job_ad_skill import JobAdSkill
-from app.sql_app.job_application_skill.job_application_skill import JobApplicationSkill
-from app.sql_app.pending_skill.pending_skill import PendingSkill
-from app.sql_app.skill.skill import Skill
+from app.schemas.skill import SkillCreate, SkillResponse
+from app.services.external_db_service_urls import SKILLS_URL
 from app.utils.request_handlers import perform_post_request
-from tests.services.urls import SKILLS_URL
 
 logger = logging.getLogger(__name__)
 

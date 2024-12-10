@@ -12,20 +12,8 @@ from app.schemas.match import (
     MatchRequestCreate,
     MatchResponse,
 )
-from app.services.utils.common import get_match_request_by_id
-from app.services.utils.validators import (
-    ensure_no_match_request,
-    ensure_valid_job_ad_id,
-    ensure_valid_job_application_id,
-)
-from app.sql_app.match.match import MatchStatus
-from app.utils.request_handlers import (
-    perform_get_request,
-    perform_patch_request,
-    perform_post_request,
-    perform_put_request,
-)
-from tests.services.urls import (
+from app.services.enums.match_status import MatchStatus
+from app.services.external_db_service_urls import (
     MATCH_REQUESTS_BY_ID_URL,
     MATCH_REQUESTS_COMPANIES_URL,
     MATCH_REQUESTS_JOB_ADS_RECEIVED_URL,
@@ -33,6 +21,18 @@ from tests.services.urls import (
     MATCH_REQUESTS_JOB_APPLICATIONS_URL,
     MATCH_REQUESTS_PROFESSIONALS_URL,
     MATCH_REQUESTS_URL,
+)
+from app.services.utils.common import get_match_request_by_id
+from app.services.utils.validators import (
+    ensure_no_match_request,
+    ensure_valid_job_ad_id,
+    ensure_valid_job_application_id,
+)
+from app.utils.request_handlers import (
+    perform_get_request,
+    perform_patch_request,
+    perform_post_request,
+    perform_put_request,
 )
 
 logger = logging.getLogger(__name__)

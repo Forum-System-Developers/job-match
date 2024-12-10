@@ -18,6 +18,11 @@ from app.schemas.job_application import (
 )
 from app.schemas.match import MatchRequestAd
 from app.services import city_service, match_service
+from app.services.external_db_service_urls import (
+    JOB_APPLICATIONS_ALL_URL,
+    JOB_APPLICATIONS_BY_ID_URL,
+    JOB_APPLICATIONS_URL,
+)
 from app.services.utils.validators import (
     ensure_valid_city,
     ensure_valid_job_ad_id,
@@ -27,11 +32,6 @@ from app.utils.request_handlers import (
     perform_get_request,
     perform_post_request,
     perform_put_request,
-)
-from tests.services.urls import (
-    JOB_APPLICATIONS_ALL_URL,
-    JOB_APPLICATIONS_BY_ID_URL,
-    JOB_APPLICATIONS_URL,
 )
 
 logger = logging.getLogger(__name__)

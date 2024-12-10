@@ -3,13 +3,17 @@ from uuid import UUID
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdCreateFull, JobAdResponse, JobAdUpdate
+from app.services.external_db_service_urls import (
+    JOB_AD_ADD_SKILL_URL,
+    JOB_AD_BY_ID_URL,
+    JOB_ADS_URL,
+)
 from app.services.utils.validators import ensure_valid_city, ensure_valid_job_ad_id
 from app.utils.request_handlers import (
     perform_get_request,
     perform_post_request,
     perform_put_request,
 )
-from tests.services.urls import JOB_AD_ADD_SKILL_URL, JOB_AD_BY_ID_URL, JOB_ADS_URL
 
 logger = logging.getLogger(__name__)
 

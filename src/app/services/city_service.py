@@ -2,8 +2,12 @@ import logging
 from uuid import UUID
 
 from app.schemas.city import CityResponse
+from app.services.external_db_service_urls import (
+    CITIES_URL,
+    CITY_BY_ID_URL,
+    CITY_BY_NAME_URL,
+)
 from app.utils.request_handlers import perform_get_request
-from tests.services.urls import CITIES_URL, CITY_BY_ID_URL, CITY_BY_NAME_URL
 
 logger = logging.getLogger(__name__)
 
