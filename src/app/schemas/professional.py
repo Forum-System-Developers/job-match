@@ -7,8 +7,7 @@ from app.schemas.custom_types import Password, Username
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillResponse
-from app.sql_app.professional.professional import Professional
-from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.services.enums.professional_status import ProfessionalStatus
 
 
 class PrivateMatches(BaseModel):
@@ -58,13 +57,31 @@ class ProfessionalCreate(ProfessionalBase):
         from_attributes = True
 
 
-class ProfessionalUpdate(BaseModel):
+class ProfessionalCreateFinal(BaseModel):
+    username: Username  # type: ignore
+    password_hash: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    description: str
+    city_id: UUID
+
+
+class ProfessionalUpdateBase(BaseModel):
     first_name: str | None = Field(examples=["Jane"], default=None)
     last_name: str | None = Field(examples=["Doe"], default=None)
     description: str | None = Field(
         examples=["A seasoned web developer with expertise in FastAPI"], default=None
     )
+
+
+class ProfessionalUpdate(ProfessionalUpdateBase):
     city: str | None = Field(examples=["Sofia"], default=None)
+
+
+class ProfessionalUpdateFinal(ProfessionalUpdateBase):
+    city_id: UUID | None = Field(description="City ID", default=None)
+    status: ProfessionalStatus | None = Field(examples=["active"], default=None)
 
 
 class ProfessionalResponse(ProfessionalBase):
@@ -95,29 +112,6 @@ class ProfessionalResponse(ProfessionalBase):
     active_application_count: int
     matched_ads: list[JobAdPreview] | None = None
     sent_match_requests: list[MatchRequestAd] | None = None
-
-    @classmethod
-    def create(
-        cls,
-        professional: Professional,
-        matched_ads: list[JobAdPreview] | None = None,
-        skills: list[SkillResponse] = [],
-        sent_requests: list[MatchRequestAd] | None = None,
-    ) -> "ProfessionalResponse":
-        return cls(
-            id=professional.id,
-            first_name=professional.first_name,
-            last_name=professional.last_name,
-            email=professional.email,
-            city=professional.city.name,
-            description=professional.description,
-            photo=professional.photo,
-            status=professional.status,
-            skills=skills,
-            active_application_count=professional.active_application_count,
-            matched_ads=matched_ads if not professional.has_private_matches else None,
-            sent_requests=sent_requests,
-        )
 
     class Config:
         json_encoders = {bytes: lambda v: "<binary data>"}

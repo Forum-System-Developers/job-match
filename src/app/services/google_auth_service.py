@@ -71,16 +71,7 @@ async def auth_callback(request: Request):
         )
 
     jwt_token = _create_access_token(data=user_info)
-    response = RedirectResponse(url="http://localhost:3000")
+    response = RedirectResponse(url="https://www.rephera.com")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
 
-    return response
-
-
-async def logout():
-    """
-    Logout the user. Delete the user cookie.
-    """
-    response = RedirectResponse("http://localhost:8000/swagger")
-    response.delete_cookie("access_token")
     return response

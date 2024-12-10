@@ -4,7 +4,8 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field, field_validator
 
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
+from app.schemas.job_application import JobStatus
+from app.services.enums.job_ad_status import JobAdStatus
 
 
 class FilterParams(BaseModel):
@@ -104,7 +105,7 @@ class SearchJobApplication(SearchParams):
         ```
     """
 
-    job_application_status: JobAdStatus = Field(
+    job_application_status: JobAdStatus = Field(  # TODO: Maybe has to be changed to JobStatus
         description="ACTIVE: Represents an active job application. ARCHIVED: Represents a matched/archived job application",
         default=JobAdStatus.ACTIVE,
     )

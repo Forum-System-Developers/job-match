@@ -2,12 +2,11 @@ import re
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
-from fastapi import status
+from fastapi import HTTPException, status
 from pydantic import BaseModel, EmailStr, HttpUrl, field_validator, model_validator
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.custom_types import PASSWORD_REGEX, Password, Username
-from app.sql_app.company.company import Company
 
 
 class CompanyBase(BaseModel):
@@ -25,20 +24,6 @@ class CompanyBase(BaseModel):
 
     class Config:
         from_attribute = True
-
-    @classmethod
-    def create(cls, company: Company):
-        return cls(
-            id=company.id,
-            name=company.name,
-            address_line=company.address_line,
-            city=company.city.name,
-            description=company.description,
-            email=company.email,
-            phone_number=company.phone_number,
-            active_job_ads=company.active_job_count or 0,
-            successful_matches=company.successfull_matches_count or 0,
-        )
 
 
 class CompanyCreate(BaseModel):
@@ -62,6 +47,17 @@ class CompanyCreate(BaseModel):
         return password
 
 
+class CompanyCreateFinal(BaseModel):
+    username: Username  # type: ignore
+    password_hash: str  # type: ignore
+    name: str
+    address_line: str
+    city_id: UUID
+    description: str
+    email: EmailStr
+    phone_number: str
+
+
 class CompanyUpdate(BaseModel):
     name: str | None = None
     address_line: str | None = None
@@ -80,12 +76,23 @@ class CompanyUpdate(BaseModel):
             query_params = parse_qs(url_parts.query)
             video_id = query_params.get("v")
             if not video_id:
-                raise ApplicationError(
+                raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid YouTube video URL provided.",
                 )
             values["youtube_video_id"] = video_id[0]
         return values
+
+
+class CompanyUpdateFinal(BaseModel):
+    name: str | None = None
+    address_line: str | None = None
+    city_id: UUID | None = None
+    description: str | None = None
+    email: EmailStr | None = None
+    phone_number: str | None = None
+    website_url: HttpUrl | None = None
+    youtube_video_id: str | None = None
 
 
 class CompanyResponse(CompanyBase):

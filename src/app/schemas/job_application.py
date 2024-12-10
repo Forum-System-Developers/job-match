@@ -3,12 +3,11 @@ from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
-from sqlalchemy.orm import Session
 
+from app.schemas.city import City
+from app.schemas.custom_types import Salary
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.professional.professional import Professional
 
 
 class JobStatus(str, Enum):
@@ -87,11 +86,68 @@ class JobApplicationCreate(JobAplicationBase):
     status: JobStatus
 
 
-class JobApplicationUpdate(JobAplicationBase):
-    city: str | None = Field(examples=["Sofia"], default=None)
-    skills: list[SkillBase] | None = Field(default=None)
+class JobApplicationCreateFinal(JobAplicationBase):
+    category_id: UUID
     is_main: bool
-    application_status: JobStatus
+    skills: list[SkillBase] = Field(default_factory=list)
+    status: JobStatus
+    city_id: UUID
+    professional_id: UUID
+
+    @classmethod
+    def create(
+        cls,
+        job_application_create: JobApplicationCreate,
+        city_id: UUID,
+        professional_id: UUID,
+    ) -> "JobApplicationCreateFinal":
+        return cls(
+            name=job_application_create.name,
+            min_salary=job_application_create.min_salary,
+            max_salary=job_application_create.max_salary,
+            description=job_application_create.description,
+            category_id=job_application_create.category_id,
+            city_id=city_id,
+            professional_id=professional_id,
+            is_main=job_application_create.is_main,
+            skills=job_application_create.skills,
+            status=job_application_create.status,
+        )
+
+
+class JobApplicationUpdateBase(BaseModel):
+    name: str | None = None
+    min_salary: Salary | None = None  # type: ignore
+    max_salary: Salary | None = None  # type: ignore
+    description: str | None = None
+    skills: list[SkillBase] | None = Field(default=None)
+    is_main: bool | None = Field(default=None)
+    application_status: JobStatus | None = Field(default=None)
+
+
+class JobApplicationUpdate(JobApplicationUpdateBase):
+    city: str | None = Field(examples=["Sofia"], default=None)
+
+
+class JobApplicationUpdateFinal(JobApplicationUpdateBase):
+    city_id: UUID | None = None
+
+    @classmethod
+    def create(
+        cls,
+        job_application_update: JobApplicationUpdate,
+        city_id: UUID | None = None,
+    ) -> "JobApplicationUpdateFinal":
+        return cls(
+            name=job_application_update.name,
+            min_salary=job_application_update.min_salary,
+            max_salary=job_application_update.max_salary,
+            description=job_application_update.description,
+            skills=job_application_update.skills,
+            is_main=job_application_update.is_main,
+            application_status=job_application_update.application_status,
+            city_id=city_id,
+        )
 
 
 class JobApplicationResponse(JobAplicationBase):
@@ -125,44 +181,6 @@ class JobApplicationResponse(JobAplicationBase):
     skills: list[SkillResponse] | None = None
     category_id: UUID
     category_title: str
-
-    @classmethod
-    def create(
-        cls,
-        professional: ProfessionalResponse | Professional,
-        job_application: JobApplication,
-        db: Session,
-        skills: list[SkillResponse] | None = None,
-    ) -> "JobApplicationResponse":
-        from app.services import job_application_service
-
-        city = (
-            professional.city.name
-            if isinstance(professional, Professional)
-            else professional.city
-        )
-        if skills is None:
-            skills = job_application_service.get_skills(
-                job_application=job_application, db=db
-            )
-        return cls(
-            name=job_application.name,
-            application_id=job_application.id,
-            professional_id=professional.id,
-            created_at=job_application.created_at,
-            category_id=job_application.category_id,
-            category_title=job_application.category.title,
-            photo=professional.photo,
-            first_name=professional.first_name,
-            last_name=professional.last_name,
-            email=professional.email,
-            status=job_application.status.value,
-            min_salary=job_application.min_salary,
-            max_salary=job_application.max_salary,
-            description=job_application.description,
-            city=city,
-            skills=skills,
-        )
 
     class Config:
         json_encoders = {bytes: lambda v: "<binary data>"}

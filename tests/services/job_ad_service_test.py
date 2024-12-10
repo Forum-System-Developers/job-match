@@ -7,6 +7,7 @@ from sqlalchemy import asc, desc
 from app.schemas.city import City
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdUpdate
+from app.services.enums.job_ad_status import JobAdStatus
 from app.services.job_ad_service import (
     _filter_by_salary,
     _filter_by_skills,
@@ -20,7 +21,6 @@ from app.services.job_ad_service import (
     update,
 )
 from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_ad.job_ad_status import JobAdStatus
 from tests import test_data as td
 from tests.utils import assert_called_with, assert_filter_called_with
 
