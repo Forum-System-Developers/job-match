@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
 from app.services.auth_service import google_get_current_user
-from app.services.google_auth_service import auth_callback, login, logout
+from app.services.google_auth_service import auth_callback, login
 from app.utils.processors import process_async_request
 
 router = APIRouter()
