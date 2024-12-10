@@ -204,9 +204,7 @@ def delete_cv(professional_id: UUID) -> MessageResponse:
     )
     logger.info(f"Deleted CV of professional with id {professional_id}")
 
-        return MessageResponse(message="CV deleted successfully")
-
-    return process_db_transaction(transaction_func=_handle_delete, db=db)
+    return MessageResponse(message="CV deleted successfully")
 
 
 def get_by_id(professional_id: UUID) -> ProfessionalResponse:

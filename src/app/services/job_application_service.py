@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 def get_all(
     filter_params: FilterParams,
-    search_params: SearchParams,
+    search_params: SearchJobApplication,
 ) -> list[JobApplicationResponse]:
     params = {
         **search_params.model_dump(mode="json"),

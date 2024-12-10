@@ -258,28 +258,21 @@ def accept_job_application_match_request(
     )
 
 
-def send_job_application_match_request(
+def send_job_ad_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company_id: UUID,
 ) -> MessageResponse:
     """
-    Sends a match request from a job advertisement to a job application.
-
-    This function ensures that the provided job advertisement ID and job application ID
-    are valid, and that there is no existing match request between them. It then creates
-    a new match request between the job advertisement and job application, commits the
-    changes to the database, and logs the operation.
+    Sends a match request from a job application to job advertisement.
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
         job_application_id (UUID): The unique identifier of the job application.
-        company_id (UUID): The unique identifier of the company.
 
     Returns:
-        MessageResponse: The response indicating successful match request.
+        MessageResponse: A response object containing a message indicating the result of the operation.
     """
-    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id)
     ensure_valid_job_application_id(job_application_id=job_application_id)
     ensure_no_match_request(
         job_ad_id=job_ad_id,
@@ -291,16 +284,14 @@ def send_job_application_match_request(
         json=MatchRequestCreate(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
-            status=MatchStatus.REQUESTED_BY_JOB_AD,
+            status=MatchStatus.REQUESTED_BY_JOB_APP,
         ).model_dump(mode="json"),
     )
     logger.info(
         f"Sent match request from job ad with id {job_ad_id} to job application with id {job_application_id}"
     )
 
-        return MessageResponse(message="Match request sent")
-
-    return process_db_transaction(transaction_func=_handle_create, db=db)
+    return MessageResponse(message="Match request sent")
 
 
 def view_received_job_ad_match_requests(
@@ -312,6 +303,7 @@ def view_received_job_ad_match_requests(
 
     Args:
         job_ad_id (UUID): The unique identifier of the job advertisement.
+        company_id (UUID): The unique identifier of the company.
 
     Returns:
         list[MatchResponse]: A list of match responses for the specified job advertisement.
