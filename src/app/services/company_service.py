@@ -88,7 +88,7 @@ def get_by_username(username: str) -> User:
     user = perform_get_request(url=COMPANY_BY_USERNAME_URL.format(username=username))
     logger.info(f"Retrieved company with username {username}")
 
-    return User(id=user.id, username=user.username, password=user.password)
+    return User(**user)
 
 
 def create(company_data: CompanyCreate) -> CompanyResponse:

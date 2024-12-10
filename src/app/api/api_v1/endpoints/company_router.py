@@ -32,10 +32,14 @@ def get_all_companies(filter_params: FilterParams = Depends()) -> JSONResponse:
     description="Retrieve all match requests for the current company.",
 )
 def view_match_requests(
+    filter_params: FilterParams = Depends(),
     company: CompanyResponse = Depends(require_company_role),
 ) -> JSONResponse:
     def _view_match_requests():
-        return match_service.get_company_match_requests(company_id=company.id)
+        return match_service.get_company_match_requests(
+            company_id=company.id,
+            filter_params=filter_params,
+        )
 
     return process_request(
         get_entities_fn=_view_match_requests,
