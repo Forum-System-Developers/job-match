@@ -6,8 +6,8 @@ from app.schemas.professional import ProfessionalCreate, ProfessionalRequestBody
 from app.services.enums.job_ad_status import JobAdStatus
 from app.services.enums.job_application_status import JobStatus
 from app.services.enums.match_status import MatchStatus
+from app.services.enums.professional_status import ProfessionalStatus
 from app.services.enums.skill_level import SkillLevel
-from app.sql_app.professional.professional_status import ProfessionalStatus
 
 VALID_COMPANY_ID = uuid.uuid4()
 VALID_COMPANY_NAME = "Test Company"
