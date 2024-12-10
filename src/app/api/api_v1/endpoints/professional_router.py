@@ -42,12 +42,12 @@ def create(professional_data: ProfessionalCreate) -> JSONResponse:
     dependencies=[Depends(require_professional_role)],
 )
 def update(
-    professional_id: UUID,
     professional_update: ProfessionalUpdate,
+    professional: ProfessionalResponse = Depends(require_professional_role),
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
-            professional_id=professional_id,
+            professional_id=professional.id,
             professional_data=professional_update,
         )
 

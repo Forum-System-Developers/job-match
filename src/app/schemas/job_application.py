@@ -89,6 +89,7 @@ class JobApplicationCreate(JobAplicationBase):
 
 
 class JobApplicationCreateFinal(JobAplicationBase):
+    category_id: UUID
     is_main: bool
     skills: list[SkillBase] = Field(default_factory=list)
     status: JobStatus
