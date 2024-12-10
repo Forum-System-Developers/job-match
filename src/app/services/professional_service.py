@@ -314,11 +314,7 @@ def get_by_username(username: str) -> User:
     )
     logger.info(f"Retrieved professional with username {username}")
 
-    return User(
-        id=professional.id,
-        username=professional.username,
-        password=professional.password,
-    )
+    return User(**professional)
 
 
 def get_applications(
