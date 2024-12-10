@@ -7,8 +7,7 @@ from app.schemas.custom_types import Password, Username
 from app.schemas.job_ad import JobAdPreview
 from app.schemas.match import MatchRequestAd
 from app.schemas.skill import SkillResponse
-from app.sql_app.professional.professional import Professional
-from app.sql_app.professional.professional_status import ProfessionalStatus
+from app.services.enums.professional_status import ProfessionalStatus
 
 
 class PrivateMatches(BaseModel):
@@ -113,29 +112,6 @@ class ProfessionalResponse(ProfessionalBase):
     active_application_count: int
     matched_ads: list[JobAdPreview] | None = None
     sent_match_requests: list[MatchRequestAd] | None = None
-
-    @classmethod
-    def create(
-        cls,
-        professional: Professional,
-        matched_ads: list[JobAdPreview] | None = None,
-        skills: list[SkillResponse] = [],
-        sent_match_requests: list[MatchRequestAd] | None = None,
-    ) -> "ProfessionalResponse":
-        return cls(
-            id=professional.id,
-            first_name=professional.first_name,
-            last_name=professional.last_name,
-            email=professional.email,
-            city=professional.city.name,
-            description=professional.description,
-            photo=professional.photo,
-            status=professional.status,
-            skills=skills,
-            active_application_count=professional.active_application_count,
-            matched_ads=matched_ads if not professional.has_private_matches else None,
-            sent_match_requests=sent_match_requests,
-        )
 
     class Config:
         json_encoders = {bytes: lambda v: "<binary data>"}

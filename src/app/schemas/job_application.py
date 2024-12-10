@@ -8,8 +8,6 @@ from app.schemas.city import City
 from app.schemas.custom_types import Salary
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.professional.professional import Professional
 
 
 class JobStatus(str, Enum):
@@ -183,37 +181,6 @@ class JobApplicationResponse(JobAplicationBase):
     skills: list[SkillResponse] | None = None
     category_id: UUID
     category_title: str
-
-    @classmethod
-    def create(
-        cls,
-        professional: ProfessionalResponse | Professional,
-        job_application: JobApplication,
-        skills: list[SkillResponse] | None = None,
-    ) -> "JobApplicationResponse":
-        city = (
-            professional.city.name
-            if isinstance(professional, Professional)
-            else professional.city
-        )
-        return cls(
-            name=job_application.name,
-            application_id=job_application.id,
-            professional_id=professional.id,
-            created_at=job_application.created_at,
-            category_id=job_application.category_id,
-            category_title=job_application.category.title,
-            photo=professional.photo,
-            first_name=professional.first_name,
-            last_name=professional.last_name,
-            email=professional.email,
-            status=job_application.status.value,
-            min_salary=job_application.min_salary,
-            max_salary=job_application.max_salary,
-            description=job_application.description,
-            city=city,
-            skills=skills,
-        )
 
     class Config:
         json_encoders = {bytes: lambda v: "<binary data>"}
