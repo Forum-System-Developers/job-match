@@ -129,7 +129,7 @@ def upload_photo(professional_id: UUID, photo: UploadFile) -> MessageResponse:
     )
     logger.info(f"Uploaded photo for professional with id {professional_id}")
 
-    return MessageResponse(message="Logo uploaded successfully")
+    return MessageResponse(message="Photo uploaded successfully")
 
 
 def upload_cv(professional_id: UUID, cv: UploadFile) -> MessageResponse:
@@ -341,7 +341,7 @@ def get_applications(
     )
 
     return [
-        JobApplicationResponse.create(**job_application)
+        JobApplicationResponse(**job_application)
         for job_application in job_applications
     ]
 

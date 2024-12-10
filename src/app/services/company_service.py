@@ -264,15 +264,18 @@ def _ensure_valid_company_update_data(
     Returns:
         CompanyUpdateFinal: The company update data.
     """
-    ensure_valid_company_id(company_id=company_id)
+    company = ensure_valid_company_id(company_id=company_id)
 
     if company_data.city is not None:
         city = ensure_valid_city(name=company_data.city)
 
-    if company_data.email is not None:
+    if company_data.email is not None and company_data.email != company.email:
         _ensure_unique_email(email=company_data.email)
 
-    if company_data.phone_number is not None:
+    if (
+        company_data.phone_number is not None
+        and company_data.phone_number != company.phone_number
+    ):
         _ensure_unique_phone_number(phone_number=company_data.phone_number)
 
     return CompanyUpdateFinal(
