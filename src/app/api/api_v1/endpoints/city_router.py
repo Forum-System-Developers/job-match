@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.services import city_service
-from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
 router = APIRouter()

@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from app.services import category_service
-from app.services.auth_service import get_current_user
 from app.utils.processors import process_request
 
 router = APIRouter()
