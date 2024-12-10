@@ -12,8 +12,8 @@ from app.schemas.job_application import JobSearchStatus
 from app.schemas.match import MatchRequestAd
 from app.schemas.user import User
 from app.services import professional_service
+from app.services.enums.match_status import MatchStatus
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.match.match_status import MatchStatus
 from app.sql_app.professional.professional import Professional
 from tests import test_data as td
 from tests.utils import assert_filter_called_with

@@ -11,8 +11,8 @@ from app.services.utils.validators import (
     ensure_valid_match_request,
     ensure_valid_professional_id,
     ensure_valid_skill_id,
-    unique_email,
-    unique_username,
+    is_unique_email,
+    is_unique_username,
 )
 from app.sql_app import City, Company, JobAd, JobApplication, Match, Professional
 from app.sql_app.skill.skill import Skill
@@ -151,7 +151,9 @@ def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsF
     mock_filter.first.return_value = job_application
 
     # Act
-    result = ensure_valid_job_application_id(id=td.VALID_JOB_APPLICATION_ID, db=mock_db)
+    result = ensure_valid_job_application_id(
+        job_application_id=td.VALID_JOB_APPLICATION_ID, db=mock_db
+    )
 
     # Assert
     mock_db.query.assert_called_once_with(JobApplication)
@@ -171,7 +173,9 @@ def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIs
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_job_application_id(id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_job_application_id(
+            job_application_id=td.NON_EXISTENT_ID, db=mock_db
+        )
 
     # Assert
     mock_db.query.assert_called_once_with(JobApplication)
@@ -192,7 +196,7 @@ def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker, mock_db)
     mock_filter.first.return_value = company
 
     # Act
-    result = ensure_valid_company_id(id=td.VALID_COMPANY_ID, db=mock_db)
+    result = ensure_valid_company_id(company_id=td.VALID_COMPANY_ID, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Company)
@@ -208,7 +212,7 @@ def test_ensureValidCompanyId_raisesApplicationError_whenCompanyIsNotFound(mock_
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_company_id(id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_company_id(company_id=td.NON_EXISTENT_ID, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Company)
@@ -418,7 +422,7 @@ def test_uniqueUsername_returnsTrue_whenUsernameIsUnique(mock_db):
     mock_filter.first.side_effect = [None, None]
 
     # Act
-    result = unique_username(username=username, db=mock_db)
+    result = is_unique_username(username=username, db=mock_db)
 
     # Assert
     mock_db.query.assert_any_call(Professional.username)
@@ -434,7 +438,7 @@ def test_uniqueUsername_returnsFalse_whenUsernameExistsInProfessional(mocker, mo
     mock_filter.first.side_effect = [mocker.Mock(), None]
 
     # Act
-    result = unique_username(username=username, db=mock_db)
+    result = is_unique_username(username=username, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Professional.username)
@@ -449,7 +453,7 @@ def test_uniqueUsername_returnsFalse_whenUsernameExistsInCompany(mocker, mock_db
     mock_filter.first.side_effect = [None, mocker.Mock()]
 
     # Act
-    result = unique_username(username=username, db=mock_db)
+    result = is_unique_username(username=username, db=mock_db)
 
     # Assert
     mock_db.query.assert_any_call(Professional.username)
@@ -465,7 +469,7 @@ def test_uniqueEmail_returnsTrue_whenEmailIsUnique(mock_db):
     mock_filter.first.side_effect = [None, None]
 
     # Act
-    result = unique_email(email=email, db=mock_db)
+    result = is_unique_email(email=email, db=mock_db)
 
     # Assert
     mock_db.query.assert_any_call(Professional.email)
@@ -481,7 +485,7 @@ def test_uniqueEmail_returnsFalse_whenEmailExistsInProfessional(mocker, mock_db)
     mock_filter.first.side_effect = [mocker.Mock(), None]
 
     # Act
-    result = unique_email(email=email, db=mock_db)
+    result = is_unique_email(email=email, db=mock_db)
 
     # Assert
     mock_db.query.assert_called_once_with(Professional.email)
@@ -496,7 +500,7 @@ def test_uniqueEmail_returnsFalse_whenEmailExistsInCompany(mocker, mock_db):
     mock_filter.first.side_effect = [None, mocker.Mock()]
 
     # Act
-    result = unique_email(email=email, db=mock_db)
+    result = is_unique_email(email=email, db=mock_db)
 
     # Assert
     mock_db.query.assert_any_call(Professional.email)

@@ -5,8 +5,8 @@ from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import FilterParams
 from app.schemas.job_application import JobApplicationCreate, JobApplicationUpdate
 from app.services import job_application_service
+from app.services.enums.job_application_status import JobStatus
 from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.job_application.job_application_status import JobStatus
 from tests import test_data as td
 
 
@@ -69,7 +69,7 @@ def test_create_job_application(mocker, mock_db):
 
     result = job_application_service.create(
         professional_id=mock_professional.id,
-        application_create=job_application_data,
+        job_application_data=job_application_data,
         db=mock_db,
     )
 
@@ -133,7 +133,7 @@ def test_update_job_application(mocker, mock_db):
     result = job_application_service.update(
         job_application_id=mock_job_application.id,
         professional_id=mock_professional.id,
-        application_update=application_update,
+        job_application_update=application_update,
         db=mock_db,
     )
 
@@ -164,7 +164,9 @@ def test_update_job_application(mocker, mock_db):
 def test_get_all_job_applications_withAsc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
-    search_params = mocker.Mock(order="asc", order_by="created_at", skills=["Python", "Linux", "React"])
+    search_params = mocker.Mock(
+        order="asc", order_by="created_at", skills=["Python", "Linux", "React"]
+    )
 
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]
@@ -198,7 +200,9 @@ def test_get_all_job_applications_withAsc(mocker, mock_db):
 def test_get_all_job_applications_WithDesc(mocker, mock_db):
     # Arrange
     filter_params = FilterParams(offset=0, limit=10)
-    search_params = mocker.Mock(order="desc", order_by="created_at", skills=["Python", "Linux", "React"])
+    search_params = mocker.Mock(
+        order="desc", order_by="created_at", skills=["Python", "Linux", "React"]
+    )
 
     mock_job_app = [(mocker.Mock(), mocker.Mock())]
     mock_job_app_response = [(mocker.Mock(), mocker.Mock())]

@@ -6,7 +6,6 @@ class MatchStatus(Enum):
     MatchStatus is an enumeration representing the status of a match.
 
     Attributes:
-        REQUESTED (str): DEPRECATED - use REQUESTED_BY_JOB_APP or REQUESTED_BY_JOB_AD instead.
         REQUESTED_BY_JOB_AD (str): The match was requested by a job advertisement.
         REQUESTED_BY_JOB_APP (str): The match was requested by a job application.
         ACCEPTED (str): The match has been accepted.

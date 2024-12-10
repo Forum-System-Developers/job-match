@@ -2,8 +2,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.sql_app.skill.skill import Skill
-
 
 class SkillBase(BaseModel):
     """
@@ -45,11 +43,3 @@ class SkillResponse(SkillBase):
 
     id: UUID
     category_id: UUID
-
-    @classmethod
-    def create(cls, skill: Skill) -> "SkillResponse":
-        return cls(
-            id=skill.id,
-            name=skill.name,
-            category_id=skill.category_id,
-        )

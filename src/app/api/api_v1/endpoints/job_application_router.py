@@ -3,7 +3,6 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchJobApplication
 from app.schemas.job_application import (
@@ -18,7 +17,6 @@ from app.services.auth_service import (
     require_company_role,
     require_professional_role,
 )
-from app.sql_app.database import get_db
 from app.utils.processors import process_request
 
 router = APIRouter()
@@ -33,13 +31,11 @@ def create(
     application_create: JobApplicationCreate = Body(
         description="Job Application creation form"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _create():
         return job_application_service.create(
             professional_id=professional.id,
-            application_create=application_create,
-            db=db,
+            job_application_data=application_create,
         )
 
     return process_request(
@@ -50,24 +46,21 @@ def create(
 
 
 @router.put(
-    "/{job_application_id}/{professional_id}",
+    "/{job_application_id}",
     description="Update a Job Application.",
-    dependencies=[Depends(require_professional_role)],
 )
 def update(
     job_application_id: UUID,
-    professional_id: UUID,
+    professional=Depends(require_professional_role),
     application_update: JobApplicationUpdate = Body(
         description="Job Application update form"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
         return job_application_service.update(
-            professional_id=professional_id,
+            professional_id=professional.id,
             job_application_id=job_application_id,
-            application_update=application_update,
-            db=db,
+            job_application_update=application_update,
         )
 
     return process_request(
@@ -85,12 +78,10 @@ def update(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchJobApplication = Depends(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
         return job_application_service.get_all(
             filter_params=filter_params,
-            db=db,
             search_params=search_params,
         )
 
@@ -108,12 +99,9 @@ def get_all(
 )
 def get_by_id(
     job_application_id: UUID,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_by_id():
-        return job_application_service.get_by_id(
-            job_application_id=job_application_id, db=db
-        )
+        return job_application_service.get_by_id(job_application_id=job_application_id)
 
     return process_request(
         get_entities_fn=_get_by_id,
@@ -130,11 +118,10 @@ def get_by_id(
 def request_match(
     job_application_id: UUID,
     job_ad_id: UUID,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _request_match():
         return job_application_service.request_match(
-            job_application_id=job_application_id, job_ad_id=job_ad_id, db=db
+            job_application_id=job_application_id, job_ad_id=job_ad_id
         )
 
     return process_request(
@@ -153,14 +140,12 @@ def handle_match_response(
     job_application_id: UUID,
     job_ad_id: UUID,
     accept_request: MatchResponseRequest,
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _handle_match_response():
         return job_application_service.handle_match_response(
             job_application_id=job_application_id,
             job_ad_id=job_ad_id,
             accept_request=accept_request,
-            db=db,
         )
 
     return process_request(
@@ -178,13 +163,11 @@ def handle_match_response(
 def view_match_requests(
     job_application_id: UUID,
     filter_params: FilterParams = Depends(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _view_match_requests():
         return job_application_service.view_match_requests(
             job_application_id=job_application_id,
             filter_params=filter_params,
-            db=db,
         )
 
     return process_request(

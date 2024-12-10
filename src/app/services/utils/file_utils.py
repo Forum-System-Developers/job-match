@@ -10,26 +10,44 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024)
 
 
-def handle_file_upload(file_to_upload: UploadFile) -> bytes:
+def validate_uploaded_file(uploaded_file: UploadFile) -> None:
     """
-    Handles the upload of a file by reading its content and checking its size.
+    Validates the uploaded file by checking its size against the maximum allowed file size.
 
     Args:
-        file_to_upload (UploadFile): The file to be uploaded.
-
-    Returns:
-        bytes: The content of the uploaded file.
+        uploaded_file (UploadFile): The file uploaded by the user.
 
     Raises:
-        ApplicationError: If the file size exceeds the allowed limit.
+        ApplicationError: If the file size exceeds the maximum allowed limit.
     """
-    uploaded_file_data = file_to_upload.file.read()
+    uploaded_file_data = uploaded_file.file.read()
     file_size = len(uploaded_file_data)
-    file_to_upload.file.seek(0)
+    uploaded_file.file.seek(0)
     if file_size > MAX_FILE_SIZE:
         logger.error("Upload cancelled, max file size exceeded")
         raise ApplicationError(
             detail=f"File size exceeds the allowed limit of {MAX_FILE_SIZE_MB}MB.",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    return uploaded_file_data
+
+
+def validate_uploaded_cv(cv: UploadFile) -> None:
+    """
+    Validate the uploaded CV file.
+
+    This function checks if the uploaded CV file is in PDF format. If the file is not a PDF,
+    it raises an ApplicationError with a 400 Bad Request status code. If the file is a PDF,
+    it proceeds to validate the uploaded file using the validate_uploaded_file function.
+
+    Args:
+        cv (UploadFile): The uploaded CV file to be validated.
+
+    Raises:
+        ApplicationError: If the uploaded file is not a PDF.
+    """
+    if cv.content_type != "application/pdf":
+        raise ApplicationError(
+            detail="Only PDF files are allowed.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    validate_uploaded_file(uploaded_file=cv)

@@ -1,27 +1,22 @@
-from typing import Union
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, File, Form, Query, UploadFile
 from fastapi import status as status_code
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
 
 from app.schemas.common import FilterParams, SearchParams
 from app.schemas.job_application import JobSearchStatus
 from app.schemas.professional import (
     PrivateMatches,
+    ProfessionalCreate,
     ProfessionalRequestBody,
     ProfessionalResponse,
+    ProfessionalUpdate,
     ProfessionalUpdateRequestBody,
 )
 from app.schemas.user import UserResponse
 from app.services import professional_service
-from app.services.auth_service import (
-    get_current_user,
-    require_company_role,
-    require_professional_role,
-)
-from app.sql_app.database import get_db
+from app.services.auth_service import get_current_user, require_professional_role
 from app.utils.processors import process_request
 
 router = APIRouter()
@@ -31,14 +26,10 @@ router = APIRouter()
     "/",
     description="Create a profile for a Professional.",
 )
-def create(
-    professional_request: ProfessionalRequestBody = Body(),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def create(professional_request: ProfessionalRequestBody = Body()) -> JSONResponse:
     def _create():
         return professional_service.create(
             professional_request=professional_request,
-            db=db,
         )
 
     return process_request(
@@ -51,18 +42,18 @@ def create(
 @router.put(
     "/{professional_id}",
     description="Update a profile for a Professional.",
-    dependencies=[Depends(require_professional_role)],
 )
 def update(
+    # its kept only for compatibility with the frontend
+    # the professional_id to be updated is actually fetched from the token
     professional_id: UUID,
-    professional: ProfessionalUpdateRequestBody = Body(),
-    db: Session = Depends(get_db),
+    professional_request: ProfessionalUpdateRequestBody = Body(),
+    professional=Depends(require_professional_role),
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
-            professional_id=professional_id,
-            professional_request=professional,
-            db=db,
+            professional_id=professional.id,
+            professional_request=professional_request,
         )
 
     return process_request(
@@ -80,11 +71,10 @@ def update(
 def private_matches(
     professional_id: UUID,
     private_matches: PrivateMatches = Form(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _private_matches():
         return professional_service.set_matches_status(
-            professional_id=professional_id, db=db, private_matches=private_matches
+            professional_id=professional_id, private_matches=private_matches
         )
 
     return process_request(
@@ -101,13 +91,11 @@ def private_matches(
 def upload_photo(
     professional: ProfessionalResponse = Depends(require_professional_role),
     photo: UploadFile = File(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_photo(
             professional_id=professional.id,
             photo=photo,
-            db=db,
         )
 
     return process_request(
@@ -121,13 +109,11 @@ def upload_photo(
 def upload_cv(
     professional: ProfessionalResponse = Depends(require_professional_role),
     cv: UploadFile = File(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_cv(
             professional_id=professional.id,
             cv=cv,
-            db=db,
         )
 
     return process_request(
@@ -144,10 +130,8 @@ def upload_cv(
     status_code=status_code.HTTP_200_OK,
     description="Fetch a Photo of a Professional",
 )
-def download_photo(
-    professional_id: UUID, db: Session = Depends(get_db)
-) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download_photo(professional_id=professional_id, db=db)
+def download_photo(professional_id: UUID) -> StreamingResponse:
+    return professional_service.download_photo(professional_id=professional_id)
 
 
 @router.get(
@@ -156,10 +140,8 @@ def download_photo(
     dependencies=[Depends(get_current_user)],
     status_code=status_code.HTTP_200_OK,
 )
-def download_cv(
-    professional_id: UUID, db: Session = Depends(get_db)
-) -> Union[StreamingResponse, JSONResponse]:
-    return professional_service.download_cv(professional_id=professional_id, db=db)
+def download_cv(professional_id: UUID) -> StreamingResponse:
+    return professional_service.download_cv(professional_id=professional_id)
 
 
 @router.delete(
@@ -168,18 +150,16 @@ def download_cv(
 )
 def delete_cv(
     professional: ProfessionalResponse = Depends(require_professional_role),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
-    def _delete_logo():
+    def _delete_cv():
         return professional_service.delete_cv(
             professional_id=professional.id,
-            db=db,
         )
 
     return process_request(
-        get_entities_fn=_delete_logo,
+        get_entities_fn=_delete_cv,
         status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not delete logo",
+        not_found_err_msg="Could not delete CV",
     )
 
 
@@ -191,11 +171,10 @@ def delete_cv(
 def get_all(
     filter_params: FilterParams = Depends(),
     search_params: SearchParams = Depends(),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_all():
         return professional_service.get_all(
-            db=db, filter_params=filter_params, search_params=search_params
+            filter_params=filter_params, search_params=search_params
         )
 
     return process_request(
@@ -210,12 +189,9 @@ def get_all(
     description="Retreive a Professional profile by its ID.",
     dependencies=[Depends(get_current_user)],
 )
-def get_by_id(
-    professional_id: UUID,
-    db: Session = Depends(get_db),
-) -> JSONResponse:
+def get_by_id(professional_id: UUID) -> JSONResponse:
     def _get_by_id():
-        return professional_service.get_by_id(professional_id=professional_id, db=db)
+        return professional_service.get_by_id(professional_id=professional_id)
 
     return process_request(
         get_entities_fn=_get_by_id,
@@ -235,14 +211,12 @@ def get_applications(
     application_status: JobSearchStatus = Query(
         description="Status of the Job Application"
     ),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_applications():
         return professional_service.get_applications(
             professional_id=professional_id,
             application_status=application_status,
             filter_params=filter_params,
-            db=db,
         )
 
     return process_request(
@@ -257,9 +231,9 @@ def get_applications(
     description="Fetch Skills for a professional",
     dependencies=[Depends(get_current_user)],
 )
-def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResponse:
+def get_skills(professional_id: UUID) -> JSONResponse:
     def _get_skills():
-        return professional_service.get_skills(professional_id=professional_id, db=db)
+        return professional_service.get_skills(professional_id=professional_id)
 
     return process_request(
         get_entities_fn=_get_skills,
@@ -274,10 +248,9 @@ def get_skills(professional_id: UUID, db: Session = Depends(get_db)) -> JSONResp
 )
 def get_match_requests(
     user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _get_match_requests():
-        return professional_service.get_match_requests(professional_id=user.id, db=db)
+        return professional_service.get_match_requests(professional_id=user.id)
 
     return process_request(
         get_entities_fn=_get_match_requests,
