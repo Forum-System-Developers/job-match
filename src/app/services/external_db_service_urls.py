@@ -61,3 +61,4 @@ MATCH_REQUESTS_COMPANIES_URL = f"{MATCH_REQUESTS_URL}/companies/{{company_id}}"
 
 
 SKILLS_URL = f"{API_BASE_URL}/skills"
+SKILLS_BY_CATEGORY_URL = f"{SKILLS_URL}/categories/{{category_id}}"
