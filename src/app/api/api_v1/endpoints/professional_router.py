@@ -49,18 +49,17 @@ def create(
 
 
 @router.put(
-    "/{professional_id}",
+    "/",
     description="Update a profile for a Professional.",
-    dependencies=[Depends(require_professional_role)],
 )
 def update(
-    professional_id: UUID,
+    user: UserResponse = Depends(get_current_user),
     professional: ProfessionalUpdateRequestBody = Body(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _update():
         return professional_service.update(
-            professional_id=professional_id,
+            professional_id=user.id,
             professional_request=professional,
             db=db,
         )
@@ -73,18 +72,18 @@ def update(
 
 
 @router.patch(
-    "/{professional_id}/private-matches",
+    "/private-matches",
     description="Set matches to Private or Public",
     dependencies=[Depends(require_professional_role)],
 )
 def private_matches(
-    professional_id: UUID,
+    user: UserResponse = Depends(get_current_user),
     private_matches: PrivateMatches = Form(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _private_matches():
         return professional_service.set_matches_status(
-            professional_id=professional_id, db=db, private_matches=private_matches
+            professional_id=user.id, db=db, private_matches=private_matches
         )
 
     return process_request(
@@ -99,13 +98,13 @@ def private_matches(
     description="Upload a photo",
 )
 def upload_photo(
-    professional: ProfessionalResponse = Depends(require_professional_role),
+    user: UserResponse = Depends(get_current_user),
     photo: UploadFile = File(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_photo(
-            professional_id=professional.id,
+            professional_id=user.id,
             photo=photo,
             db=db,
         )
@@ -119,13 +118,13 @@ def upload_photo(
 
 @router.post("/upload-cv", description="Upload CV file")
 def upload_cv(
-    professional: ProfessionalResponse = Depends(require_professional_role),
+    user: UserResponse = Depends(get_current_user),
     cv: UploadFile = File(),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _upload():
         return professional_service.upload_cv(
-            professional_id=professional.id,
+            professional_id=user.id,
             cv=cv,
             db=db,
         )
@@ -167,12 +166,12 @@ def download_cv(
     description="Delete the cv of a professional.",
 )
 def delete_cv(
-    professional: ProfessionalResponse = Depends(require_professional_role),
+    user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     def _delete_logo():
         return professional_service.delete_cv(
-            professional_id=professional.id,
+            professional_id=user.id,
             db=db,
         )
 

@@ -70,6 +70,7 @@ class JobAdResponse(JobAdPreview):
 
 class JobAdCreate(BaseJobAd):
     location_id: UUID
+    skills: list[str]
 
 
 class JobAdUpdate(BaseModel):
