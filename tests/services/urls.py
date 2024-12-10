@@ -45,7 +45,6 @@ PROFESSIONALS_SKILLS_URL = f"{PROFESSIONALS_URL}/{{professional_id}}/skills"
 
 MATCH_REQUESTS_URL = f"{API_BASE_URL}/match-requests"
 MATCH_REQUESTS_BY_ID_URL = f"{MATCH_REQUESTS_URL}/job-ads/{{job_ad_id}}/job-applications/{{job_application_id}}"
-MATCH_REQUESTS_BY_ID_URL = f"{MATCH_REQUESTS_URL}/{{match_request_id}}"
 MATCH_REQUESTS_JOB_ADS_RECEIVED_URL = (
     f"{MATCH_REQUESTS_URL}/job-ads/{{job_ad_id}}/received-matches"
 )
