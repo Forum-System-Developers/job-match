@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.schemas.common import FilterParams, JobAdSearchParams, MessageResponse
 from app.schemas.job_ad import JobAdCreate, JobAdCreateFull, JobAdResponse, JobAdUpdate
-from app.services.utils.validators import ensure_valid_city
+from app.services.utils.validators import ensure_valid_city, ensure_valid_job_ad_id
 from app.utils.request_handlers import (
     perform_get_request,
     perform_post_request,
@@ -82,6 +82,7 @@ def create(
 
 def update(
     job_ad_id: UUID,
+    company_id: UUID,
     job_ad_data: JobAdUpdate,
 ) -> JobAdResponse:
     """
@@ -94,6 +95,7 @@ def update(
     Returns:
         JobAdResponse: The updated job advertisement.
     """
+    ensure_valid_job_ad_id(job_ad_id=job_ad_id, company_id=company_id)
     if job_ad_data.location is not None:
         ensure_valid_city(name=job_ad_data.location)
 
