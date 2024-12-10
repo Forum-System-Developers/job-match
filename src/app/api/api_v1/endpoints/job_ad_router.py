@@ -76,14 +76,16 @@ def create_job_ad(
 @router.put(
     "/{job_ad_id}",
     description="Update a job advertisement by its unique identifier.",
-    dependencies=[Depends(require_company_role)],
 )
 def update_job_ad(
     job_ad_id: UUID,
     job_ad_data: JobAdUpdate,
+    company: CompanyResponse = Depends(require_company_role),
 ) -> JSONResponse:
     def _update_job_ad():
-        return job_ad_service.update(job_ad_id=job_ad_id, job_ad_data=job_ad_data)
+        return job_ad_service.update(
+            job_ad_id=job_ad_id, company_id=company.id, job_ad_data=job_ad_data
+        )
 
     return process_request(
         get_entities_fn=_update_job_ad,
@@ -123,7 +125,7 @@ def view_received_match_requests(
     company: CompanyResponse = Depends(require_company_role),
 ) -> JSONResponse:
     def _get_job_ad_requests():
-        return match_service.view_received_job_application_match_requests(
+        return match_service.view_received_job_ad_match_requests(
             job_ad_id=job_ad_id,
             company_id=company.id,
         )
@@ -166,13 +168,11 @@ def accept_match_request(
 def send_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
-    company: CompanyResponse = Depends(require_company_role),
 ) -> JSONResponse:
     def _send_job_ad_request():
-        return match_service.send_job_application_match_request(
+        return match_service.send_job_ad_match_request(
             job_ad_id=job_ad_id,
             job_application_id=job_application_id,
-            company_id=company.id,
         )
 
     return process_request(
