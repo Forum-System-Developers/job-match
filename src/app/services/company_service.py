@@ -265,6 +265,7 @@ def _ensure_valid_company_update_data(
         CompanyUpdateFinal: The company update data.
     """
     company = ensure_valid_company_id(company_id=company_id)
+    city = None
 
     if company_data.city is not None:
         city = ensure_valid_city(name=company_data.city)
