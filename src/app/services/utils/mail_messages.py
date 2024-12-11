@@ -1,4 +1,4 @@
-html_body_company = """
+HTML_BODY_COMPANY = """
 <!DOCTYPE html>
 <html>
 <head>
