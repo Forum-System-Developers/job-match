@@ -22,8 +22,10 @@ from app.services.external_db_service_urls import (
     COMPANY_LOGO_URL,
     COMPANY_UPDATE_URL,
 )
+from app.services.mail_service import get_mail_service
 from app.services.utils.common import get_company_by_phone_number
 from app.services.utils.file_utils import validate_uploaded_file
+from app.services.utils.mail_messages import HTML_BODY_COMPANY
 from app.services.utils.validators import (
     ensure_valid_city,
     ensure_valid_company_id,
@@ -37,8 +39,6 @@ from app.utils.request_handlers import (
     perform_post_request,
     perform_put_request,
 )
-from app.services.utils.mail_messages import HTML_BODY_COMPANY
-from app.services.mail_service import get_mail_service
 
 logger = logging.getLogger(__name__)
 
