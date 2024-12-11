@@ -110,7 +110,7 @@ class MailService:
         message["Date"] = formatdate(localtime=True)
         message["Message-ID"] = make_msgid()
         message["List-Unsubscribe"] = Header(unsubscribe_header)
-        message.attach(MIMEText(body, "plain"))
+        message.attach(MIMEText(body, "html"))
         logger.info(f"Message created for {to_email}")
 
         return message

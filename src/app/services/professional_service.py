@@ -44,6 +44,8 @@ from app.utils.request_handlers import (
     perform_post_request,
     perform_put_request,
 )
+from app.services.utils.mail_messages import HTML_BODY_PROFESSIONAL
+from app.services.mail_service import get_mail_service
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,13 @@ def create(professional_request: ProfessionalRequestBody) -> ProfessionalRespons
         },
     )
     logger.info(f"Professional with id {professional['id']} created")
+
+    get_mail_service().send_mail(
+        to_email=professional_data.email,
+        subject="Welcome to Rephera!",
+        body=HTML_BODY_PROFESSIONAL,
+    )
+    logger.info(f"Welcome email sent to professional with email {professional_data.email}")
 
     return ProfessionalResponse(**professional)
 
