@@ -53,8 +53,8 @@ def create_if_not_exists(job_application_id: UUID, job_ad_id: UUID) -> MessageRe
         MessageResponse: A message response indicating the success of the operation.
 
     """
-    existing_match = _get_match(
-        job_application_id=job_application_id, job_ad_id=job_ad_id
+    existing_match = get_match_request_by_id(
+        job_ad_id=job_ad_id, job_application_id=job_application_id
     )
     if existing_match is not None:
         match existing_match.status:
@@ -94,23 +94,6 @@ def create_if_not_exists(job_application_id: UUID, job_ad_id: UUID) -> MessageRe
     return MessageResponse(message="Match Request successfully sent")
 
 
-def _get_match(job_application_id: UUID, job_ad_id: UUID) -> MatchResponse | None:
-    """
-    Fetch Match instance.
-
-    Args:
-        job_application_id (UUID): The identifier of the Job Application.
-        job_ad_id (UUID): The identifier of the Job Ad.
-
-    Returns:
-        MatchResponse | None: The Match instance or None if it does not exist.
-
-    """
-    return get_match_request_by_id(
-        job_ad_id=job_ad_id, job_application_id=job_application_id
-    )
-
-
 def process_request_from_company(
     job_application_id: UUID,
     job_ad_id: UUID,
@@ -131,9 +114,9 @@ def process_request_from_company(
         MessageResponse: A message response indicating the success of the operation.
 
     """
-    existing_match = _get_match(
-        job_application_id=job_application_id,
+    existing_match = get_match_request_by_id(
         job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
     )
     if existing_match is None:
         logger.error(
