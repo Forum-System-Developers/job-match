@@ -40,7 +40,7 @@ from app.services.utils.common import get_professional_by_id, get_professional_b
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.mail_messages import HTML_BODY_PROFESSIONAL
 from app.services.utils.validators import is_unique_email, is_unique_username
-from app.utils.password_utils import hash_password
+from app.utils.password_utils import generate_patterned_password, hash_password
 from app.utils.request_handlers import (
     perform_delete_request,
     perform_get_request,
@@ -474,6 +474,6 @@ def _validate_unique_professional_details(
 
 def _generate_temporary_credentials():
     username = secrets.token_urlsafe(16)
-    password = secrets.token_urlsafe(16)
+    password = generate_patterned_password()
 
     return username, password
