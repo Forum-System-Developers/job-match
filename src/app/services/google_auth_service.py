@@ -1,3 +1,4 @@
+import logging
 from fastapi import status
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
@@ -7,6 +8,8 @@ from httpx import AsyncClient
 from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
 from app.services.auth_service import _create_access_token
+from app.services.external_db_service_urls import PROFESSIONALS_BY_SUB_URL
+from app.utils.request_handlers import perform_get_request
 
 settings = get_settings()
 
@@ -70,8 +73,18 @@ async def auth_callback(request: Request):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
+    payload = _create_token_payload_from_sub(sub_id=user_info["sub"])
     jwt_token = _create_access_token(data=user_info)
     response = RedirectResponse(url="https://www.rephera.com")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
 
     return response
+
+
+def _create_token_payload_from_sub(sub_id: str):
+    user_response = perform_get_request(url=f"{PROFESSIONALS_BY_SUB_URL.format(sub=sub_id)}")
+
+    return {
+        "sub": user_response["id"],
+        "role" : "professional",
+    }
