@@ -240,9 +240,7 @@ def test_uploadLogo_uploadsLogo_whenDataIsValid(mocker) -> None:
     mock_validate_uploaded_file.assert_called_with(mock_logo)
     mock_perform_post_request.assert_called_with(
         url=COMPANY_LOGO_URL.format(company_id=company_id),
-        files={
-            "logo": (mock_logo.filename, mock_logo.file, mock_logo.content_type)
-        },
+        files={"logo": (mock_logo.filename, mock_logo.file, mock_logo.content_type)},
     )
     mock_message_response_init.assert_called_once()
     assert result == mock_message_response
@@ -352,11 +350,16 @@ def test_ensureUniquePhoneNumber_raisesError_whenPhoneNumberIsNotUnique(mocker) 
         company_service._ensure_unique_phone_number(phone_number=phone_number)
 
     assert exc_info.value.data.status == status.HTTP_409_CONFLICT
-    assert exc_info.value.data.detail == f"Company with phone number {phone_number} already exists"
+    assert (
+        exc_info.value.data.detail
+        == f"Company with phone number {phone_number} already exists"
+    )
     mock_get_company_by_phone_number.assert_called_with(phone_number=phone_number)
 
 
-def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(mocker) -> None:
+def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(
+    mocker,
+) -> None:
     # Arrange
     phone_number = td.VALID_COMPANY_PHONE_NUMBER
     mock_get_company_by_phone_number = mocker.patch(
@@ -374,16 +377,14 @@ def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(mocke
 def test_ensureValidCompanyCreationData_callsValidators_whenDataIsValid(mocker) -> None:
     # Arrange
     company_data = mocker.Mock(
-        username=td.VALID_COMPANY_USERNAME, 
-        email=td.VALID_COMPANY_EMAIL, 
+        username=td.VALID_COMPANY_USERNAME,
+        email=td.VALID_COMPANY_EMAIL,
         phone_number=td.VALID_COMPANY_PHONE_NUMBER,
     )
     mock_is_unique_username = mocker.patch(
         "app.services.company_service.is_unique_username"
     )
-    mock_is_unique_email = mocker.patch(
-        "app.services.company_service.is_unique_email"
-    )
+    mock_is_unique_email = mocker.patch("app.services.company_service.is_unique_email")
     mock_ensure_unique_phone_number = mocker.patch(
         "app.services.company_service._ensure_unique_phone_number"
     )
@@ -394,7 +395,9 @@ def test_ensureValidCompanyCreationData_callsValidators_whenDataIsValid(mocker) 
     # Assert
     mock_is_unique_username.assert_called_with(username=company_data.username)
     mock_is_unique_email.assert_called_with(email=company_data.email)
-    mock_ensure_unique_phone_number.assert_called_with(phone_number=company_data.phone_number)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
 
 
 def test_ensureValidCompanyUpdateData_callsValidators_whenDataIsValid(mocker) -> None:
@@ -406,7 +409,11 @@ def test_ensureValidCompanyUpdateData_callsValidators_whenDataIsValid(mocker) ->
         phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
         city=td.VALID_CITY_NAME_2,
     )
-    mock_company = mocker.Mock(id=company_id, email=td.VALID_COMPANY_EMAIL, phone_number=td.VALID_COMPANY_PHONE_NUMBER)
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
     mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
 
     mock_ensure_valid_company_id = mocker.patch(
@@ -433,11 +440,15 @@ def test_ensureValidCompanyUpdateData_callsValidators_whenDataIsValid(mocker) ->
     mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
     mock_ensure_valid_city.assert_called_with(name=company_data.city)
     mock_ensure_unique_email.assert_called_with(email=company_data.email)
-    mock_ensure_unique_phone_number.assert_called_with(phone_number=company_data.phone_number)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
     assert result.city_id == mock_city.id
 
 
-def test_ensureValidCompanyUpdateData_doesNotCallCityValidator_whenCityIsNone(mocker) -> None:
+def test_ensureValidCompanyUpdateData_doesNotCallCityValidator_whenCityIsNone(
+    mocker,
+) -> None:
     # Arrange
     company_id = td.VALID_COMPANY_ID
     company_data = CompanyUpdate(
@@ -446,7 +457,11 @@ def test_ensureValidCompanyUpdateData_doesNotCallCityValidator_whenCityIsNone(mo
         phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
         city=None,
     )
-    mock_company = mocker.Mock(id=company_id, email=td.VALID_COMPANY_EMAIL, phone_number=td.VALID_COMPANY_PHONE_NUMBER)
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
 
     mock_ensure_valid_company_id = mocker.patch(
         "app.services.company_service.ensure_valid_company_id",
@@ -471,11 +486,15 @@ def test_ensureValidCompanyUpdateData_doesNotCallCityValidator_whenCityIsNone(mo
     mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
     mock_ensure_valid_city.assert_not_called()
     mock_ensure_unique_email.assert_called_with(email=company_data.email)
-    mock_ensure_unique_phone_number.assert_called_with(phone_number=company_data.phone_number)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
     assert result.city_id is None
 
 
-def test_ensureValidCompanyUpdateData_doesNotCallEmailValidator_whenEmailIsSame(mocker) -> None:
+def test_ensureValidCompanyUpdateData_doesNotCallEmailValidator_whenEmailIsSame(
+    mocker,
+) -> None:
     # Arrange
     company_id = td.VALID_COMPANY_ID
     company_data = CompanyUpdate(
@@ -484,7 +503,11 @@ def test_ensureValidCompanyUpdateData_doesNotCallEmailValidator_whenEmailIsSame(
         phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
         city=td.VALID_CITY_NAME_2,
     )
-    mock_company = mocker.Mock(id=company_id, email=td.VALID_COMPANY_EMAIL, phone_number=td.VALID_COMPANY_PHONE_NUMBER)
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
     mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
 
     mock_ensure_valid_company_id = mocker.patch(
@@ -511,11 +534,15 @@ def test_ensureValidCompanyUpdateData_doesNotCallEmailValidator_whenEmailIsSame(
     mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
     mock_ensure_valid_city.assert_called_with(name=company_data.city)
     mock_ensure_unique_email.assert_not_called()
-    mock_ensure_unique_phone_number.assert_called_with(phone_number=company_data.phone_number)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
     assert result.city_id == mock_city.id
 
 
-def test_ensureValidCompanyUpdateData_doesNotCallPhoneNumberValidator_whenPhoneNumberIsSame(mocker) -> None:
+def test_ensureValidCompanyUpdateData_doesNotCallPhoneNumberValidator_whenPhoneNumberIsSame(
+    mocker,
+) -> None:
     # Arrange
     company_id = td.VALID_COMPANY_ID
     company_data = CompanyUpdate(
@@ -524,7 +551,11 @@ def test_ensureValidCompanyUpdateData_doesNotCallPhoneNumberValidator_whenPhoneN
         phone_number=td.VALID_COMPANY_PHONE_NUMBER,
         city=td.VALID_CITY_NAME_2,
     )
-    mock_company = mocker.Mock(id=company_id, email=td.VALID_COMPANY_EMAIL, phone_number=td.VALID_COMPANY_PHONE_NUMBER)
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
     mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
 
     mock_ensure_valid_company_id = mocker.patch(
