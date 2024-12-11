@@ -110,7 +110,8 @@ def get_or_create_from_google_token(token_payload: dict) -> ProfessionalResponse
 
     city = city_service.get_default()
     username, password = _generate_temporary_credentials()
-    first_name, last_name = token_payload["name"].split(" ", 1)
+    first_name = token_payload["name"]
+    last_name = " "
 
     professional_request = ProfessionalRequestBody(
         professional=ProfessionalCreate(

@@ -30,7 +30,7 @@ def perform_http_request(method: str, url: str, **kwargs):
                 error_detail = response.text
             logger.error(f"Error response from {url}: {error_detail}")
             raise HTTPException(
-                status_code=response.status_code, 
+                status_code=response.status_code,
                 detail=error_detail,
             )
         if response.headers.get("Content-Type") == "application/json":
