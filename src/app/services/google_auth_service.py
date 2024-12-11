@@ -74,7 +74,7 @@ async def auth_callback(request: Request):
         )
 
     payload = _create_token_payload_from_sub(sub_id=user_info["sub"])
-    jwt_token = _create_access_token(data=user_info)
+    jwt_token = _create_access_token(data=payload)
     response = RedirectResponse(url="https://www.rephera.com")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
 
