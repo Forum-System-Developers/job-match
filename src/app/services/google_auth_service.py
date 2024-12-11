@@ -89,6 +89,6 @@ def _create_token_payload_from_user_info(user_info: dict) -> dict:
     )
 
     return {
-        "sub": professional.id,
+        "sub": str(professional.id),
         "role": "professional",
     }
