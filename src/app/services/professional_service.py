@@ -1,5 +1,6 @@
 import io
 import logging
+import secrets
 from uuid import UUID
 
 from fastapi import UploadFile, status
@@ -23,6 +24,7 @@ from app.schemas.professional import (
 from app.schemas.skill import SkillResponse
 from app.schemas.user import User
 from app.services import city_service, match_service
+from app.services.enums.professional_status import ProfessionalStatus
 from app.services.external_db_service_urls import (
     PROFESSIONAL_BY_USERNAME_URL,
     PROFESSIONALS_BY_ID_URL,
@@ -34,7 +36,7 @@ from app.services.external_db_service_urls import (
     PROFESSIONALS_URL,
 )
 from app.services.mail_service import get_mail_service
-from app.services.utils.common import get_professional_by_id
+from app.services.utils.common import get_professional_by_id, get_professional_by_sub
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
 from app.services.utils.mail_messages import HTML_BODY_PROFESSIONAL
 from app.services.utils.validators import is_unique_email, is_unique_username
@@ -90,6 +92,41 @@ def create(professional_request: ProfessionalRequestBody) -> ProfessionalRespons
     )
 
     return ProfessionalResponse(**professional)
+
+
+def get_or_create_from_google_token(token_payload: dict) -> ProfessionalResponse:
+    """
+    Retrieves an existing professional user based on the Google token payload or creates a new one if not found.
+
+    Args:
+        token_payload (str): The payload from the Google token containing user information.
+
+    Returns:
+        ProfessionalResponse: The response object containing the professional user details.
+    """
+    response = get_professional_by_sub(sub=token_payload["sub"])
+    if response is not None:
+        return response
+
+    city = city_service.get_default()
+    username, password = _generate_temporary_credentials()
+    first_name, last_name = token_payload["name"].split(" ", 1)
+
+    professional_request = ProfessionalRequestBody(
+        professional=ProfessionalCreate(
+            sub=token_payload["sub"],
+            username=username,
+            password=password,
+            email=token_payload["email"],
+            first_name=first_name,
+            last_name=last_name,
+            description="",
+            city=city.name,
+        ),
+        status=ProfessionalStatus.ACTIVE,
+    )
+
+    return create(professional_request=professional_request)
 
 
 def update(
@@ -432,3 +469,10 @@ def _validate_unique_professional_details(
         raise ApplicationError(
             detail="Email already taken", status_code=status.HTTP_409_CONFLICT
         )
+
+
+def _generate_temporary_credentials():
+    username = secrets.token_urlsafe(16)
+    password = secrets.token_urlsafe(16)
+
+    return username, password
