@@ -33,11 +33,13 @@ class ProfessionalCreate(ProfessionalBase):
     should be passed as a JSON object in the request body.
 
     Attributes:
+        sub (str): The google token unique identifier of the professional.
         username (Username): Username of the professional.
         password (Password): Password for the professional profile..
         email (EmailStr): Email of the professional.
     """
 
+    sub: str | None = None
     username: Username = Field(examples=["username"])  # type: ignore
     password: Password = Field(examples=["password"])  # type:ignore
     email: EmailStr = Field(examples=["email"])
@@ -58,6 +60,7 @@ class ProfessionalCreate(ProfessionalBase):
 
 
 class ProfessionalCreateFinal(BaseModel):
+    sub: str | None = None
     username: Username  # type: ignore
     password_hash: str
     first_name: str
