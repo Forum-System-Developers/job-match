@@ -33,8 +33,10 @@ from app.services.external_db_service_urls import (
     PROFESSIONALS_TOGGLE_STATUS_URL,
     PROFESSIONALS_URL,
 )
+from app.services.mail_service import get_mail_service
 from app.services.utils.common import get_professional_by_id
 from app.services.utils.file_utils import validate_uploaded_cv, validate_uploaded_file
+from app.services.utils.mail_messages import HTML_BODY_PROFESSIONAL
 from app.services.utils.validators import is_unique_email, is_unique_username
 from app.utils.password_utils import hash_password
 from app.utils.request_handlers import (
@@ -44,8 +46,6 @@ from app.utils.request_handlers import (
     perform_post_request,
     perform_put_request,
 )
-from app.services.utils.mail_messages import HTML_BODY_PROFESSIONAL
-from app.services.mail_service import get_mail_service
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,9 @@ def create(professional_request: ProfessionalRequestBody) -> ProfessionalRespons
         subject="Welcome to Rephera!",
         body=HTML_BODY_PROFESSIONAL,
     )
-    logger.info(f"Welcome email sent to professional with email {professional_data.email}")
+    logger.info(
+        f"Welcome email sent to professional with email {professional_data.email}"
+    )
 
     return ProfessionalResponse(**professional)
 
