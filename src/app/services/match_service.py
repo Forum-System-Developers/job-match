@@ -63,6 +63,11 @@ def create_if_not_exists(job_application_id: UUID, job_ad_id: UUID) -> MessageRe
                     detail="Match Request already sent",
                     status_code=status.HTTP_403_FORBIDDEN,
                 )
+            case MatchStatus.REQUESTED_BY_JOB_AD:
+                raise ApplicationError(
+                    detail="Match Request already sent",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
             case MatchStatus.ACCEPTED:
                 raise ApplicationError(
                     detail="Match Request already accepted",

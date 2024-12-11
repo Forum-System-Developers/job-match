@@ -77,6 +77,16 @@ COMPANY = {
     "phone_number": VALID_COMPANY_PHONE_NUMBER,
 }
 
+COMPANY_2 = {
+    "id": VALID_COMPANY_ID_2,
+    "name": VALID_COMPANY_NAME_2,
+    "description": VALID_COMPANY_DESCRIPTION_2,
+    "address_line": VALID_COMPANY_ADDRESS_LINE_2,
+    "city": VALID_CITY_NAME_2,
+    "email": VALID_COMPANY_EMAIL_2,
+    "phone_number": VALID_COMPANY_PHONE_NUMBER_2,
+}
+
 
 CITY = {
     "id": VALID_CITY_ID,

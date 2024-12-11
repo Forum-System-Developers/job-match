@@ -1,157 +1,127 @@
-from datetime import datetime
-from unittest.mock import ANY
-
 import pytest
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.common import MessageResponse
 from app.schemas.company import CompanyUpdate
 from app.services import company_service
-from app.sql_app.company.company import Company
+from app.services.external_db_service_urls import (
+    COMPANIES_URL,
+    COMPANY_BY_ID_URL,
+    COMPANY_BY_USERNAME_URL,
+    COMPANY_LOGO_URL,
+)
 from tests import test_data as td
-from tests.utils import assert_filter_called_with
 
 
-@pytest.fixture
-def mock_db(mocker):
-    return mocker.Mock()
-
-
-def test_getAll_returnsCompanies_whenCompaniesAreFound(
-    mocker,
-    mock_db,
-) -> None:
+def test_getAll_returnsCompanies_whenCompaniesAreFound(mocker) -> None:
     # Arrange
+    companies = [td.COMPANY, td.COMPANY_2]
     mock_filter_params = mocker.Mock(offset=0, limit=10)
-    mock_companies = [mocker.Mock(), mocker.Mock()]
-    mock_company_response = [mocker.Mock(), mocker.Mock()]
+    mock_response = [mocker.Mock(), mocker.Mock()]
 
-    mock_query = mock_db.query.return_value
-    mock_offset = mock_query.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = mock_companies
-
-    mock_create = mocker.patch(
-        "app.schemas.company.CompanyResponse.create",
-        side_effect=mock_company_response,
+    mock_perform_get_request = mocker.patch(
+        "app.services.company_service.perform_get_request",
+        return_value=companies,
+    )
+    mock_response_init = mocker.patch(
+        "app.services.company_service.CompanyResponse",
+        side_effect=mock_response,
     )
 
     # Act
-    result = company_service.get_all(filter_params=mock_filter_params, db=mock_db)
+    result = company_service.get_all(filter_params=mock_filter_params)
 
     # Assert
-    mock_db.query.assert_called_with(Company)
-    mock_query.offset.assert_called_with(mock_filter_params.offset)
-    mock_offset.limit.assert_called_with(mock_filter_params.limit)
-    mock_create.assert_any_call(mock_companies[0])
-    mock_create.assert_any_call(mock_companies[1])
+    mock_perform_get_request.assert_called_with(
+        url=COMPANIES_URL, params=mock_filter_params.model_dump()
+    )
+    mock_response_init.assert_has_calls(
+        [mocker.call(**companies[0]), mocker.call(**companies[1])]
+    )
     assert len(result) == 2
-    assert result[0] == mock_company_response[0]
-    assert result[1] == mock_company_response[1]
+    assert result[0] == mock_response[0]
+    assert result[1] == mock_response[1]
 
 
-def test_getAll_returnsEmptyList_whenNoCompaniesAreFound(
-    mocker,
-    mock_db,
-) -> None:
+def test_getAll_returnsEmptyList_whenNoCompaniesAreFound(mocker) -> None:
     # Arrange
     mock_filter_params = mocker.Mock(offset=0, limit=10)
-
-    mock_query = mock_db.query.return_value
-    mock_offset = mock_query.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = []
+    mock_perform_get_request = mocker.patch(
+        "app.services.company_service.perform_get_request",
+        return_value=[],
+    )
 
     # Act
-    result = company_service.get_all(filter_params=mock_filter_params, db=mock_db)
+    result = company_service.get_all(filter_params=mock_filter_params)
 
     # Assert
-    mock_db.query.assert_called_with(Company)
-    mock_query.offset.assert_called_with(mock_filter_params.offset)
-    mock_offset.limit.assert_called_with(mock_filter_params.limit)
+    mock_perform_get_request.assert_called_with(
+        url=COMPANIES_URL, params=mock_filter_params.model_dump()
+    )
     assert len(result) == 0
 
 
-def test_getById_returnsCompany_whenCompanyIsFound(
-    mocker,
-    mock_db,
-) -> None:
+def test_getById_returnsCompany_whenCompanyIsFound(mocker) -> None:
     # Arrange
+    company = td.COMPANY
     mock_response = mocker.Mock()
-    mock_company = mocker.Mock()
-    mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.company_service.perform_get_request",
+        return_value=company,
     )
-    mock_create = mocker.patch(
-        "app.schemas.company.CompanyResponse.create",
+    mock_response_init = mocker.patch(
+        "app.services.company_service.CompanyResponse",
         return_value=mock_response,
     )
 
     # Act
-    result = company_service.get_by_id(company_id=td.VALID_COMPANY_ID, db=mock_db)
+    result = company_service.get_by_id(company_id=td.VALID_COMPANY_ID)
 
     # Assert
-    mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
-    mock_create.assert_called_with(mock_company)
+    mock_perform_get_request.assert_called_with(
+        url=COMPANY_BY_ID_URL.format(company_id=td.VALID_COMPANY_ID)
+    )
+    mock_response_init.assert_called_with(**company)
     assert result == mock_response
 
 
-def test_getByUsername_returnsCompany_whenCompanyIsFound(
-    mocker,
-    mock_db,
-) -> None:
+def test_getByUsername_returnsUser_whenUserIsFound(mocker) -> None:
     # Arrange
-    mock_company = mocker.Mock(
-        id=td.VALID_COMPANY_ID,
-        username=td.VALID_COMPANY_USERNAME,
-        password=td.VALID_PASSWORD,
-    )
+    user = {
+        "id": td.VALID_COMPANY_ID,
+        "username": td.VALID_COMPANY_USERNAME,
+        "password": td.VALID_PASSWORD,
+    }
+    mock_response = mocker.Mock()
 
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = mock_company
+    mock_perform_get_request = mocker.patch(
+        "app.services.company_service.perform_get_request",
+        return_value=user,
+    )
+    mock_response_init = mocker.patch(
+        "app.services.company_service.User",
+        return_value=mock_response,
+    )
 
     # Act
-    result = company_service.get_by_username(
-        username=td.VALID_COMPANY_USERNAME, db=mock_db
-    )
+    result = company_service.get_by_username(username=td.VALID_COMPANY_USERNAME)
 
     # Assert
-    mock_db.query.assert_called_with(Company)
-    assert_filter_called_with(mock_query, Company.username == td.VALID_COMPANY_USERNAME)
-    mock_filter.first.assert_called_once()
-    assert result.id == td.VALID_COMPANY_ID
-    assert result.username == td.VALID_COMPANY_USERNAME
-    assert result.password == td.VALID_PASSWORD
+    mock_perform_get_request.assert_called_with(
+        url=COMPANY_BY_USERNAME_URL.format(username=td.VALID_COMPANY_USERNAME)
+    )
+    mock_response_init.assert_called_with(**user)
+    assert result == mock_response
 
 
-def test_getByUsername_raisesApplicationError_whenCompanyIsNotFound(mock_db) -> None:
+def test_create_createsCompany_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_username = td.NON_EXISTENT_USERNAME
-    mock_query = mock_db.query.return_value
-    mock_query.filter.return_value.first.return_value = None
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        company_service.get_by_username(username=mock_username, db=mock_db)
-
-    assert_filter_called_with(mock_query, Company.username == mock_username)
-    mock_query.filter.return_value.first.assert_called_once()
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"Company with username {mock_username} not found"
-
-
-def test_create_createsCompany_whenDataIsValid(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
+    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID)
     mock_company_data = mocker.Mock()
     mock_company_data.model_dump.return_value = {}
     mock_city = mocker.Mock(id=td.VALID_CITY_ID)
-    mock_response = mocker.Mock()
+    mock_response = mocker.MagicMock(id=td.VALID_COMPANY_ID)
 
     mock_ensure_valid_company_creation_data = mocker.patch(
         "app.services.company_service._ensure_valid_company_creation_data"
@@ -164,709 +134,453 @@ def test_create_createsCompany_whenDataIsValid(
         "app.services.company_service.hash_password",
         return_value=td.HASHED_PASSWORD,
     )
-    mock_create = mocker.patch(
-        "app.schemas.company.CompanyResponse.create",
+    mock_perform_post_request = mocker.patch(
+        "app.services.company_service.perform_post_request",
         return_value=mock_response,
+    )
+    mock_company_response = mocker.patch(
+        "app.services.company_service.CompanyResponse",
+        return_value=mock_response,
+    )
+    mock_company_create_final = mocker.patch(
+        "app.services.company_service.CompanyCreateFinal",
+        return_value=mock_company,
     )
 
     # Act
-    result = company_service.create(company_data=mock_company_data, db=mock_db)
+    result = company_service.create(company_data=mock_company_data)
 
     # Assert
     mock_ensure_valid_company_creation_data.assert_called_with(
-        company_data=mock_company_data, db=mock_db
+        company_data=mock_company_data
     )
-    mock_ensure_valid_city.assert_called_with(name=mock_company_data.city, db=mock_db)
+    mock_ensure_valid_city.assert_called_with(name=mock_company_data.city)
     mock_hash_password.assert_called_with(mock_company_data.password)
-    mock_db.add.assert_called_once_with(ANY)
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(ANY)
-    mock_create.assert_called_with(ANY)
+    mock_perform_post_request.assert_called_once()
+    mock_company_response.assert_called_once()
     assert result == mock_response
 
 
-def test_update_updatesCompany_whenDataIsValid(
-    mocker,
-    mock_db,
-) -> None:
+def test_update_updatesCompany_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_company_data = mocker.Mock()
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID)
-    mock_response = mocker.Mock()
+    company_id = td.VALID_COMPANY_ID
+    company_data = CompanyUpdate(
+        name=td.VALID_COMPANY_NAME_2,
+        email=td.VALID_COMPANY_EMAIL_2,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
+        city=td.VALID_CITY_NAME_2,
+    )
+    mock_company = mocker.Mock(id=company_id)
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
+    mock_response = mocker.MagicMock(id=td.VALID_COMPANY_ID)
 
     mock_ensure_valid_company_id = mocker.patch(
         "app.services.company_service.ensure_valid_company_id",
         return_value=mock_company,
     )
-    mock_update_company = mocker.patch(
-        "app.services.company_service._update_company",
-        return_value=mock_company,
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city",
+        return_value=mock_city,
     )
-    mock_create = mocker.patch(
-        "app.schemas.company.CompanyResponse.create",
+    mock_ensure_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+    mock_perform_put_request = mocker.patch(
+        "app.services.company_service.perform_put_request",
+        return_value=mock_response,
+    )
+    mock_company_response = mocker.patch(
+        "app.services.company_service.CompanyResponse",
         return_value=mock_response,
     )
 
     # Act
-    result = company_service.update(
-        company_id=mock_company.id, company_data=mock_company_data, db=mock_db
-    )
+    result = company_service.update(company_id=company_id, company_data=company_data)
 
     # Assert
-    mock_ensure_valid_company_id.assert_called_with(id=td.VALID_COMPANY_ID, db=mock_db)
-    mock_update_company.assert_called_with(
-        company=mock_company, company_data=mock_company_data, db=mock_db
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_ensure_valid_city.assert_called_with(name=company_data.city)
+    mock_ensure_unique_email.assert_called_with(email=company_data.email)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
     )
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(mock_company)
-    mock_create.assert_called_with(mock_company)
+    mock_perform_put_request.assert_called_once()
+    mock_company_response.assert_called_once()
     assert result == mock_response
 
 
-def test_uploadLogo_uploadsLogo_whenDataIsValid(
-    mocker,
-    mock_db,
-) -> None:
+def test_uploadLogo_uploadsLogo_whenDataIsValid(mocker) -> None:
     # Arrange
+    company_id = td.VALID_COMPANY_ID
     mock_logo = mocker.Mock()
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID)
+    mock_logo.filename = "logo.png"
+    mock_logo.file = mocker.Mock()
+    mock_logo.content_type = "image/png"
+    mock_message_response = mocker.Mock(message="Logo uploaded successfully")
 
-    mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+    mock_validate_uploaded_file = mocker.patch(
+        "app.services.company_service.validate_uploaded_file"
     )
-    mock_handle_file_upload = mocker.patch(
-        "app.services.company_service.handle_file_upload",
-        return_value=b"mock_logo_data",
+    mock_perform_post_request = mocker.patch(
+        "app.services.company_service.perform_post_request",
+        return_value=mock_message_response,
     )
-    mock_message_response = mocker.patch(
+    mock_message_response_init = mocker.patch(
         "app.services.company_service.MessageResponse",
-        return_value=mocker.Mock(),
+        return_value=mock_message_response,
     )
 
     # Act
-    result = company_service.upload_logo(
-        company_id=mock_company.id, logo=mock_logo, db=mock_db
-    )
+    result = company_service.upload_logo(company_id=company_id, logo=mock_logo)
 
     # Assert
-    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    mock_handle_file_upload.assert_called_with(mock_logo)
-    mock_db.commit.assert_called_once()
-    assert result == mock_message_response.return_value
+    mock_validate_uploaded_file.assert_called_with(mock_logo)
+    mock_perform_post_request.assert_called_with(
+        url=COMPANY_LOGO_URL.format(company_id=company_id),
+        files={"logo": (mock_logo.filename, mock_logo.file, mock_logo.content_type)},
+    )
+    mock_message_response_init.assert_called_once()
+    assert result == mock_message_response
 
 
-def test_downloadLogo_returnsLogo_whenCompanyHasLogo(
-    mocker,
-    mock_db,
-) -> None:
+def test_downloadLogo_returnsLogo_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_logo_data = b"mock_logo_data"
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=mock_logo_data)
+    company_id = td.VALID_COMPANY_ID
+    mock_logo_content = b"logo content"
+    mock_response = mocker.Mock()
+    mock_response.content = mock_logo_content
 
     mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+        "app.services.company_service.ensure_valid_company_id"
     )
-    mock_bytes_io = mocker.patch("app.services.company_service.io.BytesIO")
+    mock_perform_get_request = mocker.patch(
+        "app.services.company_service.perform_get_request",
+        return_value=mock_response,
+    )
     mock_streaming_response = mocker.patch(
-        "app.services.company_service.StreamingResponse"
+        "app.services.company_service.StreamingResponse",
+        return_value=mock_response,
     )
 
     # Act
-    result = company_service.download_logo(company_id=mock_company.id, db=mock_db)
+    result = company_service.download_logo(company_id=company_id)
 
     # Assert
-    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    mock_bytes_io.assert_called_with(mock_logo_data)
-    mock_streaming_response.assert_called_with(
-        mock_bytes_io.return_value, media_type="image/png"
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_perform_get_request.assert_called_with(
+        url=COMPANY_LOGO_URL.format(company_id=company_id)
     )
-    assert result == mock_streaming_response.return_value
+    assert result == mock_response
 
 
-def test_downloadLogo_raisesHTTPException_whenCompanyHasNoLogo(
-    mocker,
-    mock_db,
-) -> None:
+def test_deleteLogo_deletesLogo_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=None)
+    company_id = td.VALID_COMPANY_ID
+    mock_message_response = mocker.Mock(message="Logo deleted successfully")
 
     mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+        "app.services.company_service.ensure_valid_company_id"
     )
-
-    # Act & Assert
-    with pytest.raises(HTTPException) as exc:
-        company_service.download_logo(company_id=mock_company.id, db=mock_db)
-
-    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exc.value.detail == f"Company with id {mock_company.id} does not have a logo"
-
-
-def test_deleteLogo_deletesLogo_whenCompanyHasLogo(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=b"mock_logo_data")
-
-    mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+    mock_perform_delete_request = mocker.patch(
+        "app.services.company_service.perform_delete_request",
+        return_value=mock_message_response,
+    )
+    mock_message_response_init = mocker.patch(
+        "app.services.company_service.MessageResponse",
+        return_value=mock_message_response,
     )
 
     # Act
-    result = company_service.delete_logo(company_id=mock_company.id, db=mock_db)
+    result = company_service.delete_logo(company_id=company_id)
 
     # Assert
-    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    mock_db.commit.assert_called_once()
-    assert mock_company.logo is None
-    assert isinstance(mock_company.updated_at, datetime)
-    assert isinstance(result, MessageResponse)
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_perform_delete_request.assert_called_with(
+        url=COMPANY_LOGO_URL.format(company_id=company_id)
+    )
+    mock_message_response_init.assert_called_once()
+    assert result == mock_message_response
 
 
-def test_deleteLogo_raisesApplicationError_whenCompanyHasNoLogo(
-    mocker,
-    mock_db,
-) -> None:
+def test_ensureUniqueEmail_raisesError_whenEmailIsNotUnique(mocker) -> None:
     # Arrange
-    mock_company = mocker.Mock(id=td.VALID_COMPANY_ID, logo=None)
-
-    mock_ensure_valid_company_id = mocker.patch(
-        "app.services.company_service.ensure_valid_company_id",
-        return_value=mock_company,
+    email = td.VALID_COMPANY_EMAIL
+    mock_is_unique_email = mocker.patch(
+        "app.services.company_service.is_unique_email",
+        return_value=False,
     )
 
     # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        company_service.delete_logo(company_id=mock_company.id, db=mock_db)
+    with pytest.raises(ApplicationError) as exc_info:
+        company_service._ensure_unique_email(email=email)
 
-    mock_ensure_valid_company_id.assert_called_with(id=mock_company.id, db=mock_db)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    assert exc_info.value.data.status == status.HTTP_409_CONFLICT
+    assert exc_info.value.data.detail == f"Company with email {email} already exists"
+    mock_is_unique_email.assert_called_with(email=email)
+
+
+def test_ensureUniqueEmail_doesNotRaiseError_whenEmailIsUnique(mocker) -> None:
+    # Arrange
+    email = td.VALID_COMPANY_EMAIL
+    mock_is_unique_email = mocker.patch(
+        "app.services.company_service.is_unique_email",
+        return_value=True,
+    )
+
+    # Act
+    company_service._ensure_unique_email(email=email)
+
+    # Assert
+    mock_is_unique_email.assert_called_with(email=email)
+
+
+def test_ensureUniquePhoneNumber_raisesError_whenPhoneNumberIsNotUnique(mocker) -> None:
+    # Arrange
+    phone_number = td.VALID_COMPANY_PHONE_NUMBER
+    mock_get_company_by_phone_number = mocker.patch(
+        "app.services.company_service.get_company_by_phone_number",
+        return_value=td.COMPANY,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc_info:
+        company_service._ensure_unique_phone_number(phone_number=phone_number)
+
+    assert exc_info.value.data.status == status.HTTP_409_CONFLICT
     assert (
-        exc.value.data.detail
-        == f"Company with id {mock_company.id} does not have a logo"
+        exc_info.value.data.detail
+        == f"Company with phone number {phone_number} already exists"
     )
-
-
-def test_updateCompany_updatesName_whenNameIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(name=td.VALID_COMPANY_NAME_2)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.name == company_update_data.name
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.description == mock_company.description
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesDescription_whenDescriptionIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(description=td.VALID_COMPANY_DESCRIPTION_2)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.description == company_update_data.description
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesAddressLine_whenAddressLineIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(address_line=td.VALID_COMPANY_ADDRESS_LINE_2)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.address_line == company_update_data.address_line
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesCity_whenCityIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    update_company_data = CompanyUpdate(city=td.VALID_CITY_NAME_2)
-
-    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city",
-        return_value=mock_city,
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=update_company_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_called_with(name=update_company_data.city, db=mock_db)
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.city == mock_city
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesEmail_whenEmailIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(email=td.VALID_COMPANY_EMAIL_2)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_called_with(email=company_update_data.email, db=mock_db)
-    mock_unique_phone_number.assert_not_called()
-    assert result.email == company_update_data.email
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.city == mock_company.city
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesPhoneNumber_whenPhoneNumberIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(phone_number=td.VALID_COMPANY_PHONE_NUMBER_2)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_called_with(
-        phone_number=company_update_data.phone_number, db=mock_db
-    )
-    assert result.phone_number == company_update_data.phone_number
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-
-
-def test_updateCompany_updatesWebsiteUrl_whenWebsiteUrlIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(website_url=td.VALID_COMPANY_WEBSITE_URL)
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.website_url == str(company_update_data.website_url)
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesYoutubeVideoId_whenYoutubeVideoUrlIsProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(
-        youtube_video_url=td.VALID_COMPANY_YOUTUBE_VIDEO_URL
-    )
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.youtube_video_id == company_update_data.youtube_video_id
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-
-
-def test_updateCompany_updatesAllFields_whenAllFieldsAreProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate(
-        name=td.VALID_COMPANY_NAME_2,
-        description=td.VALID_COMPANY_DESCRIPTION_2,
-        address_line=td.VALID_COMPANY_ADDRESS_LINE_2,
-        city=td.VALID_CITY_NAME_2,
-        email=td.VALID_COMPANY_EMAIL_2,
-        phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
-        website_url=td.VALID_COMPANY_WEBSITE_URL,
-        youtube_video_url=td.VALID_COMPANY_YOUTUBE_VIDEO_URL,
-    )
-
-    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city",
-        return_value=mock_city,
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_called_with(name=company_update_data.city, db=mock_db)
-    mock_unique_email.assert_called_with(email=company_update_data.email, db=mock_db)
-    mock_unique_phone_number.assert_called_with(
-        phone_number=company_update_data.phone_number, db=mock_db
-    )
-    assert result.name == company_update_data.name
-    assert result.description == company_update_data.description
-    assert result.address_line == company_update_data.address_line
-    assert result.city == mock_city
-    assert result.email == company_update_data.email
-    assert result.phone_number == company_update_data.phone_number
-    assert result.website_url == str(company_update_data.website_url)
-    assert result.youtube_video_id == company_update_data.youtube_video_id
-    assert isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-
-
-def test_updateCompany_updatesNothing_whenNoFieldsAreProvided(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company = mocker.Mock(**td.COMPANY)
-    company_update_data = CompanyUpdate()
-
-    mock_ensure_valid_city = mocker.patch(
-        "app.services.company_service.ensure_valid_city"
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.company_service._ensure_unique_email"
-    )
-    mock_unique_phone_number = mocker.patch(
-        "app.services.company_service._ensure_unique_phone_number"
-    )
-
-    # Act
-    result = company_service._update_company(
-        company=mock_company, company_data=company_update_data, db=mock_db
-    )
-
-    # Assert
-    mock_ensure_valid_city.assert_not_called()
-    mock_unique_email.assert_not_called()
-    mock_unique_phone_number.assert_not_called()
-    assert result.name == mock_company.name
-    assert result.description == mock_company.description
-    assert result.address_line == mock_company.address_line
-    assert result.city == mock_company.city
-    assert result.email == mock_company.email
-    assert result.phone_number == mock_company.phone_number
-    assert not isinstance(result.updated_at, datetime)
-
-    assert result.id == mock_company.id
-
-
-def test_ensureUniqueEmail_doesNotRaiseError_whenEmailIsUnique(mock_db) -> None:
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act
-    company_service._ensure_unique_email(email=td.VALID_COMPANY_EMAIL, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_with(Company)
-    assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
-    mock_filter.first.assert_called_once()
-
-
-def test_ensureUniqueEmail_raisesApplicationError_whenEmailIsNotUnique(
-    mocker, mock_db
-) -> None:
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = mocker.Mock()
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        company_service._ensure_unique_email(email=td.VALID_COMPANY_EMAIL, db=mock_db)
-
-    mock_db.query.assert_called_with(Company)
-    assert_filter_called_with(mock_query, Company.email == td.VALID_COMPANY_EMAIL)
-    mock_filter.first.assert_called_once()
-    assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert (
-        exc.value.data.detail
-        == f"Company with email {td.VALID_COMPANY_EMAIL} already exists"
-    )
+    mock_get_company_by_phone_number.assert_called_with(phone_number=phone_number)
 
 
 def test_ensureUniquePhoneNumber_doesNotRaiseError_whenPhoneNumberIsUnique(
-    mock_db,
+    mocker,
 ) -> None:
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    phone_number = td.VALID_COMPANY_PHONE_NUMBER
+    mock_get_company_by_phone_number = mocker.patch(
+        "app.services.company_service.get_company_by_phone_number",
+        return_value=None,
+    )
 
     # Act
-    company_service._ensure_unique_phone_number(
-        phone_number=td.VALID_COMPANY_PHONE_NUMBER, db=mock_db
-    )
+    company_service._ensure_unique_phone_number(phone_number=phone_number)
 
     # Assert
-    mock_db.query.assert_called_with(Company)
-    assert_filter_called_with(
-        mock_query, Company.phone_number == td.VALID_COMPANY_PHONE_NUMBER
-    )
-    mock_filter.first.assert_called_once()
+    mock_get_company_by_phone_number.assert_called_with(phone_number=phone_number)
 
 
-def test_ensureUniquePhoneNumber_raisesApplicationError_whenPhoneNumberIsNotUnique(
-    mocker,
-    mock_db,
-) -> None:
+def test_ensureValidCompanyCreationData_callsValidators_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = mocker.Mock()
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        company_service._ensure_unique_phone_number(
-            phone_number=td.VALID_COMPANY_PHONE_NUMBER, db=mock_db
-        )
-
-    mock_db.query.assert_called_with(Company)
-    assert_filter_called_with(
-        mock_query, Company.phone_number == td.VALID_COMPANY_PHONE_NUMBER
-    )
-    mock_filter.first.assert_called_once()
-    assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert (
-        exc.value.data.detail
-        == f"Company with phone number {td.VALID_COMPANY_PHONE_NUMBER} already exists"
-    )
-
-
-def test_ensureValidCompanyCreationData_doesNotRaiseError_whenDataIsValid(
-    mocker,
-    mock_db,
-) -> None:
-    # Arrange
-    mock_company_data = mocker.Mock(
+    company_data = mocker.Mock(
         username=td.VALID_COMPANY_USERNAME,
         email=td.VALID_COMPANY_EMAIL,
         phone_number=td.VALID_COMPANY_PHONE_NUMBER,
     )
-
-    mock_unique_username = mocker.patch("app.services.company_service.unique_username")
-
-    mock_unique_email = mocker.patch("app.services.company_service.unique_email")
+    mock_is_unique_username = mocker.patch(
+        "app.services.company_service.is_unique_username"
+    )
+    mock_is_unique_email = mocker.patch("app.services.company_service.is_unique_email")
     mock_ensure_unique_phone_number = mocker.patch(
         "app.services.company_service._ensure_unique_phone_number"
     )
 
     # Act
-    company_service._ensure_valid_company_creation_data(
-        company_data=mock_company_data, db=mock_db
+    company_service._ensure_valid_company_creation_data(company_data=company_data)
+
+    # Assert
+    mock_is_unique_username.assert_called_with(username=company_data.username)
+    mock_is_unique_email.assert_called_with(email=company_data.email)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
+
+
+def test_ensureValidCompanyUpdateData_callsValidators_whenDataIsValid(mocker) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    company_data = CompanyUpdate(
+        name=td.VALID_COMPANY_NAME_2,
+        email=td.VALID_COMPANY_EMAIL_2,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
+        city=td.VALID_CITY_NAME_2,
+    )
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city",
+        return_value=mock_city,
+    )
+    mock_ensure_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._ensure_valid_company_update_data(
+        company_id=company_id, company_data=company_data
     )
 
     # Assert
-    mock_unique_username.assert_called_with(
-        username=mock_company_data.username, db=mock_db
-    )
-    mock_unique_email.assert_called_with(email=mock_company_data.email, db=mock_db)
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_ensure_valid_city.assert_called_with(name=company_data.city)
+    mock_ensure_unique_email.assert_called_with(email=company_data.email)
     mock_ensure_unique_phone_number.assert_called_with(
-        phone_number=mock_company_data.phone_number, db=mock_db
+        phone_number=company_data.phone_number
     )
+    assert result.city_id == mock_city.id
+
+
+def test_ensureValidCompanyUpdateData_doesNotCallCityValidator_whenCityIsNone(
+    mocker,
+) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    company_data = CompanyUpdate(
+        name=td.VALID_COMPANY_NAME_2,
+        email=td.VALID_COMPANY_EMAIL_2,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
+        city=None,
+    )
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city"
+    )
+    mock_ensure_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._ensure_valid_company_update_data(
+        company_id=company_id, company_data=company_data
+    )
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_ensure_valid_city.assert_not_called()
+    mock_ensure_unique_email.assert_called_with(email=company_data.email)
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
+    assert result.city_id is None
+
+
+def test_ensureValidCompanyUpdateData_doesNotCallEmailValidator_whenEmailIsSame(
+    mocker,
+) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    company_data = CompanyUpdate(
+        name=td.VALID_COMPANY_NAME_2,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER_2,
+        city=td.VALID_CITY_NAME_2,
+    )
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city",
+        return_value=mock_city,
+    )
+    mock_ensure_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._ensure_valid_company_update_data(
+        company_id=company_id, company_data=company_data
+    )
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_ensure_valid_city.assert_called_with(name=company_data.city)
+    mock_ensure_unique_email.assert_not_called()
+    mock_ensure_unique_phone_number.assert_called_with(
+        phone_number=company_data.phone_number
+    )
+    assert result.city_id == mock_city.id
+
+
+def test_ensureValidCompanyUpdateData_doesNotCallPhoneNumberValidator_whenPhoneNumberIsSame(
+    mocker,
+) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    company_data = CompanyUpdate(
+        name=td.VALID_COMPANY_NAME_2,
+        email=td.VALID_COMPANY_EMAIL_2,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+        city=td.VALID_CITY_NAME_2,
+    )
+    mock_company = mocker.Mock(
+        id=company_id,
+        email=td.VALID_COMPANY_EMAIL,
+        phone_number=td.VALID_COMPANY_PHONE_NUMBER,
+    )
+    mock_city = mocker.Mock(id=td.VALID_CITY_ID_2)
+
+    mock_ensure_valid_company_id = mocker.patch(
+        "app.services.company_service.ensure_valid_company_id",
+        return_value=mock_company,
+    )
+    mock_ensure_valid_city = mocker.patch(
+        "app.services.company_service.ensure_valid_city",
+        return_value=mock_city,
+    )
+    mock_ensure_unique_email = mocker.patch(
+        "app.services.company_service._ensure_unique_email"
+    )
+    mock_ensure_unique_phone_number = mocker.patch(
+        "app.services.company_service._ensure_unique_phone_number"
+    )
+
+    # Act
+    result = company_service._ensure_valid_company_update_data(
+        company_id=company_id, company_data=company_data
+    )
+
+    # Assert
+    mock_ensure_valid_company_id.assert_called_with(company_id=company_id)
+    mock_ensure_valid_city.assert_called_with(name=company_data.city)
+    mock_ensure_unique_email.assert_called_with(email=company_data.email)
+    mock_ensure_unique_phone_number.assert_not_called()
+    assert result.city_id == mock_city.id

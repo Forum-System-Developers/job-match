@@ -37,6 +37,8 @@ from app.utils.request_handlers import (
     perform_post_request,
     perform_put_request,
 )
+from app.services.utils.mail_messages import HTML_BODY_COMPANY
+from app.services.mail_service import get_mail_service
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +116,13 @@ def create(company_data: CompanyCreate) -> CompanyResponse:
 
     company = perform_post_request(url=COMPANIES_URL, json=data.model_dump(mode="json"))
     logger.info(f"Created company with id {company['id']}")
+
+    get_mail_service().send_mail(
+        to_email=company_data.email,
+        subject="Welcome to Rephera!",
+        body=HTML_BODY_COMPANY,
+    )
+    logger.info(f"Sent welcome email to {company_data.email}")
 
     return CompanyResponse(**company)
 
@@ -265,6 +274,7 @@ def _ensure_valid_company_update_data(
         CompanyUpdateFinal: The company update data.
     """
     company = ensure_valid_company_id(company_id=company_id)
+    city = None
 
     if company_data.city is not None:
         city = ensure_valid_city(name=company_data.city)
