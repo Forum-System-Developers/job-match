@@ -81,7 +81,7 @@ html_body_company = """
 """
 
 
-html_body_professional = """
+HTML_BODY_PROFESSIONAL = """
 <!DOCTYPE html>
 <html>
 <head>
