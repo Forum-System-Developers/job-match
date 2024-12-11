@@ -181,22 +181,6 @@ def get_all(
 
 
 @router.get(
-    "/{professional_id}",
-    description="Retreive a Professional profile by its ID.",
-    dependencies=[Depends(get_current_user)],
-)
-def get_by_id(professional_id: UUID) -> JSONResponse:
-    def _get_by_id():
-        return professional_service.get_by_id(professional_id=professional_id)
-
-    return process_request(
-        get_entities_fn=_get_by_id,
-        status_code=status_code.HTTP_200_OK,
-        not_found_err_msg="Could not fetch Professional",
-    )
-
-
-@router.get(
     "/{professional_id}/job-applications",
     description="View Job Applications by a Professional",
     dependencies=[Depends(get_current_user)],
@@ -252,4 +236,20 @@ def get_match_requests(
         get_entities_fn=_get_match_requests,
         status_code=status_code.HTTP_200_OK,
         not_found_err_msg="Skills for professional not found",
+    )
+
+
+@router.get(
+    "/{professional_id}",
+    description="Retreive a Professional profile by its ID.",
+    dependencies=[Depends(get_current_user)],
+)
+def get_by_id(professional_id: UUID) -> JSONResponse:
+    def _get_by_id():
+        return professional_service.get_by_id(professional_id=professional_id)
+
+    return process_request(
+        get_entities_fn=_get_by_id,
+        status_code=status_code.HTTP_200_OK,
+        not_found_err_msg="Could not fetch Professional",
     )
