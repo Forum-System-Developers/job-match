@@ -3,7 +3,12 @@ from fastapi import status
 from fastapi.responses import RedirectResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.services.google_auth_service import auth_callback, login
+from app.services.google_auth_service import (
+    _create_token_payload_from_user_info,
+    auth_callback,
+    login,
+)
+from tests import test_data as td
 
 
 @pytest.mark.asyncio
@@ -130,3 +135,22 @@ async def test_auth_callback_google_user_info_error(mocker):
 
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     assert exc.value.data.detail == "Something went wrong"
+
+
+def test_create_token_payload_from_user_info(mocker):
+    # Arrange
+    user_info = {}
+
+    professional = mocker.Mock()
+    professional.id = td.VALID_PROFESSIONAL_ID
+
+    mock_professional_service = mocker.patch(
+        "app.services.professional_service.get_or_create_from_google_token",
+        return_value=professional,
+    )
+
+    # Act
+    result = _create_token_payload_from_user_info(user_info=user_info)
+
+    # Assert
+    assert result["sub"] == str(td.VALID_PROFESSIONAL_ID)
