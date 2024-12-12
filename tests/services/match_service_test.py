@@ -1,517 +1,809 @@
-from unittest.mock import call
-
 import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.city import City
 from app.schemas.common import FilterParams, MessageResponse
-from app.schemas.job_application import MatchResponseRequest
-from app.schemas.match import MatchRequestAd, MatchResponse
-from app.services.enums.job_ad_status import JobAdStatus
-from app.services.enums.job_application_status import JobStatus
+from app.schemas.match import MatchRequestCreate
+from app.services import match_service
 from app.services.enums.match_status import MatchStatus
-from app.services.enums.professional_status import ProfessionalStatus
-from app.services.match_service import (
-    _get_match,
-    accept_job_application_match_request,
-    accept_match_request,
-    get_company_match_requests,
-    get_match_requests_for_job_application,
-    process_request_from_company,
-    reject_match_request,
-    send_job_application_match_request,
-    view_received_job_application_match_requests,
-    view_sent_job_application_match_requests,
+from app.services.external_db_service_urls import (
+    MATCH_REQUESTS_BY_ID_URL,
+    MATCH_REQUESTS_COMPANIES_URL,
+    MATCH_REQUESTS_JOB_ADS_RECEIVED_URL,
+    MATCH_REQUESTS_JOB_ADS_SENT_URL,
+    MATCH_REQUESTS_JOB_APPLICATIONS_URL,
+    MATCH_REQUESTS_PROFESSIONALS_URL,
+    MATCH_REQUESTS_URL,
 )
-from app.sql_app.job_ad.job_ad import JobAd
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.match.match import Match
 from tests import test_data as td
-from tests.utils import assert_called_with, assert_filter_called_with
 
 
-@pytest.fixture
-def mock_db(mocker):
-    return mocker.Mock()
-
-
-@pytest.fixture
-def mock_job_ads(mocker):
-    return [
-        mocker.Mock(**td.JOB_AD, location=City(**td.CITY)),
-        mocker.Mock(**td.JOB_AD_2, location=City(**td.CITY_2)),
-    ]
-
-
-def test_getMatch_returnsMatch_whenValidData(mocker, mock_db) -> None:
+def test_createIfNotExists_createsMatchRequest_whenNoExistingMatch(mocker) -> None:
     # Arrange
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    job_ad = mocker.Mock(**td.JOB_AD)
-    match = mocker.Mock(**td.MATCH)
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    mock_match_create = mocker.MagicMock()
 
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = match
-
-    # Act
-    result = _get_match(
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
-        db=mock_db,
-    )
-
-    # Assert
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
-    )
-    assert result == match
-
-
-def test_processRequestFromCompany_acceptsMatchRequest_whenValidData(
-    mocker, mock_db
-) -> None:
-    # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    match = mocker.Mock(**td.MATCH)
-
-    mock_get_match = mocker.patch(
-        "app.services.match_service._get_match",
-        return_value=match,
-    )
-    mock_accept_match_request = mocker.patch(
-        "app.services.match_service.accept_match_request",
-        return_value={"msg": "Match Request accepted"},
-    )
-
-    accept_request = MatchResponseRequest(accept_request=True)
-
-    # Act
-    result = process_request_from_company(
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
-        accept_request=accept_request,
-        db=mock_db,
-    )
-
-    # Assert
-    mock_get_match.assert_called_with(
-        job_application_id=job_application.id, job_ad_id=job_ad.id, db=mock_db
-    )
-    mock_accept_match_request.assert_called_with(
-        match=match,
-        db=mock_db,
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
-    )
-    assert result == {"msg": "Match Request accepted"}
-
-
-def test_processRequestFromCompany_rejectsMatchRequest_whenValidData(
-    mocker, mock_db
-) -> None:
-    # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    match = mocker.Mock(**td.MATCH)
-
-    mock_get_match = mocker.patch(
-        "app.services.match_service._get_match",
-        return_value=match,
-    )
-    mock_reject_match_request = mocker.patch(
-        "app.services.match_service.reject_match_request",
-        return_value={"msg": "Match Request rejected"},
-    )
-
-    accept_request = MatchResponseRequest(accept_request=False)
-
-    # Act
-    result = process_request_from_company(
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
-        accept_request=accept_request,
-        db=mock_db,
-    )
-
-    # Assert
-    mock_get_match.assert_called_with(
-        job_application_id=job_application.id, job_ad_id=job_ad.id, db=mock_db
-    )
-    mock_reject_match_request.assert_called_with(
-        match=match,
-        db=mock_db,
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
-    )
-    assert result == {"msg": "Match Request rejected"}
-
-
-def test_processRequestFromCompany_raisesError_whenNoExistingMatch(
-    mocker, mock_db
-) -> None:
-    # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-
-    mock_get_match = mocker.patch(
-        "app.services.match_service._get_match",
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
         return_value=None,
     )
+    mocker_match_request_create = mocker.patch(
+        "app.services.match_service.MatchRequestCreate", return_value=mock_match_create
+    )
+    mock_perform_post_request = mocker.patch(
+        "app.services.match_service.perform_post_request",
+    )
 
-    accept_request = MatchResponseRequest(accept_request=True)
+    # Act
+    result = match_service.create_if_not_exists(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+
+    # Assert
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+    mock_perform_post_request.assert_called_with(
+        url=MATCH_REQUESTS_URL,
+        json={**mock_match_create},
+    )
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request successfully sent"
+
+
+def test_createIfNotExists_raisesError_whenMatchRequestedByJobApp(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    existing_match = mocker.Mock(status=MatchStatus.REQUESTED_BY_JOB_APP)
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=existing_match,
+    )
 
     # Act & Assert
     with pytest.raises(ApplicationError) as exc:
-        process_request_from_company(
-            job_application_id=job_application.id,
-            job_ad_id=job_ad.id,
-            accept_request=accept_request,
-            db=mock_db,
+        match_service.create_if_not_exists(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+        )
+
+    assert exc.value.data.detail == "Match Request already sent"
+    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+
+
+def test_createIfNotExists_raisesError_whenMatchRequestedByJobAd(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    existing_match = mocker.Mock(status=MatchStatus.REQUESTED_BY_JOB_AD)
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=existing_match,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.create_if_not_exists(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+        )
+
+    assert exc.value.data.detail == "Match Request already sent"
+    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+
+
+def test_createIfNotExists_raisesError_whenMatchAccepted(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    existing_match = mocker.Mock(status=MatchStatus.ACCEPTED)
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=existing_match,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.create_if_not_exists(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+        )
+
+    assert exc.value.data.detail == "Match Request already accepted"
+    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+
+
+def test_createIfNotExists_raisesError_whenMatchRejected(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    existing_match = mocker.Mock(status=MatchStatus.REJECTED)
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=existing_match,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.create_if_not_exists(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
         )
 
     assert (
         exc.value.data.detail
-        == f"No match found for JobApplication id{job_application.id} and JobAd id {job_ad.id}"
+        == "Match Request was rejested, cannot create a new Match request"
+    )
+    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+
+
+def test_processRequestFromCompany_acceptsRequest_whenMatchExists(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    mock_accept_request = mocker.Mock(accept_request=True)
+    mock_existing_match = mocker.Mock()
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=mock_existing_match,
+    )
+    mock_accept_match_request = mocker.patch(
+        "app.services.match_service.accept_match_request",
+        return_value=MessageResponse(message="Match Request accepted"),
+    )
+
+    # Act
+    result = match_service.process_request_from_company(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+        accept_request=mock_accept_request,
+    )
+
+    # Assert
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+    mock_accept_match_request.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request accepted"
+
+
+def test_processRequestFromCompany_rejectsRequest_whenMatchExists(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    mock_accept_request = mocker.Mock(accept_request=False)
+    mock_existing_match = mocker.Mock()
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=mock_existing_match,
+    )
+    mock_reject_match_request = mocker.patch(
+        "app.services.match_service.reject_match_request",
+        return_value=MessageResponse(message="Match Request rejected"),
+    )
+
+    # Act
+    result = match_service.process_request_from_company(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+        accept_request=mock_accept_request,
+    )
+
+    # Assert
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+    mock_reject_match_request.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request rejected"
+
+
+def test_processRequestFromCompany_raisesError_whenNoMatchExists(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    accept_request = mocker.Mock()
+
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.match_service.get_match_request_by_id",
+        return_value=None,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.process_request_from_company(
+            job_application_id=job_application_id,
+            job_ad_id=job_ad_id,
+            accept_request=accept_request,
+        )
+
+    assert (
+        exc.value.data.detail
+        == f"No match found for JobApplication id{job_application_id} and JobAd id {job_ad_id}"
     )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
+    mock_get_match_request_by_id.assert_called_with(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
+    )
 
 
-def test_rejectMatchRequest_rejectsMatchRequest_whenValidData(mocker, mock_db) -> None:
+def test_rejectMatchRequest_rejectsRequestSuccessfully(mocker) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    match = mocker.Mock(**td.MATCH)
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+
+    mock_perform_patch_request = mocker.patch(
+        "app.services.match_service.perform_patch_request",
+    )
 
     # Act
-    result = reject_match_request(
-        match=match,
-        db=mock_db,
-        job_application_id=job_application.id,
-        job_ad_id=job_ad.id,
+    result = match_service.reject_match_request(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
     )
 
     # Assert
-    assert match.status == MatchStatus.REJECTED
-    mock_db.commit.assert_called()
-    assert isinstance(result, dict)
-    assert result["msg"] == "Match Request rejected"
+    mock_perform_patch_request.assert_called_with(
+        url=MATCH_REQUESTS_BY_ID_URL.format(
+            job_ad_id=job_ad_id, job_application_id=job_application_id
+        ),
+        json={"status": MatchStatus.REJECTED},
+    )
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request rejected"
 
 
-def test_acceptMatchRequest_acceptsMatchRequest_whenValidData(mocker, mock_db) -> None:
+def test_acceptMatchRequest_acceptsRequestSuccessfully(mocker) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD, status=JobAdStatus.ACTIVE)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    match = mocker.Mock(**td.MATCH, job_application=job_application, job_ad=job_ad)
-    match.job_application.professional = mocker.Mock(
-        active_application_count=1, status=ProfessionalStatus.ACTIVE
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+
+    mock_perform_put_request = mocker.patch(
+        "app.services.match_service.perform_put_request",
     )
 
     # Act
-    result = accept_match_request(
-        job_ad_id=job_ad.id,
-        job_application_id=job_application.id,
-        match=match,
-        db=mock_db,
+    result = match_service.accept_match_request(
+        job_application_id=job_application_id,
+        job_ad_id=job_ad_id,
     )
 
     # Assert
-    assert job_ad.status == JobAdStatus.ARCHIVED
-    assert job_application.status == JobStatus.MATCHED
-    assert match.status == MatchStatus.ACCEPTED
-    assert match.job_application.professional.active_application_count == 0
-    mock_db.commit.assert_called()
-    assert result["msg"] == "Match Request accepted"
+    mock_perform_put_request.assert_called_with(
+        url=MATCH_REQUESTS_BY_ID_URL.format(
+            job_ad_id=job_ad_id, job_application_id=job_application_id
+        ),
+    )
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request accepted"
 
 
-def test_getMatchRequestsForJobApplication_returnsMatchRequests_whenValidData(
-    mocker, mock_db, mock_job_ads
-) -> None:
+def test_getMatchRequestsForJobApplication_returnsRequests(mocker) -> None:
     # Arrange
-    filter_params = FilterParams(offset=0, limit=10)
-    mock_job_ads[0].company = mocker.Mock()
-    mock_job_ads[0].company.name = td.VALID_COMPANY_NAME
-    mock_job_ads[1].company = mocker.Mock()
-    mock_job_ads[1].company.name = td.VALID_COMPANY_NAME_2
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    filter_params = mocker.Mock(limit=10, offset=0)
+    mock_requests = [mocker.MagicMock(), mocker.MagicMock()]
 
-    mock_query = mock_db.query.return_value
-    mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
-    mock_offset = mock_filter.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = [
-        (mocker.Mock(**td.MATCH), mock_job_ads[0]),
-        (mocker.Mock(**td.MATCH_2), mock_job_ads[1]),
-    ]
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=mock_requests,
+    )
+    mock_match_request_ad = mocker.patch(
+        "app.services.match_service.MatchRequestAd",
+    )
 
     # Act
-    result = get_match_requests_for_job_application(
-        job_application_id=td.VALID_JOB_APPLICATION_ID,
-        db=mock_db,
+    result = match_service.get_match_requests_for_job_application(
+        job_application_id=job_application_id,
         filter_params=filter_params,
     )
 
     # Assert
-    assert_filter_called_with(
-        mock_join,
-        (Match.job_application_id == td.VALID_JOB_APPLICATION_ID)
-        & (Match.status == MatchStatus.REQUESTED_BY_JOB_AD),
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_APPLICATIONS_URL.format(
+            job_application_id=job_application_id
+        ),
+        params=filter_params.model_dump(),
     )
-    mock_filter.offset.assert_called_with(filter_params.offset)
-    mock_offset.limit.assert_called_with(filter_params.limit)
     assert isinstance(result, list)
     assert len(result) == 2
-    assert isinstance(result[0], MatchRequestAd)
-    assert isinstance(result[1], MatchRequestAd)
 
 
-def test_acceptJobApplicationMatchRequest_acceptsMatchRequest_whenValidData(
-    mocker, mock_db
+def test_getMatchRequestsForJobApplication_returnsEmptyList_whenNoRequests(
+    mocker,
 ) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_ad.company.successfull_matches_count = 0
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
-    match = mocker.Mock(**td.MATCH)
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    filter_params = FilterParams(limit=10, offset=0)
 
-    mock_ensure_valid_job_ad_id = mocker.patch(
-        "app.services.match_service.ensure_valid_job_ad_id",
-        return_value=job_ad,
-    )
-    mock_ensure_valid_job_application_id = mocker.patch(
-        "app.services.match_service.ensure_valid_job_application_id",
-        return_value=job_application,
-    )
-    mock_ensure_valid_match_request = mocker.patch(
-        "app.services.match_service.ensure_valid_match_request",
-        return_value=match,
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=[],
     )
 
     # Act
-    result = accept_job_application_match_request(
-        job_ad_id=td.VALID_JOB_AD_ID,
-        job_application_id=td.VALID_JOB_APPLICATION_ID,
-        company_id=td.VALID_COMPANY_ID,
-        db=mock_db,
+    result = match_service.get_match_requests_for_job_application(
+        job_application_id=job_application_id,
+        filter_params=filter_params,
+    )
+
+    # Assert
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_APPLICATIONS_URL.format(
+            job_application_id=job_application_id
+        ),
+        params=filter_params.model_dump(),
+    )
+    assert result == []
+
+
+def test_getMatchRequestsForProfessional_returnsRequests(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    mock_requests = [mocker.MagicMock(), mocker.MagicMock()]
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=mock_requests,
+    )
+    mock_match_request_ad = mocker.patch(
+        "app.services.match_service.MatchRequestAd",
+    )
+
+    # Act
+    result = match_service.get_match_requests_for_professional(
+        professional_id=professional_id,
+    )
+
+    # Assert
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_PROFESSIONALS_URL.format(professional_id=professional_id)
+    )
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+
+def test_getMatchRequestsForProfessional_returnsEmptyList_whenNoRequests(
+    mocker,
+) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=[],
+    )
+
+    # Act
+    result = match_service.get_match_requests_for_professional(
+        professional_id=professional_id,
+    )
+
+    # Assert
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_PROFESSIONALS_URL.format(professional_id=professional_id)
+    )
+    assert result == []
+
+
+def test_acceptJobApplicationMatchRequest_acceptsRequestSuccessfully(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    company_id = td.VALID_COMPANY_ID
+
+    mock_accept_match_request = mocker.patch(
+        "app.services.match_service.accept_match_request",
+        return_value=MessageResponse(message="Match Request accepted"),
+    )
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+
+    # Act
+    result = match_service.accept_job_application_match_request(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        company_id=company_id,
     )
 
     # Assert
     mock_ensure_valid_job_ad_id.assert_called_with(
-        job_ad_id=job_ad.id,
-        db=mock_db,
-        company_id=job_ad.company_id,
+        job_ad_id=job_ad_id, company_id=company_id
     )
-    mock_ensure_valid_job_application_id.assert_called_with(
-        id=job_application.id,
-        db=mock_db,
+    mock_accept_match_request.assert_called_with(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
     )
-    mock_ensure_valid_match_request.assert_called_with(
-        job_ad_id=job_ad.id,
-        job_application_id=job_application.id,
-        match_status=MatchStatus.REQUESTED_BY_JOB_APP,
-        db=mock_db,
-    )
-    assert job_ad.status == JobAdStatus.ARCHIVED
-    assert job_application.status == JobStatus.MATCHED
-    assert match.status == MatchStatus.ACCEPTED
-    assert job_ad.company.successfull_matches_count == 1
-    mock_db.commit.assert_called()
     assert isinstance(result, MessageResponse)
+    assert result.message == "Match Request accepted"
 
 
-def test_sendJobApplicationMatchRequest_sendsMatchRequest_whenValidData(
-    mocker, mock_db
+def test_acceptJobApplicationMatchRequest_raisesError_whenInvalidJobAdId(
+    mocker,
 ) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-    job_application = mocker.Mock(**td.JOB_APPLICATION)
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.NON_EXISTENT_ID
+    company_id = td.VALID_COMPANY_ID
 
     mock_ensure_valid_job_ad_id = mocker.patch(
         "app.services.match_service.ensure_valid_job_ad_id",
-        return_value=job_ad,
+        side_effect=ApplicationError(
+            detail="Invalid Job Ad ID",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ),
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.accept_job_application_match_request(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+            company_id=company_id,
+        )
+
+    assert exc.value.data.detail == "Invalid Job Ad ID"
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=job_ad_id, company_id=company_id
+    )
+
+
+def test_sendJobAdMatchRequest_sendsRequestSuccessfully(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+    match_request_create = MatchRequestCreate(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+        status=MatchStatus.REQUESTED_BY_JOB_APP,
+    )
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
     )
     mock_ensure_valid_job_application_id = mocker.patch(
         "app.services.match_service.ensure_valid_job_application_id",
-        return_value=job_application,
     )
     mock_ensure_no_match_request = mocker.patch(
         "app.services.match_service.ensure_no_match_request",
     )
+    mock_perform_post_request = mocker.patch(
+        "app.services.match_service.perform_post_request",
+    )
 
     # Act
-    result = send_job_application_match_request(
-        job_ad_id=job_ad.id,
-        job_application_id=job_application.id,
-        company_id=td.VALID_COMPANY_ID,
-        db=mock_db,
+    result = match_service.send_job_ad_match_request(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
     )
 
     # Assert
-    mock_ensure_valid_job_ad_id.assert_called_with(
-        job_ad_id=job_ad.id,
-        db=mock_db,
-        company_id=job_ad.company_id,
-    )
+    mock_ensure_valid_job_ad_id.assert_called_with(job_ad_id=job_ad_id)
     mock_ensure_valid_job_application_id.assert_called_with(
-        id=job_application.id,
-        db=mock_db,
+        job_application_id=job_application_id
     )
     mock_ensure_no_match_request.assert_called_with(
-        job_ad_id=job_ad.id,
-        job_application_id=job_application.id,
-        db=mock_db,
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
     )
-    mock_db.add.assert_called()
-    mock_db.commit.assert_called()
+    mock_perform_post_request.assert_called_with(
+        url=MATCH_REQUESTS_URL,
+        json=match_request_create.model_dump(mode="json"),
+    )
     assert isinstance(result, MessageResponse)
+    assert result.message == "Match request sent"
 
 
-def test_viewReceivedJobApplicationMatchRequests_viewsMatchRequests_whenValidData(
-    mocker, mock_db
-) -> None:
+def test_sendJobAdMatchRequest_raisesError_whenInvalidJobAdId(mocker) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-
-    mock_query = mock_db.query.return_value
-    mock_join = mock_query.join.return_value
-    mock_filter = mock_join.filter.return_value
-    mock_filter.all.return_value = [td.MATCH, td.MATCH_2]
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.NON_EXISTENT_ID
 
     mock_ensure_valid_job_ad_id = mocker.patch(
         "app.services.match_service.ensure_valid_job_ad_id",
-        return_value=job_ad,
+        side_effect=ApplicationError(
+            detail="Invalid Job Ad ID",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ),
     )
-    mock_match_response_create = mocker.patch(
-        "app.services.match_service.MatchResponse.create",
-        side_effect=[
-            MatchResponse(**td.MATCH),
-            MatchResponse(**td.MATCH_2),
-        ],
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.send_job_ad_match_request(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+        )
+
+    assert exc.value.data.detail == "Invalid Job Ad ID"
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    mock_ensure_valid_job_ad_id.assert_called_with(job_ad_id=job_ad_id)
+
+
+def test_sendJobAdMatchRequest_raisesError_whenInvalidJobApplicationId(
+    mocker,
+) -> None:
+    # Arrange
+    job_application_id = td.NON_EXISTENT_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+    mock_ensure_valid_job_application_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_application_id",
+        side_effect=ApplicationError(
+            detail="Invalid Job Application ID",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ),
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.send_job_ad_match_request(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+        )
+
+    assert exc.value.data.detail == "Invalid Job Application ID"
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    mock_ensure_valid_job_ad_id.assert_called_with(job_ad_id=job_ad_id)
+    mock_ensure_valid_job_application_id.assert_called_with(
+        job_application_id=job_application_id
+    )
+
+
+def test_sendJobAdMatchRequest_raisesError_whenMatchRequestExists(mocker) -> None:
+    # Arrange
+    job_application_id = td.VALID_JOB_APPLICATION_ID
+    job_ad_id = td.VALID_JOB_AD_ID
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+    mock_ensure_valid_job_application_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_application_id",
+    )
+    mock_ensure_no_match_request = mocker.patch(
+        "app.services.match_service.ensure_no_match_request",
+        side_effect=ApplicationError(
+            detail="Match request already exists",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ),
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc:
+        match_service.send_job_ad_match_request(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+        )
+
+    assert exc.value.data.detail == "Match request already exists"
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    mock_ensure_valid_job_ad_id.assert_called_with(job_ad_id=job_ad_id)
+    mock_ensure_valid_job_application_id.assert_called_with(
+        job_application_id=job_application_id
+    )
+    mock_ensure_no_match_request.assert_called_with(
+        job_ad_id=job_ad_id,
+        job_application_id=job_application_id,
+    )
+
+
+def test_viewReceivedJobAdMatchRequests_returnsRequests(mocker) -> None:
+    # Arrange
+    job_ad_id = td.VALID_JOB_AD_ID
+    company_id = td.VALID_COMPANY_ID
+    mock_requests = [mocker.MagicMock(), mocker.MagicMock()]
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=mock_requests,
+    )
+    mock_match_response = mocker.patch(
+        "app.services.match_service.MatchResponse",
     )
 
     # Act
-    result = view_received_job_application_match_requests(
-        job_ad_id=job_ad.id,
-        company_id=td.VALID_COMPANY_ID,
-        db=mock_db,
+    result = match_service.view_received_job_ad_match_requests(
+        job_ad_id=job_ad_id,
+        company_id=company_id,
     )
 
     # Assert
     mock_ensure_valid_job_ad_id.assert_called_with(
-        job_ad_id=job_ad.id,
-        db=mock_db,
-        company_id=job_ad.company_id,
+        job_ad_id=job_ad_id, company_id=company_id
     )
-    assert_filter_called_with(
-        mock_join,
-        (JobAd.id == str(job_ad.id))
-        & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_ADS_RECEIVED_URL.format(job_ad_id=job_ad_id)
     )
-    mock_match_response_create.assert_has_calls([call(td.MATCH), call(td.MATCH_2)])
     assert isinstance(result, list)
-    assert isinstance(result[0], MatchResponse)
-    assert isinstance(result[1], MatchResponse)
     assert len(result) == 2
 
 
-def test_viewSentJobApplicationMatchRequests_viewsSentMatchRequests_whenValidData(
-    mocker, mock_db
-) -> None:
+def test_viewReceivedJobAdMatchRequests_returnsEmptyList_whenNoRequests(mocker) -> None:
     # Arrange
-    job_ad = mocker.Mock(**td.JOB_AD)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.all.return_value = [td.MATCH, td.MATCH_2]
+    job_ad_id = td.VALID_JOB_AD_ID
+    company_id = td.VALID_COMPANY_ID
 
     mock_ensure_valid_job_ad_id = mocker.patch(
         "app.services.match_service.ensure_valid_job_ad_id",
-        return_value=job_ad,
     )
-    mock_match_response_create = mocker.patch(
-        "app.services.match_service.MatchResponse.create",
-        side_effect=[
-            MatchResponse(**td.MATCH),
-            MatchResponse(**td.MATCH_2),
-        ],
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=[],
     )
 
     # Act
-    result = view_sent_job_application_match_requests(
-        job_ad_id=job_ad.id,
-        company_id=job_ad.company_id,
-        db=mock_db,
+    result = match_service.view_received_job_ad_match_requests(
+        job_ad_id=job_ad_id,
+        company_id=company_id,
     )
 
     # Assert
     mock_ensure_valid_job_ad_id.assert_called_with(
-        job_ad_id=job_ad.id,
-        db=mock_db,
-        company_id=job_ad.company_id,
+        job_ad_id=job_ad_id, company_id=company_id
     )
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == str(job_ad.id))
-        & (Match.status == MatchStatus.REQUESTED_BY_JOB_AD),
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_ADS_RECEIVED_URL.format(job_ad_id=job_ad_id)
     )
-    mock_match_response_create.assert_has_calls([call(td.MATCH), call(td.MATCH_2)])
+    assert result == []
+
+
+def test_viewSentJobApplicationMatchRequests_returnsRequests(mocker) -> None:
+    # Arrange
+    job_ad_id = td.VALID_JOB_AD_ID
+    company_id = td.VALID_COMPANY_ID
+    mock_requests = [mocker.MagicMock(), mocker.MagicMock()]
+
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=mock_requests,
+    )
+    mock_match_response = mocker.patch(
+        "app.services.match_service.MatchResponse",
+    )
+
+    # Act
+    result = match_service.view_sent_job_application_match_requests(
+        job_ad_id=job_ad_id,
+        company_id=company_id,
+    )
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=job_ad_id, company_id=company_id
+    )
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_ADS_SENT_URL.format(job_ad_id=job_ad_id)
+    )
     assert isinstance(result, list)
-    assert isinstance(result[0], MatchResponse)
-    assert isinstance(result[1], MatchResponse)
     assert len(result) == 2
 
 
-def test_getCompanyMatchRequests_returnsMatchRequests_whenValidData(
-    mocker, mock_db
+def test_viewSentJobApplicationMatchRequests_returnsEmptyList_whenNoRequests(
+    mocker,
 ) -> None:
     # Arrange
-    filter_params = FilterParams(offset=0, limit=10)
-    mock_job_applications = [
-        mocker.Mock(
-            **td.JOB_APPLICATION,
-            professional=mocker.Mock(first_name="John", last_name="Doe"),
-        ),
-        mocker.Mock(
-            **td.JOB_APPLICATION_2,
-            professional=mocker.Mock(first_name="Jane", last_name="Doe"),
-        ),
-    ]
-    mock_job_applications[0].name = "Test Job Application"
-    mock_job_applications[1].name = "Test Job Application 2"
+    job_ad_id = td.VALID_JOB_AD_ID
+    company_id = td.VALID_COMPANY_ID
 
-    mock_query = mock_db.query.return_value
-    mock_join = mock_query.join.return_value
-    mock_join_job_ad = mock_join.join.return_value
-    mock_filter = mock_join_job_ad.filter.return_value
-    mock_offset = mock_filter.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = [
-        (mocker.Mock(**td.MATCH), mock_job_applications[0]),
-        (mocker.Mock(**td.MATCH_2), mock_job_applications[1]),
-    ]
+    mock_ensure_valid_job_ad_id = mocker.patch(
+        "app.services.match_service.ensure_valid_job_ad_id",
+    )
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=[],
+    )
 
     # Act
-    result = get_company_match_requests(
-        company_id=td.VALID_COMPANY_ID,
-        db=mock_db,
+    result = match_service.view_sent_job_application_match_requests(
+        job_ad_id=job_ad_id,
+        company_id=company_id,
+    )
+
+    # Assert
+    mock_ensure_valid_job_ad_id.assert_called_with(
+        job_ad_id=job_ad_id, company_id=company_id
+    )
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_JOB_ADS_SENT_URL.format(job_ad_id=job_ad_id)
+    )
+    assert result == []
+
+
+def test_getCompanyMatchRequests_returnsRequests(mocker) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    filter_params = mocker.Mock(limit=10, offset=0)
+    mock_requests = [mocker.MagicMock(), mocker.MagicMock()]
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=mock_requests,
+    )
+    mock_match_request_application = mocker.patch(
+        "app.services.match_service.MatchRequestApplication",
+    )
+
+    # Act
+    result = match_service.get_company_match_requests(
+        company_id=company_id,
         filter_params=filter_params,
     )
 
     # Assert
-    mock_db.query.assert_called_with(Match, JobApplication)
-    mock_query.join.assert_called_with(Match.job_application)
-    mock_join.join.assert_called_with(Match.job_ad)
-    assert_filter_called_with(
-        mock_join_job_ad,
-        (JobAd.company_id == td.VALID_COMPANY_ID)
-        & (Match.status == MatchStatus.REQUESTED_BY_JOB_APP),
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_COMPANIES_URL.format(company_id=company_id),
+        params=filter_params.model_dump(),
     )
-    mock_filter.offset.assert_called_with(filter_params.offset)
-    mock_offset.limit.assert_called_with(filter_params.limit)
     assert isinstance(result, list)
     assert len(result) == 2
-    assert isinstance(result[0], MatchResponse)
-    assert isinstance(result[1], MatchResponse)
+
+
+def test_getCompanyMatchRequests_returnsEmptyList_whenNoRequests(mocker) -> None:
+    # Arrange
+    company_id = td.VALID_COMPANY_ID
+    filter_params = FilterParams(limit=10, offset=0)
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.match_service.perform_get_request",
+        return_value=[],
+    )
+
+    # Act
+    result = match_service.get_company_match_requests(
+        company_id=company_id,
+        filter_params=filter_params,
+    )
+
+    # Assert
+    mock_perform_get_request.assert_called_with(
+        url=MATCH_REQUESTS_COMPANIES_URL.format(company_id=company_id),
+        params=filter_params.model_dump(),
+    )
+    assert result == []

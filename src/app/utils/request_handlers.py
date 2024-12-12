@@ -24,18 +24,23 @@ def perform_http_request(method: str, url: str, **kwargs):
     try:
         response = requests.request(method=method, url=url, **kwargs)
         if 400 <= response.status_code < 600:
-            logger.error(f"Error response from {url}: {response.json()}")
+            if response.headers.get("Content-Type") == "application/json":
+                error_detail = response.json().get("detail", "Unknown error")
+            else:
+                error_detail = response.text
+            logger.error(f"Error response from {url}: {error_detail}")
             raise HTTPException(
                 status_code=response.status_code,
-                detail=response.json().get("detail"),
+                detail=error_detail,
             )
         if response.headers.get("Content-Type") == "application/json":
             return response.json()
         return response
     except requests.RequestException as e:
         logger.error(f"Error sending request to {url}: {e}")
+        status_code = response.status_code if "response" in locals() else 500
         raise HTTPException(
-            status_code=response.status_code if response else 500,
+            status_code=status_code,
             detail=str(e),
         )
 

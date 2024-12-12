@@ -19,6 +19,7 @@ from app.services.external_db_service_urls import (
     PROFESSIONAL_BY_EMAIL_URL,
     PROFESSIONAL_BY_USERNAME_URL,
     PROFESSIONALS_BY_ID_URL,
+    PROFESSIONALS_BY_SUB_URL,
     SKILLS_URL,
 )
 from app.utils.request_handlers import perform_get_request
@@ -63,6 +64,15 @@ def get_professional_by_id(professional_id: UUID) -> ProfessionalResponse | None
             url=PROFESSIONALS_BY_ID_URL.format(professional_id=professional_id)
         )
         logger.info(f"Retrieved professional with id {professional_id}")
+        return ProfessionalResponse(**professional)
+    except HTTPException:
+        return None
+
+
+def get_professional_by_sub(sub: str) -> ProfessionalResponse | None:
+    try:
+        professional = perform_get_request(url=PROFESSIONALS_BY_SUB_URL.format(sub=sub))
+        logger.info(f"Retrieved professional with sub {sub}")
         return ProfessionalResponse(**professional)
     except HTTPException:
         return None

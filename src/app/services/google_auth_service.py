@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import status
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
@@ -6,7 +8,10 @@ from httpx import AsyncClient
 
 from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
+from app.services import professional_service
 from app.services.auth_service import _create_access_token
+from app.services.external_db_service_urls import PROFESSIONALS_BY_SUB_URL
+from app.utils.request_handlers import perform_get_request
 
 settings = get_settings()
 
@@ -70,8 +75,20 @@ async def auth_callback(request: Request):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    jwt_token = _create_access_token(data=user_info)
+    payload = _create_token_payload_from_user_info(user_info=user_info)
+    jwt_token = _create_access_token(data=payload)
     response = RedirectResponse(url="https://www.rephera.com")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
 
     return response
+
+
+def _create_token_payload_from_user_info(user_info: dict) -> dict:
+    professional = professional_service.get_or_create_from_google_token(
+        token_payload=user_info
+    )
+
+    return {
+        "sub": str(professional.id),
+        "role": "professional",
+    }

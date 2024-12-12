@@ -47,6 +47,18 @@ def get_by_id(city_id: UUID) -> CityResponse:
     return CityResponse(**city)
 
 
+def get_default() -> CityResponse:
+    """
+    Retrieves the default city from the database.
+
+    Returns:
+        CityResponse: A CityResponse object representing the default city.
+    """
+    city = perform_get_request(url=CITIES_URL + "/default")
+
+    return CityResponse(**city)
+
+
 def get_all() -> list[CityResponse]:
     """
     Retrieves all cities from the database.
