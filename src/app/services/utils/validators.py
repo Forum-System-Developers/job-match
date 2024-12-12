@@ -192,26 +192,3 @@ def is_unique_email(email: str) -> bool:
         return False
 
     return True
-
-
-def ensure_valid_professional_id(professional_id: UUID) -> ProfessionalResponse:
-    """
-    Ensures that a professional with the given ID exists.
-
-    Args:
-        professional_id (UUID): The unique identifier of the professional.
-
-    Returns:
-        ProfessionalResponse: The professional object if found.
-
-    Raises:
-        ApplicationError: If no professional is found with the given ID.
-    """
-    professional = get_professional_by_id(professional_id)
-    if professional is None:
-        raise ApplicationError(
-            detail=f"Professional with id {professional_id} not found.",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-
-    return professional
