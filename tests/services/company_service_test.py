@@ -146,6 +146,7 @@ def test_create_createsCompany_whenDataIsValid(mocker) -> None:
         "app.services.company_service.CompanyCreateFinal",
         return_value=mock_company,
     )
+    mock_send_mail = mocker.patch("app.services.company_service.get_mail_service")
 
     # Act
     result = company_service.create(company_data=mock_company_data)
