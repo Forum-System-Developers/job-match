@@ -1,1217 +1,788 @@
-import json
-
 import pytest
 from fastapi import status
-from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.exceptions.custom_exceptions import ApplicationError
-from app.schemas.city import City
 from app.schemas.common import MessageResponse
-from app.schemas.job_ad import JobAdPreview
 from app.schemas.job_application import JobSearchStatus
-from app.schemas.match import MatchRequestAd
-from app.schemas.user import User
 from app.services import professional_service
-from app.services.enums.match_status import MatchStatus
-from app.sql_app.job_application.job_application import JobApplication
-from app.sql_app.professional.professional import Professional
+from app.services.external_db_service_urls import (
+    PROFESSIONAL_BY_USERNAME_URL,
+    PROFESSIONALS_BY_ID_URL,
+    PROFESSIONALS_CV_URL,
+    PROFESSIONALS_JOB_APPLICATIONS_URL,
+    PROFESSIONALS_PHOTO_URL,
+    PROFESSIONALS_SKILLS_URL,
+    PROFESSIONALS_TOGGLE_STATUS_URL,
+    PROFESSIONALS_URL,
+)
 from tests import test_data as td
-from tests.utils import assert_filter_called_with
 
 
-@pytest.fixture
-def mock_db(mocker):
-    return mocker.Mock()
-
-
-def test_create_raises_error_when_city_not_found(mocker, mock_db) -> None:
+def test_create_createsProfessional_whenDataIsValid(mocker) -> None:
     # Arrange
     professional_request = td.PROFESSIONAL_REQUEST
+    professional_data = professional_request.professional
+    city_mock = mocker.Mock(id=td.VALID_CITY_ID, name=professional_data.city)
+    hashed_password = "hashed_password"
+    professional_response = mocker.MagicMock()
+
+    mock_validate_unique = mocker.patch(
+        "app.services.professional_service._validate_unique_professional_details"
+    )
     mock_city_service = mocker.patch(
-        "app.services.city_service.get_by_name", return_value=None
+        "app.services.city_service.get_by_name", return_value=city_mock
+    )
+    mock_hash_password = mocker.patch(
+        "app.services.professional_service.hash_password", return_value=hashed_password
+    )
+    mock_perform_post_request = mocker.patch(
+        "app.services.professional_service.perform_post_request",
+        return_value=professional_response,
+    )
+    mock_send_mail = mocker.patch("app.services.professional_service.get_mail_service")
+    mock_professional_response = mocker.patch(
+        "app.services.professional_service.ProfessionalResponse",
+        return_value=professional_response,
     )
 
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service.create(
-            professional_request=professional_request, db=mock_db
-        )
+    # Act
+    response = professional_service.create(professional_request=professional_request)
 
-    assert exc.value.data.detail == f"City with name {td.VALID_CITY_NAME} was not found"
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    mock_city_service.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
+    # Assert
+    mock_validate_unique.assert_called_once_with(professional_create=professional_data)
+    mock_city_service.assert_called_once_with(city_name=professional_data.city)
+    mock_hash_password.assert_called_once_with(password=professional_data.password)
+    mock_perform_post_request.assert_called_once()
+    mock_send_mail.assert_called_once()
+    assert response == professional_response
 
 
-def test_create_creates_professional_when_city_found(mocker, mock_db) -> None:
+def test_getOrCreateFromGoogleToken_createsNewProfessional(mocker) -> None:
     # Arrange
-    city_mock = mocker.Mock(id=1, name="Sofia")
-    professional_request = td.PROFESSIONAL_REQUEST
-    professional_mock = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
-    response_mock = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
+    token_payload = mocker.MagicMock()
+    city_mock = mocker.Mock(id=td.VALID_CITY_ID, name="Default City")
+    mock_professional_request = mocker.Mock()
+    mock_professional_body_request = mocker.Mock()
+    mock_professional_response = mocker.Mock()
+
+    mock_get_professional_by_sub = mocker.patch(
+        "app.services.professional_service.get_professional_by_sub",
+        return_value=None,
+    )
+    mock_get_default_city = mocker.patch(
+        "app.services.city_service.get_default", return_value=city_mock
+    )
+    mock_generate_temporary_credentials = mocker.patch(
+        "app.services.professional_service._generate_temporary_credentials",
+        return_value=("temp_username", "temp_password"),
+    )
+    mock_create_professional = mocker.patch(
+        "app.services.professional_service.create",
+        return_value=mock_professional_response,
+    )
+    mock_professional_create = mocker.patch(
+        "app.services.professional_service.ProfessionalCreate",
+        return_value=mock_professional_request,
+    )
+    mock_professional_request_body = mocker.patch(
+        "app.services.professional_service.ProfessionalRequestBody",
+        return_value=mock_professional_body_request,
+    )
+    mock_create_professional = mocker.patch(
+        "app.services.professional_service.create",
+        return_value=mock_professional_response,
+    )
+
+    # Act
+    response = professional_service.get_or_create_from_google_token(
+        token_payload=token_payload
+    )
+
+    # Assert
+    mock_get_professional_by_sub.assert_called_once_with(sub=token_payload["sub"])
+    mock_get_default_city.assert_called_once()
+    mock_generate_temporary_credentials.assert_called_once()
+    mock_create_professional.assert_called_once()
+    assert response == mock_professional_response
+
+
+def test_getOrCreateFromGoogleToken_returnsExistingProfessional(mocker) -> None:
+    # Arrange
+    token_payload = mocker.MagicMock()
+    professional = mocker.MagicMock()
+
+    mock_get_professional_by_sub = mocker.patch(
+        "app.services.professional_service.get_professional_by_sub",
+        return_value=professional,
+    )
+
+    # Act
+    response = professional_service.get_or_create_from_google_token(
+        token_payload=token_payload
+    )
+
+    # Assert
+    mock_get_professional_by_sub.assert_called_once_with(sub=token_payload["sub"])
+    assert response == professional
+
+
+def test_update_updatesProfessional_whenDataIsValid(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    professional_request = mocker.MagicMock()
+    professional_data = professional_request.professional
+    city_mock = mocker.Mock(id=td.VALID_CITY_ID, name=professional_data.city)
+    professional_response = mocker.MagicMock()
 
     mock_city_service = mocker.patch(
         "app.services.city_service.get_by_name", return_value=city_mock
     )
-    mock_register_professional = mocker.patch(
-        "app.services.professional_service._register_professional",
-        return_value=professional_mock,
+    mock_perform_put_request = mocker.patch(
+        "app.services.professional_service.perform_put_request",
+        return_value=professional_response,
     )
-    mock_response_create = mocker.patch(
-        "app.schemas.professional.ProfessionalResponse.create",
-        return_value=response_mock,
+    mock_professional_response = mocker.patch(
+        "app.services.professional_service.ProfessionalResponse",
+        return_value=professional_response,
+    )
+    mock_professional_update_final = mocker.patch(
+        "app.services.professional_service.ProfessionalUpdateFinal",
+        return_value=professional_request,
     )
 
     # Act
-    response = professional_service.create(
-        professional_request=professional_request, db=mock_db
+    response = professional_service.update(
+        professional_id=professional_id, professional_request=professional_request
     )
 
     # Assert
-    mock_city_service.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
-    mock_register_professional.assert_called_once_with(
-        professional_create=professional_request.professional,
-        professional_status=professional_request.status,
-        city_id=city_mock.id,
-        db=mock_db,
-    )
-    mock_response_create.assert_called_once_with(professional=professional_mock)
-
-    assert response.id == professional_mock.id
-    assert response.first_name == td.VALID_PROFESSIONAL_FIRST_NAME
-    assert response.last_name == td.VALID_PROFESSIONAL_LAST_NAME
-    assert response.email == td.VALID_PROFESSIONAL_EMAIL
-    assert response.city == td.VALID_CITY_NAME
+    mock_city_service.assert_called_once_with(city_name=professional_data.city)
+    mock_perform_put_request.assert_called_once()
+    assert response == professional_response
 
 
-def test_update_update_professional_whenDataIsValid(mocker, mock_db):
+def test_update_updatesProfessional_whenCityIsNone(mocker) -> None:
     # Arrange
-    mock_professional_data = mocker.Mock()
-    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
-    mock_response = mocker.Mock()
+    professional_id = td.VALID_PROFESSIONAL_ID
+    professional_request = mocker.MagicMock()
+    professional_response = mocker.MagicMock()
+    professional_request.professional.city = None
 
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id",
-        return_value=mock_professional,
+    mock_perform_put_request = mocker.patch(
+        "app.services.professional_service.perform_put_request",
+        return_value=professional_response,
     )
-    mock_update_attributes = mocker.patch(
-        "app.services.professional_service._update_attributes",
-        return_value=mock_professional,
+    mock_professional_response = mocker.patch(
+        "app.services.professional_service.ProfessionalResponse",
+        return_value=professional_response,
     )
-    mock_create = mocker.patch(
-        "app.schemas.professional.ProfessionalResponse.create",
+    mock_professional_update_final = mocker.patch(
+        "app.services.professional_service.ProfessionalUpdateFinal",
+        return_value=professional_request,
+    )
+
+    # Act
+    response = professional_service.update(
+        professional_id=professional_id, professional_request=professional_request
+    )
+
+    # Assert
+    mock_perform_put_request.assert_called_once()
+    assert response == professional_response
+
+
+def test_upload_photo_uploadsPhotoSuccessfully(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    photo = mocker.Mock()
+    photo.filename = "photo.png"
+    photo.file = mocker.Mock()
+    photo.content_type = "image/png"
+    message_response = MessageResponse(message="Photo uploaded successfully")
+
+    mock_validate_uploaded_file = mocker.patch(
+        "app.services.professional_service.validate_uploaded_file"
+    )
+    mock_perform_post_request = mocker.patch(
+        "app.services.professional_service.perform_post_request"
+    )
+
+    # Act
+    response = professional_service.upload_photo(
+        professional_id=professional_id, photo=photo
+    )
+
+    # Assert
+    mock_validate_uploaded_file.assert_called_once_with(photo)
+    mock_perform_post_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_PHOTO_URL.format(professional_id=professional_id)}",
+        files={"photo": (photo.filename, photo.file, photo.content_type)},
+    )
+    assert response == message_response
+
+
+def test_upload_cv_uploadsCVSuccessfully(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    cv = mocker.Mock()
+    cv.filename = "test.pdf"
+    cv.file = mocker.Mock()
+    cv.content_type = "application/pdf"
+    message_response = MessageResponse(message="CV uploaded successfully")
+
+    mock_validate_uploaded_cv = mocker.patch(
+        "app.services.professional_service.validate_uploaded_cv"
+    )
+    mock_perform_post_request = mocker.patch(
+        "app.services.professional_service.perform_post_request"
+    )
+
+    # Act
+    response = professional_service.upload_cv(professional_id=professional_id, cv=cv)
+
+    # Assert
+    mock_validate_uploaded_cv.assert_called_once_with(cv)
+    mock_perform_post_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_CV_URL.format(professional_id=professional_id)}",
+        files={"cv": (cv.filename, cv.file, cv.content_type)},
+    )
+    assert response == message_response
+
+
+def test_downloadPhoto_downloadsPhotoSuccessfully(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    photo_content = b"photo_content"
+    mock_response = mocker.Mock()
+    mock_response.content = photo_content
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=mock_response,
+    )
+    mock_streaming_response = mocker.patch(
+        "app.services.professional_service.StreamingResponse",
         return_value=mock_response,
     )
 
     # Act
-    result = professional_service.update(
-        professional_id=mock_professional.id,
-        professional_request=mock_professional_data,
-        db=mock_db,
-    )
+    response = professional_service.download_photo(professional_id=professional_id)
 
     # Assert
-    mock_get_by_id.assert_called_once_with(
-        professional_id=mock_professional.id, db=mock_db
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_PHOTO_URL.format(professional_id=professional_id)}"
     )
-    mock_update_attributes.assert_called_once_with(
-        professional=mock_professional,
-        professional_request=mock_professional_data,
-        db=mock_db,
-    )
-    mock_create.assert_called_once_with(
-        professional=mock_professional, matched_ads=None
-    )
-    assert result == mock_response
+    assert response == mock_response
 
 
-def test_uploadPhoto_uploadsPhoto_whenFileIsValid(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock(photo=None)
-    professional_id = td.VALID_PROFESSIONAL_ID
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id",
-        return_value=mock_professional,
-    )
-
-    mock_process_db_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
-    )
-
-    mock_file_content = b"valid_file_content"
-    mock_upload_file = mocker.Mock()
-    mock_upload_file.file.read.return_value = mock_file_content
-    mock_upload_file.file.seek.return_value = None
-
-    # Act
-    result = professional_service.upload_photo(
-        professional_id=professional_id, photo=mock_upload_file, db=mock_db
-    )
-
-    # Assert
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_upload_file.file.read.assert_called_once()
-    mock_upload_file.file.seek.assert_called_once_with(0)
-    mock_process_db_transaction.assert_called_once()
-    assert mock_professional.photo == mock_file_content
-    assert result == {"msg": "Photo successfully uploaded"}
-
-
-def test_uploadPhoto_raisesApplicationError_whenFileExceedsSizeLimit(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock()
-    professional_id = td.VALID_PROFESSIONAL_ID
-
-    mocker.patch(
-        "app.services.professional_service._get_by_id",
-        return_value=mock_professional,
-    )
-    mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
-    )
-
-    oversized_content = b"a" * (5 * 1024 * 1024 + 1)
-    mock_upload_file = mocker.Mock()
-    mock_upload_file.file.read.return_value = oversized_content
-    mock_upload_file.file.seek.return_value = None
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service.upload_photo(
-            professional_id=professional_id, photo=mock_upload_file, db=mock_db
-        )
-
-    assert exc.value.data.detail == "File size exceeds the allowed limit of 5.0MB."
-    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
-
-
-def test_downloadPhoto_returnsPhoto_whenPhotoExists(mocker, mock_db):
+def test_download_cv_downloadsCVSuccessfully(mocker) -> None:
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    photo_data = b"somebinarydata"
-    mock_professional.photo = photo_data
+    cv_content = b"cv_content"
+    mock_response = mocker.Mock()
+    mock_response.content = cv_content
+    mock_response.headers = {"Content-Disposition": "attachment; filename=test.pdf"}
+    mock_streaming_response = mocker.Mock()
 
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id",
-        return_value=mock_professional,
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=mock_response,
+    )
+    mock_create_cv_streaming_response = mocker.patch(
+        "app.services.professional_service._create_cv_streaming_response",
+        return_value=mock_streaming_response,
     )
 
     # Act
-    response = professional_service.download_photo(
-        professional_id=professional_id, db=mock_db
-    )
+    response = professional_service.download_cv(professional_id=professional_id)
 
     # Assert
-    assert response.status_code == 200
-    assert response.media_type == "image/png"
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_CV_URL.format(professional_id=professional_id)}"
+    )
+    mock_create_cv_streaming_response.assert_called_once_with(mock_response)
+    assert response == mock_streaming_response
 
 
-def test_downloadPhoto_returnsMessage_whenPhotoIsNone(mocker, mock_db):
+def test_delete_cv_deletesCVSuccessfully(mocker) -> None:
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_professional.photo = None
+    message_response = MessageResponse(message="CV deleted successfully")
 
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id",
-        return_value=mock_professional,
+    mock_perform_delete_request = mocker.patch(
+        "app.services.professional_service.perform_delete_request"
     )
 
     # Act
-    response = professional_service.download_photo(
-        professional_id=professional_id, db=mock_db
-    )
+    response = professional_service.delete_cv(professional_id=professional_id)
 
     # Assert
-    assert response.status_code == 200
-    assert json.loads(response.body) == {"msg": "No available photo"}
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
+    mock_perform_delete_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_CV_URL.format(professional_id=professional_id)}"
+    )
+    assert response == message_response
 
 
-def test_get_by_id_whenProfessionalHasMatches(mocker, mock_db):
+def test_get_by_id_returnsProfessional_whenIdIsValid(mocker) -> None:
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock(**td.PROFESSIONAL_RESPONSE)
+    professional_response = mocker.MagicMock()
 
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-    mock_get_matches = mocker.patch(
-        "app.services.professional_service._get_matches", return_value=["ad1", "ad2"]
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=professional_response,
     )
     mock_professional_response = mocker.patch(
-        "app.services.professional_service.ProfessionalResponse.create",
-        return_value="professional_response",
+        "app.services.professional_service.ProfessionalResponse",
+        return_value=professional_response,
     )
 
     # Act
-    response = professional_service.get_by_id(
-        professional_id=professional_id, db=mock_db
-    )
+    response = professional_service.get_by_id(professional_id=professional_id)
 
     # Assert
-    mock_professional_response.assert_called_once_with(
-        professional=mock_professional, matched_ads=["ad1", "ad2"]
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_BY_ID_URL.format(professional_id=professional_id)}"
     )
-    assert response == "professional_response"
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_get_matches.assert_called_once_with(
-        professional_id=professional_id, db=mock_db
-    )
+    assert response == professional_response
 
 
-def test_get_all_whenProfessionalsExist_withOrderByAsc(mocker, mock_db):
+def test_getAll_returnsProfessionals_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-    mock_search_params = mocker.Mock(skills=[], order="asc", order_by="created_at")
-    mock_professionals = [mocker.Mock(), mocker.Mock()]
-    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+    filter_params = mocker.MagicMock()
+    search_params = mocker.MagicMock()
+    professionals_response = [mocker.MagicMock(), mocker.MagicMock()]
 
-    mock_query = mock_db.query.return_value
-    mock_options = mock_query.options.return_value
-    mock_filtered = mock_options.filter.return_value
-    mock_offset = mock_filtered.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = mock_professionals
-
-    mocker.patch(
-        "app.schemas.professional.ProfessionalResponse.create",
-        side_effect=mock_professional_response,
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=professionals_response,
+    )
+    mock_professional_response = mocker.patch(
+        "app.services.professional_service.ProfessionalResponse",
+        side_effect=professionals_response,
     )
 
     # Act
     response = professional_service.get_all(
-        filter_params=mock_filter_params,
-        search_params=mock_search_params,
-        db=mock_db,
+        filter_params=filter_params, search_params=search_params
     )
 
     # Assert
-    mock_db.query.assert_called_once_with(Professional)
-    mock_query.options.assert_called_once()
-    mock_options.filter.assert_called_once()
-    mock_filtered.offset.assert_called_once_with(mock_filter_params.offset)
-    mock_offset.limit.assert_called_once_with(mock_filter_params.limit)
-    mock_limit.all.assert_called_once()
-    assert len(response) == 2
-    assert response[0] == mock_professional_response[0]
-    assert response[1] == mock_professional_response[1]
+    mock_perform_get_request.assert_called_once_with(
+        url=PROFESSIONALS_URL,
+        params={
+            **search_params.model_dump(mode="json"),
+            **filter_params.model_dump(mode="json"),
+        },
+    )
+    assert response == professionals_response
 
 
-def test_get_all_whenProfessionalsExist_withOrderByDesc(mocker, mock_db):
+def test_getAll_returnsEmptyList_whenNoProfessionalsFound(mocker) -> None:
     # Arrange
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-    mock_search_params = mocker.Mock(skills=[], order="desc", order_by="created_at")
-    mock_professionals = [mocker.Mock(), mocker.Mock()]
-    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+    filter_params = mocker.MagicMock()
+    search_params = mocker.MagicMock()
+    professionals_response = []
 
-    mock_query = mock_db.query.return_value
-    mock_options = mock_query.options.return_value
-    mock_filtered = mock_options.filter.return_value
-    mock_offset = mock_filtered.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = mock_professionals
-
-    mocker.patch(
-        "app.schemas.professional.ProfessionalResponse.create",
-        side_effect=mock_professional_response,
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=professionals_response,
     )
 
     # Act
     response = professional_service.get_all(
-        filter_params=mock_filter_params,
-        search_params=mock_search_params,
-        db=mock_db,
+        filter_params=filter_params, search_params=search_params
     )
 
     # Assert
-    mock_db.query.assert_called_once_with(Professional)
-    mock_query.options.assert_called_once()
-    mock_options.filter.assert_called_once()
-    mock_filtered.offset.assert_called_once_with(mock_filter_params.offset)
-    mock_offset.limit.assert_called_once_with(mock_filter_params.limit)
-    mock_limit.all.assert_called_once()
-    assert len(response) == 2
-    assert response[0] == mock_professional_response[0]
-    assert response[1] == mock_professional_response[1]
-
-
-def test_getAll_returnsProfessionalsFilteredBySkills_whenSkillsProvided(
-    mocker, mock_db
-):
-    # Arrange
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-    mock_search_params = mocker.Mock(
-        skills=["Python", "Django"], order="asc", order_by="first_name"
+    mock_perform_get_request.assert_called_once_with(
+        url=PROFESSIONALS_URL,
+        params={
+            **search_params.model_dump(mode="json"),
+            **filter_params.model_dump(mode="json"),
+        },
     )
-    mock_professionals = [mocker.Mock(), mocker.Mock()]
-    mock_professional_response = [mocker.Mock(), mocker.Mock()]
+    assert response == professionals_response
 
-    mock_query = mock_db.query.return_value
-    mock_options = mock_query.options.return_value
-    mock_filtered_by_status = mock_options.filter.return_value
-    # mock_filtered_by_skills = mock_filtered_by_status.filter.return_value
-    mock_offset = mock_filtered_by_status.offset.return_value
-    mock_limit = mock_offset.limit.return_value
-    mock_limit.all.return_value = mock_professionals
 
-    mocker.patch(
-        "app.schemas.professional.ProfessionalResponse.create",
-        side_effect=mock_professional_response,
+def test_getById_returnsProfessional_whenIdIsValid(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    professional_response = mocker.MagicMock()
+
+    mock_get_professional_by_id = mocker.patch(
+        "app.services.professional_service.get_professional_by_id",
+        return_value=professional_response,
     )
 
     # Act
-    response = professional_service.get_all(
-        filter_params=mock_filter_params,
-        search_params=mock_search_params,
-        db=mock_db,
-    )
+    response = professional_service._get_by_id(professional_id=professional_id)
 
     # Assert
-    assert len(response) == 2
-    assert response[0] == mock_professional_response[0]
-    assert response[1] == mock_professional_response[1]
+    mock_get_professional_by_id.assert_called_once_with(professional_id=professional_id)
+    assert response == professional_response
 
 
-def test_get_by_id_whenDataIsValid(mocker, mock_db):
+def test_getById_raisesApplicationError_whenProfessionalNotFound(mocker) -> None:
     # Arrange
-    professional = mocker.Mock(**td.PROFESSIONAL_MODEL)
+    professional_id = td.NON_EXISTENT_ID
 
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = professional
-
-    expected_professional = Professional(**td.PROFESSIONAL_MODEL)
-
-    # Act
-    response = professional_service._get_by_id(
-        professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
+    mock_get_professional_by_id = mocker.patch(
+        "app.services.professional_service.get_professional_by_id",
+        return_value=None,
     )
 
-    # Assert
-    assert response.id == expected_professional.id
-    assert response.city_id == expected_professional.city_id
-    assert response.username == expected_professional.username
-    assert response.password == expected_professional.password
-    assert response.description == expected_professional.description
-    assert response.email == expected_professional.email
-    assert response.photo == expected_professional.photo
-    assert response.status == expected_professional.status
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc_info:
+        professional_service._get_by_id(professional_id=professional_id)
+
+    mock_get_professional_by_id.assert_called_once_with(professional_id=professional_id)
+    assert exc_info.value.data.status == status.HTTP_404_NOT_FOUND
     assert (
-        response.active_application_count
-        == expected_professional.active_application_count
+        exc_info.value.data.detail
+        == f"Professional with id {professional_id} not found"
     )
-    assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
-    mock_db.query.assert_called_once_with(Professional)
 
 
-def test_get_by_id_whenProfessionalNotFound(mock_db):
+def test_setMatchesStatus_setsPrivateStatusSuccessfully(mocker) -> None:
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    professional_id = td.VALID_PROFESSIONAL_ID
+    private_matches = mocker.MagicMock(status=True)
+    message_response = MessageResponse(message="Matches set as private")
 
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        professional_service._get_by_id(
-            professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
-        )
-
-    # Assert
-    assert_filter_called_with(mock_query, Professional.id == td.VALID_PROFESSIONAL_ID)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail
-        == f"Professional with id {td.VALID_PROFESSIONAL_ID} not found"
-    )
-
-
-def test_get_matches_whenDataIsValid(mocker, mock_db):
-    # Arrange
-    mock_job_ad_1 = mocker.Mock(**td.JOB_AD_1)
-    mock_job_ad_2 = mocker.Mock(**td.JOB_AD_2)
-    mock_job_ads = [mock_job_ad_1, mock_job_ad_2]
-
-    mock_query = mock_db.query.return_value
-    mock_join_1 = mock_query.join.return_value
-    mock_join_2 = mock_join_1.join.return_value
-    mock_filter = mock_join_2.filter.return_value
-    mock_filter.all.return_value = mock_job_ads
-
-    mock_job_ad_response_1 = JobAdPreview(
-        **td.JOB_AD_1, city=City(**td.CITY), category_name=td.VALID_CATEGORY_TITLE
-    )
-    mock_job_ad_response_2 = JobAdPreview(
-        **td.JOB_AD_2, city=City(**td.CITY_2), category_name=td.VALID_CATEGORY_TITLE_2
-    )
-
-    mocker.patch(
-        "app.services.professional_service.JobAdPreview.create",
-        side_effect=[mock_job_ad_response_1, mock_job_ad_response_2],
+    mock_perform_patch_request = mocker.patch(
+        "app.services.professional_service.perform_patch_request"
     )
 
     # Act
-    response = professional_service._get_matches(
-        professional_id=td.VALID_PROFESSIONAL_ID, db=mock_db
+    response = professional_service.set_matches_status(
+        professional_id=professional_id, private_matches=private_matches
     )
 
     # Assert
-    assert len(response) == 2
-    assert response[0] == mock_job_ad_response_1
-    assert response[1] == mock_job_ad_response_2
-    mock_filter.all.assert_called_once()
-
-
-def test_update_attributes_updatesStatus(mocker, mock_db):
-    # Arrange
-    mock_professional_request = mocker.Mock(
-        professional=mocker.Mock(city=None),
-        status="new_status",
+    mock_perform_patch_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_TOGGLE_STATUS_URL.format(professional_id=professional_id)}",
+        json={**private_matches.model_dump(mode="json")},
     )
-    mock_professional = mocker.Mock(status="old_status")
+    assert response == message_response
 
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
+
+def test_getByUsername_returnsUser_whenUsernameIsValid(mocker) -> None:
+    # Arrange
+    username = "valid_username"
+    user_response = mocker.MagicMock()
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=user_response,
+    )
+    mock_user_response = mocker.patch(
+        "app.services.professional_service.User",
+        return_value=user_response,
     )
 
     # Act
-    result = professional_service._update_attributes(
-        professional_request=mock_professional_request,
-        professional=mock_professional,
-        db=mock_db,
-    )
+    response = professional_service.get_by_username(username=username)
 
     # Assert
-    assert result.status == "new_status"
-    mock_process_transaction.assert_called_once()
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONAL_BY_USERNAME_URL.format(username=username)}"
+    )
+    assert response == user_response
 
 
-def test_update_attributes_updatesCity(mocker, mock_db):
+def test_getApplications_returnsApplications_whenDataIsValid(mocker) -> None:
     # Arrange
-    mock_professional_request = mocker.Mock(
-        professional=mocker.Mock(city=td.VALID_CITY_NAME),
-        status=None,
-    )
-    mock_professional = mocker.Mock(city=mocker.Mock(name="Old City"))
+    professional_id = td.VALID_PROFESSIONAL_ID
+    application_status = JobSearchStatus.ACTIVE
+    filter_params = mocker.MagicMock()
+    job_applications_response = [mocker.MagicMock(), mocker.MagicMock()]
 
-    mock_city = mocker.Mock(id=td.VALID_CITY_ID, name=td.VALID_CITY_NAME)
-    mock_get_by_name = mocker.patch(
-        "app.services.city_service.get_by_name", return_value=mock_city
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=job_applications_response,
     )
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
+    mock_job_application_response = mocker.patch(
+        "app.services.professional_service.JobApplicationResponse",
+        side_effect=job_applications_response,
     )
 
     # Act
-    result = professional_service._update_attributes(
-        professional_request=mock_professional_request,
-        professional=mock_professional,
-        db=mock_db,
+    response = professional_service.get_applications(
+        professional_id=professional_id,
+        application_status=application_status,
+        filter_params=filter_params,
     )
 
     # Assert
-    assert result.city_id == td.VALID_CITY_ID
-    mock_get_by_name.assert_called_once_with(city_name=td.VALID_CITY_NAME, db=mock_db)
-    mock_process_transaction.assert_called_once()
-
-
-def test_update_attributes_updatesDescription(mocker, mock_db):
-    # Arrange
-    mock_professional_request = mocker.Mock(
-        professional=mocker.Mock(description="New Description", city=None),
-        status=None,
+    mock_perform_get_request.assert_called_once_with(
+        url=PROFESSIONALS_JOB_APPLICATIONS_URL.format(professional_id=professional_id),
+        params={
+            **filter_params.model_dump(mode="json"),
+            "application_status": application_status.value,
+        },
     )
-    mock_professional = mocker.Mock(description="Old Description")
+    assert response == job_applications_response
 
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
+
+def test_getApplications_returnsEmptyList_whenNoApplicationsFound(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    application_status = JobSearchStatus.ACTIVE
+    filter_params = mocker.MagicMock()
+    job_applications_response = []
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=job_applications_response,
     )
 
     # Act
-    result = professional_service._update_attributes(
-        professional_request=mock_professional_request,
-        professional=mock_professional,
-        db=mock_db,
+    response = professional_service.get_applications(
+        professional_id=professional_id,
+        application_status=application_status,
+        filter_params=filter_params,
     )
 
     # Assert
-    assert result.description == "New Description"
-    mock_process_transaction.assert_called_once()
-
-
-def test_update_attributes_updatesFirstName(mocker, mock_db):
-    # Arrange
-    mock_professional_request = mocker.Mock(
-        professional=mocker.Mock(first_name="New Name", city=None),
-        status=None,
+    mock_perform_get_request.assert_called_once_with(
+        url=PROFESSIONALS_JOB_APPLICATIONS_URL.format(professional_id=professional_id),
+        params={
+            **filter_params.model_dump(mode="json"),
+            "application_status": application_status.value,
+        },
     )
-    mock_professional = mocker.Mock(first_name="Old Name")
+    assert response == job_applications_response
 
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
+
+def test_getSkills_returnsSkills_whenDataIsValid(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    skills_response = [mocker.MagicMock(), mocker.MagicMock()]
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=skills_response,
+    )
+    mock_skill_response = mocker.patch(
+        "app.services.professional_service.SkillResponse",
+        side_effect=skills_response,
     )
 
     # Act
-    result = professional_service._update_attributes(
-        professional_request=mock_professional_request,
-        professional=mock_professional,
-        db=mock_db,
-    )
+    response = professional_service.get_skills(professional_id=professional_id)
 
     # Assert
-    assert result.first_name == "New Name"
-    mock_process_transaction.assert_called_once()
-
-
-def test_update_attributes_updatesLastName(mocker, mock_db):
-    # Arrange
-    mock_professional_request = mocker.Mock(
-        professional=mocker.Mock(last_name="New Last Name", city=None),
-        status=None,
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_SKILLS_URL.format(professional_id=professional_id)}"
     )
-    mock_professional = mocker.Mock(last_name="Old Last Name")
+    assert response == skills_response
 
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
+
+def test_getSkills_returnsEmptyList_whenNoSkillsFound(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    skills_response = []
+
+    mock_perform_get_request = mocker.patch(
+        "app.services.professional_service.perform_get_request",
+        return_value=skills_response,
     )
 
     # Act
-    result = professional_service._update_attributes(
-        professional_request=mock_professional_request,
-        professional=mock_professional,
-        db=mock_db,
-    )
+    response = professional_service.get_skills(professional_id=professional_id)
 
     # Assert
-    assert result.last_name == "New Last Name"
-    mock_process_transaction.assert_called_once()
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{PROFESSIONALS_SKILLS_URL.format(professional_id=professional_id)}"
+    )
+    assert response == skills_response
 
 
-def test_set_matches_status_private(mocker, mock_db):
+def test_getMatchRequests_returnsMatchRequests_whenDataIsValid(mocker) -> None:
     # Arrange
-    professional_id = mocker.Mock()
-    mock_professional = mocker.Mock(has_private_matches=False)
+    professional_id = td.VALID_PROFESSIONAL_ID
+    match_requests_response = [mocker.MagicMock(), mocker.MagicMock()]
 
     mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
+        "app.services.professional_service._get_by_id",
+        return_value=mocker.MagicMock(id=professional_id),
     )
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
-    )
-
-    private_matches = mocker.Mock(status=True)
-
-    # Act
-    result = professional_service.set_matches_status(
-        professional_id=professional_id, db=mock_db, private_matches=private_matches
-    )
-
-    # Assert
-    assert result == {"msg": "Matches set as private"}
-    assert mock_professional.has_private_matches is True
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_process_transaction.assert_called_once()
-
-
-def test_set_matches_status_public(mocker, mock_db):
-    # Arrange
-    professional_id = mocker.Mock()
-    mock_professional = mocker.Mock(has_private_matches=True)
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-    mock_process_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=lambda transaction_func, db: transaction_func(),
-    )
-
-    private_matches = mocker.Mock(status=False)
-
-    # Act
-    result = professional_service.set_matches_status(
-        professional_id=professional_id, db=mock_db, private_matches=private_matches
-    )
-
-    # Assert
-    assert result == {"msg": "Matches set as public"}
-    assert mock_professional.has_private_matches is False
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_process_transaction.assert_called_once()
-
-
-def test_get_by_username_returns_user(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock(
-        id=td.VALID_PROFESSIONAL_ID,
-        username=td.VALID_PROFESSIONAL_USERNAME,
-        password=td.VALID_PROFESSIONAL_PASSWORD,
-    )
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = mock_professional
-
-    expected_user = User(
-        id=td.VALID_PROFESSIONAL_ID,
-        username=td.VALID_PROFESSIONAL_USERNAME,
-        password=td.VALID_PROFESSIONAL_PASSWORD,
-    )
-
-    # Act
-    result = professional_service.get_by_username(
-        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
-    )
-
-    # Assert
-    assert result.id == expected_user.id
-    assert result.username == expected_user.username
-    assert result.password == expected_user.password
-    mock_db.query.assert_called_once_with(Professional)
-
-
-def test_get_by_username_raises_error_when_user_not_found(mocker, mock_db):
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service.get_by_username(
-            username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
-        )
-
-    assert (
-        exc.value.data.detail
-        == f"User with username {td.VALID_PROFESSIONAL_USERNAME} does not exist"
-    )
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    mock_db.query.assert_called_once_with(Professional)
-
-
-def test_get_applications_private_matches_error(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock(
-        id=td.VALID_PROFESSIONAL_ID,
-        has_private_matches=True,
-    )
-
-    mock_application_status = JobSearchStatus.MATCHED
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    # Act & Assert
-    with pytest.raises(
-        ApplicationError, match="Professional has set their Matches to Private"
-    ) as exc:
-        professional_service.get_applications(
-            professional_id=td.VALID_PROFESSIONAL_ID,
-            db=mock_db,
-            application_status=mock_application_status,
-            filter_params=mock_filter_params,
-        )
-
-    mock_get_by_id.assert_called_once()
-    assert exc.value.data.status == status.HTTP_403_FORBIDDEN
-    assert exc.value.data.detail == "Professional has set their Matches to Private"
-
-
-def test_get_applications_returns_list_of_applications(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
-    mock_application_status = JobSearchStatus.ACTIVE
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.offset.return_value = mock_filter
-    mock_filter.limit.return_value = mock_filter
-    mock_filter.all.return_value = [mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)]
-
-    mock_application_response = mocker.Mock()
-    mocker.patch(
-        "app.services.professional_service.JobApplicationResponse.create",
-        return_value=mock_application_response,
-    )
-
-    # Act
-    result = professional_service.get_applications(
-        professional_id=td.VALID_PROFESSIONAL_ID,
-        db=mock_db,
-        application_status=mock_application_status,
-        filter_params=mock_filter_params,
-    )
-
-    # Assert
-    assert len(result) == 1
-    assert result[0] == mock_application_response
-    mock_get_by_id.assert_called_once()
-    mock_db.query.assert_called_once_with(JobApplication)
-    mock_query.filter.assert_called_once()
-    mock_filter.offset.assert_called_once_with(0)
-    mock_filter.limit.assert_called_once_with(10)
-
-
-def test_get_applications_empty_list(mocker, mock_db):
-    # Arrange
-    mock_professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
-    mock_application_status = JobSearchStatus.ACTIVE
-    mock_filter_params = mocker.Mock(offset=0, limit=10)
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.offset.return_value = mock_filter
-    mock_filter.limit.return_value = mock_filter
-    mock_filter.all.return_value = []
-
-    # Act
-    result = professional_service.get_applications(
-        professional_id=td.VALID_PROFESSIONAL_ID,
-        db=mock_db,
-        application_status=mock_application_status,
-        filter_params=mock_filter_params,
-    )
-
-    # Assert
-    assert len(result) == 0
-    mock_get_by_id.assert_called_once()
-    mock_db.query.assert_called_once_with(JobApplication)
-    mock_query.filter.assert_called_once()
-
-
-def test_register_professional_username_taken(mocker, mock_db):
-    # Arrange
-    mock_professional_create = mocker.Mock(
-        username=td.VALID_PROFESSIONAL_USERNAME,
-        email=td.VALID_PROFESSIONAL_EMAIL,
-        password=td.VALID_PROFESSIONAL_PASSWORD,
-    )
-    mock_professional_status = mocker.Mock()
-    mock_city_id = mocker.Mock()
-
-    mock_unique_username = mocker.patch(
-        "app.services.professional_service.unique_username", return_value=False
-    )
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service._register_professional(
-            professional_create=mock_professional_create,
-            professional_status=mock_professional_status,
-            city_id=mock_city_id,
-            db=mock_db,
-        )
-
-    mock_unique_username.assert_called_once_with(
-        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
-    )
-    assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert exc.value.data.detail == "Username already taken"
-
-
-def test_register_professional_email_taken(mocker, mock_db):
-    # Arrange
-    mock_professional_create = mocker.Mock(
-        username=td.VALID_PROFESSIONAL_USERNAME,
-        email=td.VALID_PROFESSIONAL_EMAIL,
-        password=td.VALID_PROFESSIONAL_PASSWORD,
-    )
-    mock_professional_status = mocker.Mock()
-    mock_city_id = mocker.Mock()
-
-    mock_unique_username = mocker.patch(
-        "app.services.professional_service.unique_username", return_value=True
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.professional_service.unique_email", return_value=False
-    )
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service._register_professional(
-            professional_create=mock_professional_create,
-            professional_status=mock_professional_status,
-            city_id=mock_city_id,
-            db=mock_db,
-        )
-
-    mock_unique_username.assert_called_once_with(
-        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
-    )
-    mock_unique_email.assert_called_once_with(
-        email=td.VALID_PROFESSIONAL_EMAIL, db=mock_db
-    )
-    assert exc.value.data.status == status.HTTP_409_CONFLICT
-    assert exc.value.data.detail == "Email already taken"
-
-
-def test_register_professional_successful(mocker, mock_db):
-    # Arrange
-    mock_professional_create = mocker.Mock(
-        username=td.VALID_PROFESSIONAL_USERNAME,
-        email=td.VALID_PROFESSIONAL_EMAIL,
-        password=td.VALID_PROFESSIONAL_PASSWORD,
-    )
-    mock_professional_status = mocker.Mock()
-    mock_city_id = mocker.Mock()
-
-    mock_unique_username = mocker.patch(
-        "app.services.professional_service.unique_username", return_value=True
-    )
-    mock_unique_email = mocker.patch(
-        "app.services.professional_service.unique_email", return_value=True
-    )
-    mock_hash_password = mocker.patch(
-        "app.services.professional_service.hash_password",
-        return_value="hashed_password",
-    )
-    mock_create = mocker.patch(
-        "app.services.professional_service._create", return_value="new_professional"
-    )
-
-    # Act
-    result = professional_service._register_professional(
-        professional_create=mock_professional_create,
-        professional_status=mock_professional_status,
-        city_id=mock_city_id,
-        db=mock_db,
-    )
-
-    # Assert
-    assert result == "new_professional"
-    mock_unique_username.assert_called_once_with(
-        username=td.VALID_PROFESSIONAL_USERNAME, db=mock_db
-    )
-    mock_unique_email.assert_called_once_with(
-        email=td.VALID_PROFESSIONAL_EMAIL, db=mock_db
-    )
-    mock_hash_password.assert_called_once_with(password=td.VALID_PROFESSIONAL_PASSWORD)
-    mock_create.assert_called_once_with(
-        professional_create=mock_professional_create,
-        city_id=mock_city_id,
-        professional_status=mock_professional_status,
-        hashed_password="hashed_password",
-        db=mock_db,
-    )
-
-
-def test_create_professional_success(mocker, mock_db):
-    # Arrange
-    mock_professional_create = mocker.MagicMock()
-    mock_professional_create.username = td.VALID_PROFESSIONAL_USERNAME
-    mock_professional_create.email = td.VALID_PROFESSIONAL_EMAIL
-    mock_professional_create.password = td.VALID_PROFESSIONAL_PASSWORD
-    mock_professional_create.model_dump.return_value = {
-        "username": td.VALID_PROFESSIONAL_USERNAME,
-        "email": td.VALID_PROFESSIONAL_EMAIL,
-    }
-
-    mock_professional_status = mocker.Mock()
-    mock_city_id = mocker.Mock()
-    mock_hashed_password = "hashed_password"
-
-    mock_professional = mocker.MagicMock(spec=Professional)
-    mock_professional.id = td.VALID_PROFESSIONAL_ID
-
-    mock_db.add = mocker.MagicMock()
-    mock_db.commit = mocker.MagicMock()
-    mock_db.refresh = mocker.MagicMock()
-
-    def mock_process_db_transaction(transaction_func, db):
-        print("Inside mock_process_db_transaction")
-        return transaction_func()
-
-    mock_process_db_transaction = mocker.patch(
-        "app.services.professional_service.process_db_transaction",
-        side_effect=mock_process_db_transaction,
-    )
-
-    mocker.patch(
-        "app.services.professional_service.Professional", return_value=mock_professional
-    )
-
-    # Act
-    result = professional_service._create(
-        professional_create=mock_professional_create,
-        city_id=mock_city_id,
-        professional_status=mock_professional_status,
-        hashed_password=mock_hashed_password,
-        db=mock_db,
-    )
-
-    # Assert
-    mock_process_db_transaction.assert_called_once()
-    mock_db.add.assert_called_once_with(mock_professional)
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(mock_professional)
-    assert result == mock_professional
-
-
-def test_upload_cv_successful(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-    mock_handle_file_upload = mocker.patch(
-        "app.services.professional_service.handle_file_upload",
-        return_value=td.VALID_CV_PATH,
-    )
-    mock_commit = mocker.patch.object(mock_db, "commit")
-
-    mock_cv = mocker.Mock()
-    mock_cv.content_type = "application/pdf"
-
-    # Act
-    result = professional_service.upload_cv(
-        professional_id=professional_id, cv=mock_cv, db=mock_db
-    )
-
-    # Assert
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
-    mock_commit.assert_called_once()
-    assert mock_professional.cv == td.VALID_CV_PATH
-    assert "msg" in result
-    assert result["msg"] == "CV successfully uploaded"
-
-
-def test_upload_cv_invalid_file_type(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    mock_cv = mocker.Mock()
-    mock_cv.content_type = "text/plain"
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service.upload_cv(
-            professional_id=professional_id, cv=mock_cv, db=mock_db
-        )
-
-    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
-    assert exc.value.data.detail == "Only PDF files are allowed."
-
-
-def test_upload_cv_updates_professional(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-    mock_handle_file_upload = mocker.patch(
-        "app.services.professional_service.handle_file_upload",
-        return_value=td.VALID_CV_PATH,
-    )
-    mock_commit = mocker.patch.object(mock_db, "commit")
-
-    mock_cv = mocker.Mock()
-    mock_cv.content_type = "application/pdf"
-    old_updated_at = mock_professional.updated_at
-
-    # Act
-    professional_service.upload_cv(
-        professional_id=professional_id, cv=mock_cv, db=mock_db
-    )
-
-    # Assert
-    mock_handle_file_upload.assert_called_once_with(file_to_upload=mock_cv)
-    mock_commit.assert_called_once()
-    assert mock_professional.cv == td.VALID_CV_PATH
-    assert mock_professional.updated_at != old_updated_at
-
-
-def test_download_cv_successful(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_professional.cv = b"PDF content"
-    mock_professional.first_name = td.VALID_PROFESSIONAL_FIRST_NAME
-    mock_professional.last_name = td.VALID_PROFESSIONAL_LAST_NAME
-
-    mock_get_by_id = mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    # Act
-    response = professional_service.download_cv(
-        professional_id=professional_id, db=mock_db
-    )
-
-    # Assert
-    mock_get_by_id.assert_called_once_with(professional_id=professional_id, db=mock_db)
-    assert isinstance(response, StreamingResponse)
-    assert response.media_type == "application/pdf"
-    assert (
-        response.headers["Content-Disposition"]
-        == "attachment; filename=Test_Professional_CV.pdf"
-    )
-    assert response.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
-
-
-def test_download_cv_no_cv(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_professional.cv = None
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    # Act
-    response = professional_service.download_cv(
-        professional_id=professional_id, db=mock_db
-    )
-
-    # Assert
-    assert isinstance(response, JSONResponse)
-    assert response.status_code == 200
-
-
-def test_delete_cv_success(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_professional.cv = b"some_cv_data"
-    mock_professional.updated_at = None
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    mock_commit = mocker.patch.object(mock_db, "commit")
-
-    # Act
-    response = professional_service.delete_cv(
-        professional_id=professional_id, db=mock_db
-    )
-
-    # Assert
-    assert isinstance(response, MessageResponse)
-    assert response.message == "CV deleted successfully"
-    assert mock_professional.cv is None
-    assert mock_professional.updated_at is not None
-    mock_commit.assert_called_once()
-
-
-def test_delete_cv_not_found(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-    mock_professional = mocker.Mock()
-    mock_professional.cv = None
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    # Act & Assert
-    with pytest.raises(ApplicationError) as exc:
-        professional_service.delete_cv(professional_id=professional_id, db=mock_db)
-
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail
-        == f"CV for Job Application with id {professional_id} not found"
-    )
-
-
-def test_get_skills_success(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-
-    mock_professional = mocker.Mock()
-    mock_job_application = mocker.Mock()
-
-    skill_1 = mocker.Mock()
-    skill_1.id = td.VALID_SKILL_ID
-    skill_1.name = td.VALID_SKILL_NAME
-    skill_1.category_id = td.VALID_CATEGORY_ID
-
-    skill_2 = mocker.Mock()
-    skill_2.id = td.VALID_SKILL_ID_2
-    skill_2.name = td.VALID_SKILL_NAME_2
-    skill_2.category_id = td.VALID_CATEGORY_ID
-
-    mock_application_skill_1 = mocker.Mock()
-    mock_application_skill_1.skill = skill_1
-    mock_application_skill_2 = mocker.Mock()
-    mock_application_skill_2.skill = skill_2
-
-    mock_job_application.skills = [mock_application_skill_1, mock_application_skill_2]
-    mock_professional.job_applications = [mock_job_application]
-
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    # Act
-    response = professional_service.get_skills(
-        professional_id=professional_id, db=mock_db
-    )
-
-    # Assert
-    assert len(response) == 2
-    assert any(
-        skill.id == td.VALID_SKILL_ID and skill.name == td.VALID_SKILL_NAME
-        for skill in response
-    )
-    assert any(
-        skill.id == td.VALID_SKILL_ID_2 and skill.name == td.VALID_SKILL_NAME_2
-        for skill in response
-    )
-
-
-def test_get_match_requests_success(mocker, mock_db):
-    # Arrange
-    professional_id = td.VALID_PROFESSIONAL_ID
-
-    mock_professional = mocker.Mock()
-    mock_professional.id = professional_id
-
-    match_request_1 = td.MATCH_REQUEST_1
-    match_request_2 = td.MATCH_REQUEST_2
-    mock_match_requests = [match_request_1, match_request_2]
-
-    mocker.patch(
-        "app.services.professional_service._get_by_id", return_value=mock_professional
-    )
-
-    mocker.patch(
+    mock_get_match_requests_for_professional = mocker.patch(
         "app.services.match_service.get_match_requests_for_professional",
-        return_value=mock_match_requests,
+        return_value=match_requests_response,
     )
 
     # Act
-    response = professional_service.get_match_requests(
-        professional_id=professional_id, db=mock_db
+    response = professional_service.get_match_requests(professional_id=professional_id)
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id)
+    mock_get_match_requests_for_professional.assert_called_once_with(
+        professional_id=professional_id
+    )
+    assert response == match_requests_response
+
+
+def test_getMatchRequests_returnsEmptyList_whenNoMatchRequestsFound(mocker) -> None:
+    # Arrange
+    professional_id = td.VALID_PROFESSIONAL_ID
+    match_requests_response = []
+
+    mock_get_by_id = mocker.patch(
+        "app.services.professional_service._get_by_id",
+        return_value=mocker.MagicMock(id=professional_id),
+    )
+    mock_get_match_requests_for_professional = mocker.patch(
+        "app.services.match_service.get_match_requests_for_professional",
+        return_value=match_requests_response,
+    )
+
+    # Act
+    response = professional_service.get_match_requests(professional_id=professional_id)
+
+    # Assert
+    mock_get_by_id.assert_called_once_with(professional_id=professional_id)
+    mock_get_match_requests_for_professional.assert_called_once_with(
+        professional_id=professional_id
+    )
+    assert response == match_requests_response
+
+
+def test_createCvStreamingResponse_createsStreamingResponseSuccessfully(mocker) -> None:
+    # Arrange
+    response_headers = {"Content-Disposition": "attachment; filename=test.pdf"}
+    mock_response = mocker.Mock()
+    mock_response.content = b"cv_content"
+    mock_response.media_type = "application/pdf"
+    mock_response.headers = response_headers
+
+    mock_streaming_response = mocker.patch(
+        "app.services.professional_service.StreamingResponse",
+        return_value=mock_response,
+    )
+
+    # Act
+    result = professional_service._create_cv_streaming_response(response=mock_response)
+
+    # Assert
+    assert result == mock_response
+    assert result.media_type == "application/pdf"
+    assert (
+        result.headers["Content-Disposition"] == response_headers["Content-Disposition"]
+    )
+    assert result.headers["Access-Control-Expose-Headers"] == "Content-Disposition"
+
+
+def test_validateUniqueProfessionalDetails_raisesError_whenUsernameIsNotUnique(
+    mocker,
+) -> None:
+    # Arrange
+    professional_create = mocker.Mock(
+        username="existing_username", email="existing_email@example.com"
+    )
+
+    mock_is_unique_username = mocker.patch(
+        "app.services.professional_service.is_unique_username",
+        return_value=False,
+    )
+    mock_is_unique_email = mocker.patch(
+        "app.services.professional_service.is_unique_email",
+        return_value=True,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc_info:
+        professional_service._validate_unique_professional_details(
+            professional_create=professional_create
+        )
+
+    mock_is_unique_username.assert_called_once_with(
+        username=professional_create.username
+    )
+    mock_is_unique_email.assert_not_called()
+    assert exc_info.value.data.status == status.HTTP_409_CONFLICT
+    assert exc_info.value.data.detail == "Username already taken"
+
+
+def test_validateUniqueProfessionalDetails_raisesError_whenEmailIsNotUnique(
+    mocker,
+) -> None:
+    # Arrange
+    professional_create = mocker.Mock(
+        username="unique_username", email="existing_email@example.com"
+    )
+
+    mock_is_unique_username = mocker.patch(
+        "app.services.professional_service.is_unique_username",
+        return_value=True,
+    )
+    mock_is_unique_email = mocker.patch(
+        "app.services.professional_service.is_unique_email",
+        return_value=False,
+    )
+
+    # Act & Assert
+    with pytest.raises(ApplicationError) as exc_info:
+        professional_service._validate_unique_professional_details(
+            professional_create=professional_create
+        )
+
+    mock_is_unique_username.assert_called_once_with(
+        username=professional_create.username
+    )
+    mock_is_unique_email.assert_called_once_with(email=professional_create.email)
+    assert exc_info.value.data.status == status.HTTP_409_CONFLICT
+    assert exc_info.value.data.detail == "Email already taken"
+
+
+def test_validateUniqueProfessionalDetails_passes_whenUsernameAndEmailAreUnique(
+    mocker,
+) -> None:
+    # Arrange
+    professional_create = mocker.Mock(
+        username="unique_username", email="unique_email@example.com"
+    )
+
+    mock_is_unique_username = mocker.patch(
+        "app.services.professional_service.is_unique_username",
+        return_value=True,
+    )
+    mock_is_unique_email = mocker.patch(
+        "app.services.professional_service.is_unique_email",
+        return_value=True,
+    )
+
+    # Act
+    professional_service._validate_unique_professional_details(
+        professional_create=professional_create
     )
 
     # Assert
-    assert response == mock_match_requests
-    assert len(response) == 2
+    mock_is_unique_username.assert_called_once_with(
+        username=professional_create.username
+    )
+    mock_is_unique_email.assert_called_once_with(email=professional_create.email)
+
+
+def test_generateTemporaryCredentials_generatesUniqueUsernameAndPassword(
+    mocker,
+) -> None:
+    # Arrange
+    mock_token_urlsafe = mocker.patch(
+        "app.services.professional_service.secrets.token_urlsafe",
+        return_value="unique_username",
+    )
+    mock_generate_patterned_password = mocker.patch(
+        "app.services.professional_service.generate_patterned_password",
+        return_value="unique_password",
+    )
+
+    # Act
+    username, password = professional_service._generate_temporary_credentials()
+
+    # Assert
+    mock_token_urlsafe.assert_called_once_with(16)
+    mock_generate_patterned_password.assert_called_once()
+    assert username == "unique_username"
+    assert password == "unique_password"

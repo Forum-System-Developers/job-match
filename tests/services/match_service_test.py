@@ -531,6 +531,7 @@ def test_sendJobAdMatchRequest_sendsRequestSuccessfully(mocker) -> None:
     assert isinstance(result, MessageResponse)
     assert result.message == "Match request sent"
 
+
 def test_sendJobAdMatchRequest_raisesError_whenInvalidJobAdId(mocker) -> None:
     # Arrange
     job_application_id = td.VALID_JOB_APPLICATION_ID
@@ -554,6 +555,7 @@ def test_sendJobAdMatchRequest_raisesError_whenInvalidJobAdId(mocker) -> None:
     assert exc.value.data.detail == "Invalid Job Ad ID"
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     mock_ensure_valid_job_ad_id.assert_called_with(job_ad_id=job_ad_id)
+
 
 def test_sendJobAdMatchRequest_raisesError_whenInvalidJobApplicationId(
     mocker,
@@ -586,6 +588,7 @@ def test_sendJobAdMatchRequest_raisesError_whenInvalidJobApplicationId(
     mock_ensure_valid_job_application_id.assert_called_with(
         job_application_id=job_application_id
     )
+
 
 def test_sendJobAdMatchRequest_raisesError_whenMatchRequestExists(mocker) -> None:
     # Arrange
@@ -722,7 +725,9 @@ def test_viewSentJobApplicationMatchRequests_returnsRequests(mocker) -> None:
     assert len(result) == 2
 
 
-def test_viewSentJobApplicationMatchRequests_returnsEmptyList_whenNoRequests(mocker) -> None:
+def test_viewSentJobApplicationMatchRequests_returnsEmptyList_whenNoRequests(
+    mocker,
+) -> None:
     # Arrange
     job_ad_id = td.VALID_JOB_AD_ID
     company_id = td.VALID_COMPANY_ID
