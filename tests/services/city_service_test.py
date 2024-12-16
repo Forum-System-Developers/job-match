@@ -56,6 +56,27 @@ def test_getById_returnsCity_whenCityExists(mocker) -> None:
     assert isinstance(result, CityResponse)
 
 
+def test_getDefault_returnsDefaultCity(mocker) -> None:
+    # Arrange
+    city = td.CITY
+    mock_perform_get_request = mocker.patch(
+        "app.services.city_service.perform_get_request",
+        return_value=city,
+    )
+    mock_city_response = mocker.patch(
+        "app.services.city_service.CityResponse",
+        return_value=mocker.Mock(spec=CityResponse),
+    )
+
+    # Act
+    result = city_service.get_default()
+
+    # Assert
+    mock_perform_get_request.assert_called_once_with(url=CITIES_URL + "/default")
+    mock_city_response.assert_called_once_with(**city)
+    assert isinstance(result, CityResponse)
+
+
 def test_getAll_returnsListOfCities_whenCitiesExist(mocker) -> None:
     # Arrange
     cities = [td.CITY, td.CITY_2]

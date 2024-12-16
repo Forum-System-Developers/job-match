@@ -3,7 +3,10 @@ from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
 from app.schemas.common import MessageResponse
-from app.schemas.job_application import JobSearchStatus
+from app.schemas.job_application import JobApplicationResponse, JobSearchStatus
+from app.schemas.match import MatchRequestAd
+from app.schemas.professional import ProfessionalResponse
+from app.schemas.skill import SkillResponse
 from app.services import professional_service
 from app.services.external_db_service_urls import (
     PROFESSIONAL_BY_USERNAME_URL,
@@ -382,7 +385,7 @@ def test_getAll_returnsEmptyList_whenNoProfessionalsFound(mocker) -> None:
     # Arrange
     filter_params = mocker.MagicMock()
     search_params = mocker.MagicMock()
-    professionals_response = []
+    professionals_response: list[ProfessionalResponse] = []
 
     mock_perform_get_request = mocker.patch(
         "app.services.professional_service.perform_get_request",
@@ -530,7 +533,7 @@ def test_getApplications_returnsEmptyList_whenNoApplicationsFound(mocker) -> Non
     professional_id = td.VALID_PROFESSIONAL_ID
     application_status = JobSearchStatus.ACTIVE
     filter_params = mocker.MagicMock()
-    job_applications_response = []
+    job_applications_response: list[JobApplicationResponse] = []
 
     mock_perform_get_request = mocker.patch(
         "app.services.professional_service.perform_get_request",
@@ -582,7 +585,7 @@ def test_getSkills_returnsSkills_whenDataIsValid(mocker) -> None:
 def test_getSkills_returnsEmptyList_whenNoSkillsFound(mocker) -> None:
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    skills_response = []
+    skills_response: list[SkillResponse] = []
 
     mock_perform_get_request = mocker.patch(
         "app.services.professional_service.perform_get_request",
@@ -627,7 +630,7 @@ def test_getMatchRequests_returnsMatchRequests_whenDataIsValid(mocker) -> None:
 def test_getMatchRequests_returnsEmptyList_whenNoMatchRequestsFound(mocker) -> None:
     # Arrange
     professional_id = td.VALID_PROFESSIONAL_ID
-    match_requests_response = []
+    match_requests_response: list[MatchRequestAd] = []
 
     mock_get_by_id = mocker.patch(
         "app.services.professional_service._get_by_id",

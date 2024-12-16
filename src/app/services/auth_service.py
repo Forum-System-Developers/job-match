@@ -453,26 +453,3 @@ def decode_access_token(token: str) -> dict:
     return jwt.decode(
         token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
     )
-
-
-async def google_get_current_user(request: Request) -> dict:
-    """
-    Retrieve the current user information from Google using the access token stored in cookies.
-
-    Args:
-        request (Request): The incoming HTTP request containing cookies.
-    Returns:
-        dict: A dictionary containing the user information.
-    Raises:
-        HTTPException: If the access token is not found in cookies or is invalid.
-    """
-
-    access_token = request.cookies.get("access_token")
-    if access_token is None:
-        raise HTTPException(
-            detail="Could not authenticate you",
-            status_code=status.HTTP_401_UNAUTHORIZED,
-        )
-
-    user_info = decode_access_token(token=access_token)
-    return user_info

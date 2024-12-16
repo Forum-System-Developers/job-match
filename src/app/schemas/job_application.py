@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.city import City
-from app.schemas.custom_types import Salary
 from app.schemas.professional import ProfessionalResponse
 from app.schemas.skill import SkillBase, SkillResponse
 
@@ -117,8 +116,12 @@ class JobApplicationCreateFinal(JobAplicationBase):
 
 class JobApplicationUpdateBase(BaseModel):
     name: str | None = None
-    min_salary: Salary | None = None  # type: ignore
-    max_salary: Salary | None = None  # type: ignore
+    min_salary: float | None = Field(
+        ge=0, description="Minimum salary (>= 0)", default=None
+    )
+    max_salary: float | None = Field(
+        ge=0, description="Maximum salary (>= 0)", default=None
+    )
     description: str | None = None
     skills: list[SkillBase] | None = Field(default=None)
     is_main: bool | None = Field(default=None)

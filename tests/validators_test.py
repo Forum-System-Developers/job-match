@@ -2,184 +2,145 @@ import pytest
 from fastapi import status
 
 from app.exceptions.custom_exceptions import ApplicationError
+from app.services.external_db_service_urls import CITIES_URL, COMPANY_BY_ID_URL
 from app.services.utils.validators import (
     ensure_no_match_request,
     ensure_valid_city,
     ensure_valid_company_id,
     ensure_valid_job_ad_id,
     ensure_valid_job_application_id,
-    ensure_valid_match_request,
-    ensure_valid_professional_id,
-    ensure_valid_skill_id,
     is_unique_email,
     is_unique_username,
 )
-from app.sql_app import City, Company, JobAd, JobApplication, Match, Professional
-from app.sql_app.skill.skill import Skill
 from tests import test_data as td
-from tests.utils import assert_filter_called_with
 
 
-@pytest.fixture
-def mock_db(mocker):
-    return mocker.Mock()
-
-
-def test_ensureValidCity_returnsCity_whenCityIsFound(mocker, mock_db):
+def test_ensureValidCity_returnsCity_whenCityIsFound(mocker):
     # Arrange
-    city = mocker.Mock(name=td.VALID_CITY_NAME)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = city
-
-    # Act
-    result = ensure_valid_city(name=td.VALID_CITY_NAME, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(City)
-    assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
-    assert result == city
-
-
-def test_ensureValidCity_raisesApplicationError_whenCityIsNotFound(mock_db):
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        ensure_valid_city(name=td.VALID_CITY_NAME, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(City)
-    assert_filter_called_with(mock_query, City.name == td.VALID_CITY_NAME)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"City with name {td.VALID_CITY_NAME} not found"
-
-
-def test_ensureValidJobAdId_returnsJobAd_whenJobAdIsFound(mocker, mock_db):
-    # Arrange
-    job_ad = mocker.Mock(id=td.VALID_JOB_AD_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = job_ad
-
-    # Act
-    result = ensure_valid_job_ad_id(job_ad_id=td.VALID_JOB_AD_ID, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(JobAd)
-    assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
-    assert result == job_ad
-
-
-def test_ensureValidJobAdId_returnsJobAd_whenCompanyIsProvided(mocker, mock_db):
-    # Arrange
-    job_ad = mocker.Mock(id=td.VALID_JOB_AD_ID, company_id=td.VALID_COMPANY_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = job_ad
-
-    # Act
-    result = ensure_valid_job_ad_id(
-        job_ad_id=td.VALID_JOB_AD_ID,
-        db=mock_db,
-        company_id=td.VALID_COMPANY_ID,
+    mock_perform_get_request = mocker.patch(
+        "app.services.utils.validators.perform_get_request", return_value=td.CITY
     )
 
+    # Act
+    result = ensure_valid_city(name=td.VALID_CITY_NAME)
+
     # Assert
-    mock_db.query.assert_called_once_with(JobAd)
-    assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
-    assert result == job_ad
+    mock_perform_get_request.assert_called_once_with(
+        f"{CITIES_URL}/by-name/{td.VALID_CITY_NAME}"
+    )
+    assert result.name == td.VALID_CITY_NAME
 
 
-def test_ensureValidJobAdId_raisesApplicationError_whenJobAdIsNotFound(mock_db):
+def test_ensureValidJobAdId_returnsJobAd_whenJobAdIsFound(mocker):
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    mock_get_job_ad_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_ad_by_id",
+        return_value=mocker.Mock(**td.JOB_AD),
+    )
+
+    # Act
+    result = ensure_valid_job_ad_id(job_ad_id=td.VALID_JOB_AD_ID)
+
+    # Assert
+    mock_get_job_ad_by_id.assert_called_once_with(job_ad_id=td.VALID_JOB_AD_ID)
+    assert result.id == td.VALID_JOB_AD_ID
+
+
+def test_ensureValidJobAdId_raisesApplicationError_whenJobAdIsNotFound(mocker):
+    # Arrange
+    mock_get_job_ad_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_ad_by_id", return_value=None
+    )
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_job_ad_id(job_ad_id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_job_ad_id(job_ad_id=td.NON_EXISTENT_ID)
 
     # Assert
-    mock_db.query.assert_called_once_with(JobAd)
-    assert_filter_called_with(mock_query, JobAd.id == td.NON_EXISTENT_ID)
+    mock_get_job_ad_by_id.assert_called_once_with(job_ad_id=td.NON_EXISTENT_ID)
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert exc.value.data.detail == f"Job Ad with id {td.NON_EXISTENT_ID} not found"
 
 
 def test_ensureValidJobAdId_raisesApplicationError_whenJobAdDoesNotBelongToCompany(
-    mocker, mock_db
+    mocker,
 ):
     # Arrange
-    job_ad = mocker.Mock(id=td.VALID_JOB_AD_ID, company_id=td.NON_EXISTENT_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = job_ad
+    mock_get_job_ad_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_ad_by_id",
+        return_value=mocker.Mock(**td.JOB_AD),
+    )
 
     # Act
     with pytest.raises(ApplicationError) as exc:
         ensure_valid_job_ad_id(
-            job_ad_id=td.VALID_JOB_AD_ID, company_id=td.VALID_COMPANY_ID, db=mock_db
+            job_ad_id=td.VALID_JOB_AD_ID, company_id=td.NON_EXISTENT_ID
         )
 
     # Assert
-    mock_db.query.assert_called_once_with(JobAd)
-    assert_filter_called_with(mock_query, JobAd.id == td.VALID_JOB_AD_ID)
+    mock_get_job_ad_by_id.assert_called_once_with(job_ad_id=td.VALID_JOB_AD_ID)
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     assert (
         exc.value.data.detail
-        == f"Job Ad with id {td.VALID_JOB_AD_ID} does not belong to company with id {td.VALID_COMPANY_ID}"
+        == f"Job Ad with id {td.VALID_JOB_AD_ID} does not belong to company with id {td.NON_EXISTENT_ID}"
     )
+
+
+def test_ensureValidJobAdId_returnsJobAd_whenCompanyIsProvided(mocker):
+    # Arrange
+    mock_get_job_ad_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_ad_by_id",
+        return_value=mocker.Mock(**td.JOB_AD),
+    )
+
+    # Act
+    result = ensure_valid_job_ad_id(
+        job_ad_id=td.VALID_JOB_AD_ID, company_id=td.VALID_COMPANY_ID
+    )
+
+    # Assert
+    mock_get_job_ad_by_id.assert_called_once_with(job_ad_id=td.VALID_JOB_AD_ID)
+    assert result.id == td.VALID_JOB_AD_ID
+    assert result.company_id == td.VALID_COMPANY_ID
 
 
 def test_ensureValidJobApplicationId_returnsJobApplication_whenJobApplicationIsFound(
-    mocker, mock_db
+    mocker,
 ):
     # Arrange
-    job_application = mocker.Mock(id=td.VALID_JOB_APPLICATION_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = job_application
+    mock_get_job_application_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_application_by_id",
+        return_value=mocker.Mock(**td.JOB_APPLICATION),
+    )
 
     # Act
     result = ensure_valid_job_application_id(
-        job_application_id=td.VALID_JOB_APPLICATION_ID, db=mock_db
+        job_application_id=td.VALID_JOB_APPLICATION_ID
     )
 
     # Assert
-    mock_db.query.assert_called_once_with(JobApplication)
-    assert_filter_called_with(
-        mock_query, JobApplication.id == td.VALID_JOB_APPLICATION_ID
+    mock_get_job_application_by_id.assert_called_once_with(
+        job_application_id=td.VALID_JOB_APPLICATION_ID
     )
-    assert result == job_application
+    assert result.id == td.VALID_JOB_APPLICATION_ID
 
 
 def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIsNotFound(
-    mock_db,
+    mocker,
 ):
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    mock_get_job_application_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_application_by_id", return_value=None
+    )
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_job_application_id(
-            job_application_id=td.NON_EXISTENT_ID, db=mock_db
-        )
+        ensure_valid_job_application_id(job_application_id=td.NON_EXISTENT_ID)
 
     # Assert
-    mock_db.query.assert_called_once_with(JobApplication)
-    assert_filter_called_with(mock_query, JobApplication.id == td.NON_EXISTENT_ID)
+    mock_get_job_application_by_id.assert_called_once_with(
+        job_application_id=td.NON_EXISTENT_ID
+    )
     assert exc.value.data.status == status.HTTP_404_NOT_FOUND
     assert (
         exc.value.data.detail
@@ -187,86 +148,103 @@ def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationIs
     )
 
 
-def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker, mock_db):
+def test_ensureValidJobApplicationId_raisesApplicationError_whenJobApplicationDoesNotBelongToProfessional(
+    mocker,
+):
     # Arrange
-    company = mocker.Mock(id=td.VALID_COMPANY_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = company
-
-    # Act
-    result = ensure_valid_company_id(company_id=td.VALID_COMPANY_ID, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(Company)
-    assert_filter_called_with(mock_query, Company.id == td.VALID_COMPANY_ID)
-    assert result == company
-
-
-def test_ensureValidCompanyId_raisesApplicationError_whenCompanyIsNotFound(mock_db):
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    mock_get_job_application_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_application_by_id",
+        return_value=mocker.Mock(**td.JOB_APPLICATION),
+    )
 
     # Act
     with pytest.raises(ApplicationError) as exc:
-        ensure_valid_company_id(company_id=td.NON_EXISTENT_ID, db=mock_db)
+        ensure_valid_job_application_id(
+            job_application_id=td.VALID_JOB_APPLICATION_ID,
+            professional_id=td.NON_EXISTENT_ID,
+        )
 
     # Assert
-    mock_db.query.assert_called_once_with(Company)
-    assert_filter_called_with(mock_query, Company.id == td.NON_EXISTENT_ID)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"Company with id {td.NON_EXISTENT_ID} not found"
+    mock_get_job_application_by_id.assert_called_once_with(
+        job_application_id=td.VALID_JOB_APPLICATION_ID
+    )
+    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
+    assert (
+        exc.value.data.detail
+        == f"Job Application with id {td.VALID_JOB_APPLICATION_ID} does not belong to professional with id {td.NON_EXISTENT_ID}"
+    )
 
 
-def test_ensureNoMatchRequest_doesNotRaiseApplicationError_whenMatchRequestDoesNotExist(
-    mock_db,
+def test_ensureValidJobApplicationId_returnsJobApplication_whenProfessionalIsProvided(
+    mocker,
 ):
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
+    mock_get_job_application_by_id = mocker.patch(
+        "app.services.utils.validators.get_job_application_by_id",
+        return_value=mocker.Mock(**td.JOB_APPLICATION),
+    )
 
     # Act
-    ensure_no_match_request(
-        job_ad_id=td.VALID_JOB_AD_ID,
+    result = ensure_valid_job_application_id(
         job_application_id=td.VALID_JOB_APPLICATION_ID,
-        db=mock_db,
+        professional_id=td.VALID_PROFESSIONAL_ID,
     )
 
     # Assert
-    mock_db.query.assert_called_once()
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    mock_get_job_application_by_id.assert_called_once_with(
+        job_application_id=td.VALID_JOB_APPLICATION_ID
+    )
+    assert result.id == td.VALID_JOB_APPLICATION_ID
+    assert result.professional_id == td.VALID_PROFESSIONAL_ID
+
+
+def test_ensureValidCompanyId_returnsCompany_whenCompanyIsFound(mocker):
+    # Arrange
+    mock_perform_get_request = mocker.patch(
+        "app.services.utils.validators.perform_get_request", return_value=td.COMPANY
+    )
+
+    # Act
+    result = ensure_valid_company_id(company_id=td.VALID_COMPANY_ID)
+
+    # Assert
+    mock_perform_get_request.assert_called_once_with(
+        url=f"{COMPANY_BY_ID_URL.format(company_id=td.VALID_COMPANY_ID)}"
+    )
+    assert result.id == td.VALID_COMPANY_ID
+
+
+def test_ensureNoMatchRequest_doesNotRaiseError_whenNoMatchRequestExists(mocker):
+    # Arrange
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.utils.validators.get_match_request_by_id", return_value=None
+    )
+
+    # Act & Assert
+    ensure_no_match_request(
+        job_ad_id=td.VALID_JOB_AD_ID, job_application_id=td.VALID_JOB_APPLICATION_ID
+    )
+    mock_get_match_request_by_id.assert_called_once_with(
+        job_ad_id=td.VALID_JOB_AD_ID, job_application_id=td.VALID_JOB_APPLICATION_ID
     )
 
 
-def test_ensureNoMatchRequest_raisesApplicationError_whenMatchRequestExists(
-    mocker, mock_db
-):
+def test_ensureNoMatchRequest_raisesApplicationError_whenMatchRequestExists(mocker):
     # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = mocker.Mock()
+    mock_get_match_request_by_id = mocker.patch(
+        "app.services.utils.validators.get_match_request_by_id",
+        return_value=mocker.Mock(),
+    )
 
     # Act
     with pytest.raises(ApplicationError) as exc:
         ensure_no_match_request(
-            job_ad_id=td.VALID_JOB_AD_ID,
-            job_application_id=td.VALID_JOB_APPLICATION_ID,
-            db=mock_db,
+            job_ad_id=td.VALID_JOB_AD_ID, job_application_id=td.VALID_JOB_APPLICATION_ID
         )
 
     # Assert
-    mock_db.query.assert_called_once()
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
+    mock_get_match_request_by_id.assert_called_once_with(
+        job_ad_id=td.VALID_JOB_AD_ID, job_application_id=td.VALID_JOB_APPLICATION_ID
     )
     assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
     assert (
@@ -275,274 +253,118 @@ def test_ensureNoMatchRequest_raisesApplicationError_whenMatchRequestExists(
     )
 
 
-def test_ensureValidMatchRequest_doesNotRaiseApplicationError_whenMatchRequestIsValid(
-    mocker, mock_db
-):
+def test_isUniqueUsername_returnsTrue_whenUsernameIsUnique(mocker):
     # Arrange
-    match_status = mocker.Mock(name="REQUESTED")
-    match = mocker.Mock(status=match_status)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = match
+    unique_username = "unique_username"
+    mock_get_professional_by_username = mocker.patch(
+        "app.services.utils.validators.get_professional_by_username", return_value=None
+    )
+    mock_get_company_by_username = mocker.patch(
+        "app.services.utils.validators.get_company_by_username", return_value=None
+    )
 
     # Act
-    result = ensure_valid_match_request(
-        job_ad_id=td.VALID_JOB_AD_ID,
-        job_application_id=td.VALID_JOB_APPLICATION_ID,
-        match_status=match_status,
-        db=mock_db,
-    )
+    result = is_unique_username(username=unique_username)
 
     # Assert
-    mock_db.query.assert_called_once()
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
-    )
-    assert result == match
-
-
-def test_ensureValidMatchRequest_raisesApplicationError_whenMatchRequestIsNotFound(
-    mocker, mock_db
-):
-    # Arrange
-    match_status = mocker.Mock(name="REQUESTED")
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        ensure_valid_match_request(
-            job_ad_id=td.VALID_JOB_AD_ID,
-            job_application_id=td.VALID_JOB_APPLICATION_ID,
-            match_status=match_status,
-            db=mock_db,
-        )
-
-    # Assert
-    mock_db.query.assert_called_once()
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
-    )
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail
-        == f"Match request with job ad id {td.VALID_JOB_AD_ID} and job application id {td.VALID_JOB_APPLICATION_ID} not found"
-    )
-
-
-def test_ensureValidMatchRequest_raisesApplicationError_whenMatchRequestIsNotInRequestedStatus(
-    mocker, mock_db
-):
-    # Arrange
-    match_status = mocker.Mock(name="REQUESTED")
-    match = mocker.Mock(status="ACCEPTED")
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = match
-
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        ensure_valid_match_request(
-            job_ad_id=td.VALID_JOB_AD_ID,
-            job_application_id=td.VALID_JOB_APPLICATION_ID,
-            match_status=match_status,
-            db=mock_db,
-        )
-
-    # Assert
-    mock_db.query.assert_called_once_with(Match)
-    assert_filter_called_with(
-        mock_query,
-        (Match.job_ad_id == td.VALID_JOB_AD_ID)
-        & (Match.job_application_id == td.VALID_JOB_APPLICATION_ID),
-    )
-    assert exc.value.data.status == status.HTTP_400_BAD_REQUEST
-    assert (
-        exc.value.data.detail
-        == f"Match request with job ad id {td.VALID_JOB_AD_ID} and job application id {td.VALID_JOB_APPLICATION_ID} is not in {match_status.name} status"
-    )
-
-
-def test_ensureValidSkillId_returnsSkill_whenSkillIsFound(mocker, mock_db):
-    # Arrange
-    skill = mocker.Mock(id=td.VALID_SKILL_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = skill
-
-    # Act
-    result = ensure_valid_skill_id(
-        skill_id=td.VALID_SKILL_ID, category_id=td.VALID_CATEGORY_ID, db=mock_db
-    )
-
-    # Assert
-    mock_db.query.assert_called_once_with(Skill)
-    assert_filter_called_with(
-        mock_query,
-        (Skill.id == td.VALID_SKILL_ID) & (Skill.category_id == td.VALID_CATEGORY_ID),
-    )
-    assert result == skill
-
-
-def test_ensureValidSkillId_raisesApplicationError_whenSkillIsNotFound(mock_db):
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        ensure_valid_skill_id(
-            skill_id=td.NON_EXISTENT_ID, category_id=td.VALID_CATEGORY_ID, db=mock_db
-        )
-
-    # Assert
-    mock_db.query.assert_called_once_with(Skill)
-    assert_filter_called_with(
-        mock_query,
-        (Skill.id == td.NON_EXISTENT_ID) & (Skill.category_id == td.VALID_CATEGORY_ID),
-    )
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert exc.value.data.detail == f"Skill with id {td.NON_EXISTENT_ID} not found"
-
-
-def test_uniqueUsername_returnsTrue_whenUsernameIsUnique(mock_db):
-    # Arrange
-    username = "unique_username"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [None, None]
-
-    # Act
-    result = is_unique_username(username=username, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_any_call(Professional.username)
-    mock_db.query.assert_any_call(Company.username)
+    mock_get_professional_by_username.assert_called_once_with(unique_username)
+    mock_get_company_by_username.assert_called_once_with(unique_username)
     assert result is True
 
 
-def test_uniqueUsername_returnsFalse_whenUsernameExistsInProfessional(mocker, mock_db):
+def test_isUniqueUsername_returnsFalse_whenUsernameBelongsToProfessional(mocker):
     # Arrange
-    username = "existing_username"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [mocker.Mock(), None]
+    existing_username = "existing_username"
+    mock_get_professional_by_username = mocker.patch(
+        "app.services.utils.validators.get_professional_by_username",
+        return_value=mocker.Mock(),
+    )
+    mock_get_company_by_username = mocker.patch(
+        "app.services.utils.validators.get_company_by_username", return_value=None
+    )
 
     # Act
-    result = is_unique_username(username=username, db=mock_db)
+    result = is_unique_username(username=existing_username)
 
     # Assert
-    mock_db.query.assert_called_once_with(Professional.username)
+    mock_get_professional_by_username.assert_called_once_with(existing_username)
+    mock_get_company_by_username.assert_not_called()
     assert result is False
 
 
-def test_uniqueUsername_returnsFalse_whenUsernameExistsInCompany(mocker, mock_db):
+def test_isUniqueUsername_returnsFalse_whenUsernameBelongsToCompany(mocker):
     # Arrange
-    username = "existing_username"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [None, mocker.Mock()]
+    existing_username = "existing_username"
+    mock_get_professional_by_username = mocker.patch(
+        "app.services.utils.validators.get_professional_by_username", return_value=None
+    )
+    mock_get_company_by_username = mocker.patch(
+        "app.services.utils.validators.get_company_by_username",
+        return_value=mocker.Mock(),
+    )
 
     # Act
-    result = is_unique_username(username=username, db=mock_db)
+    result = is_unique_username(username=existing_username)
 
     # Assert
-    mock_db.query.assert_any_call(Professional.username)
-    mock_db.query.assert_any_call(Company.username)
+    mock_get_professional_by_username.assert_called_once_with(existing_username)
+    mock_get_company_by_username.assert_called_once_with(existing_username)
     assert result is False
 
 
-def test_uniqueEmail_returnsTrue_whenEmailIsUnique(mock_db):
+def test_isUniqueEmail_returnsTrue_whenEmailIsUnique(mocker):
     # Arrange
-    email = "unique_email"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [None, None]
+    unique_email = "unique_email@example.com"
+    mock_get_professional_by_email = mocker.patch(
+        "app.services.utils.validators.get_professional_by_email", return_value=None
+    )
+    mock_get_company_by_email = mocker.patch(
+        "app.services.utils.validators.get_company_by_email", return_value=None
+    )
 
     # Act
-    result = is_unique_email(email=email, db=mock_db)
+    result = is_unique_email(email=unique_email)
 
     # Assert
-    mock_db.query.assert_any_call(Professional.email)
-    mock_db.query.assert_any_call(Company.email)
+    mock_get_professional_by_email.assert_called_once_with(unique_email)
+    mock_get_company_by_email.assert_called_once_with(unique_email)
     assert result is True
 
 
-def test_uniqueEmail_returnsFalse_whenEmailExistsInProfessional(mocker, mock_db):
+def test_isUniqueEmail_returnsFalse_whenEmailBelongsToProfessional(mocker):
     # Arrange
-    email = "existing_email"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [mocker.Mock(), None]
-
-    # Act
-    result = is_unique_email(email=email, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(Professional.email)
-    assert result is False
-
-
-def test_uniqueEmail_returnsFalse_whenEmailExistsInCompany(mocker, mock_db):
-    # Arrange
-    email = "existing_email"
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [None, mocker.Mock()]
-
-    # Act
-    result = is_unique_email(email=email, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_any_call(Professional.email)
-    mock_db.query.assert_any_call(Company.email)
-    assert result is False
-
-
-def test_ensureValidProfessionalId_returnsProfessional_whenProfessionalIsFound(
-    mocker, mock_db
-):
-    # Arrange
-    professional = mocker.Mock(id=td.VALID_PROFESSIONAL_ID)
-
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = professional
-
-    # Act
-    result = ensure_valid_professional_id(professional_id=professional.id, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(Professional)
-    assert_filter_called_with(mock_query, Professional.id == professional.id)
-    assert result == professional
-
-
-def test_ensureValidProfessionalId_raisesApplicationError_whenProfessionalIsNotFound(
-    mock_db,
-):
-    # Arrange
-    mock_query = mock_db.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.return_value = None
-
-    # Act
-    with pytest.raises(ApplicationError) as exc:
-        ensure_valid_professional_id(professional_id=td.NON_EXISTENT_ID, db=mock_db)
-
-    # Assert
-    mock_db.query.assert_called_once_with(Professional)
-    assert_filter_called_with(mock_query, Professional.id == td.NON_EXISTENT_ID)
-    assert exc.value.data.status == status.HTTP_404_NOT_FOUND
-    assert (
-        exc.value.data.detail == f"Professional with id {td.NON_EXISTENT_ID} not found."
+    existing_email = "existing_email@example.com"
+    mock_get_professional_by_email = mocker.patch(
+        "app.services.utils.validators.get_professional_by_email",
+        return_value=mocker.Mock(),
     )
+    mock_get_company_by_email = mocker.patch(
+        "app.services.utils.validators.get_company_by_email", return_value=None
+    )
+
+    # Act
+    result = is_unique_email(email=existing_email)
+
+    # Assert
+    mock_get_professional_by_email.assert_called_once_with(existing_email)
+    mock_get_company_by_email.assert_not_called()
+    assert result is False
+
+
+def test_isUniqueEmail_returnsFalse_whenEmailBelongsToCompany(mocker):
+    # Arrange
+    existing_email = "existing_email@example.com"
+    mock_get_professional_by_email = mocker.patch(
+        "app.services.utils.validators.get_professional_by_email", return_value=None
+    )
+    mock_get_company_by_email = mocker.patch(
+        "app.services.utils.validators.get_company_by_email", return_value=mocker.Mock()
+    )
+
+    # Act
+    result = is_unique_email(email=existing_email)
+
+    # Assert
+    mock_get_professional_by_email.assert_called_once_with(existing_email)
+    mock_get_company_by_email.assert_called_once_with(existing_email)
+    assert result is False

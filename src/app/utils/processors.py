@@ -104,7 +104,7 @@ async def process_async_request(
         )
 
 
-def _format_response(data: Union[BaseModel, list[BaseModel]]) -> dict:
+def _format_response(data) -> dict:
     """
     Formats the response data to include the detail key.
 
