@@ -20,6 +20,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
     tokenUrl="https://oauth2.googleapis.com/token",
 )
 
+logger = logging.getLogger(__name__)
 
 async def login():
     google_auth_url = (
@@ -79,6 +80,7 @@ async def auth_callback(request: Request):
     jwt_token = _create_access_token(data=payload)
     response = RedirectResponse(url="https://www.rephera.com")
     response.set_cookie(key="access_token", value=jwt_token, httponly=True)
+    logger.info(f"User {user_info['email']} logged in successfully.")
 
     return response
 
