@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 from fastapi import status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -104,7 +104,9 @@ async def process_async_request(
         )
 
 
-def _format_response(data) -> dict:
+def _format_response(
+    data: BaseModel | list[BaseModel],
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     Formats the response data to include the detail key.
 
