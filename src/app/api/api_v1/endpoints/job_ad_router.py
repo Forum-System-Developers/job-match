@@ -159,6 +159,28 @@ def accept_match_request(
     )
 
 
+@router.patch(
+    "/{job_ad_id}/job-applications/{job_application_id}/match-requests/reject",
+    description="Reject a match request for a job advertisement.",
+    dependencies=[Depends(require_company_role)],
+)
+def reject_match_request(
+    job_ad_id: UUID,
+    job_application_id: UUID,
+) -> JSONResponse:
+    def _reject_job_ad_request():
+        return match_service.reject_match_request(
+            job_ad_id=job_ad_id,
+            job_application_id=job_application_id,
+        )
+
+    return process_request(
+        get_entities_fn=_reject_job_ad_request,
+        status_code=status.HTTP_200_OK,
+        not_found_err_msg=f"Match request not found for job ad with id {job_ad_id}",
+    )
+
+
 @router.post(
     "/{job_ad_id}/job-applications/{job_application_id}/match-requests",
     description="Send a match request to a Job Ad.",
