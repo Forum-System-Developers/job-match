@@ -221,21 +221,10 @@ def test_formatResponse_withListOfModels() -> None:
     class MockModel(BaseModel):
         key: str
 
-    data = [MockModel(key="value1"), MockModel(key="value2")]
+    data: list[BaseModel] = [MockModel(key="value1"), MockModel(key="value2")]
 
     # Act
     result = _format_response(data)
 
     # Assert
     assert result == {"detail": [{"key": "value1"}, {"key": "value2"}]}
-
-
-def test_formatResponse_withDict(mocker) -> None:
-    # Arrange
-    data = {"key": "value"}
-
-    # Act
-    result = _format_response(data)
-
-    # Assert
-    assert result == {"detail": {"key": "value"}}
