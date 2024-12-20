@@ -9,9 +9,7 @@ from httpx import AsyncClient
 from app.core.config import get_settings
 from app.exceptions.custom_exceptions import ApplicationError
 from app.services import professional_service
-from app.services.auth_service import _create_access_token
-from app.services.external_db_service_urls import PROFESSIONALS_BY_SUB_URL
-from app.utils.request_handlers import perform_get_request
+from app.services.auth_service import _create_access_token, _create_refresh_token
 
 settings = get_settings()
 
@@ -29,6 +27,7 @@ async def login():
         f"&client_id={settings.GOOGLE_CLIENT_ID}"
         f"&redirect_uri={settings.REDIRECT_URI}"
         "&scope=openid%20email%20profile"
+
     )
     return RedirectResponse(google_auth_url)
 
@@ -77,9 +76,11 @@ async def auth_callback(request: Request):
         )
 
     payload = _create_token_payload_from_user_info(user_info=user_info)
-    jwt_token = _create_access_token(data=payload)
+    jwt_access_token = _create_access_token(data=payload)
+    jwt_refresh_token = _create_refresh_token(data=payload)
     response = RedirectResponse(url="https://www.rephera.com")
-    response.set_cookie(key="access_token", value=jwt_token, httponly=True)
+    response.set_cookie(key="access_token", value=jwt_access_token, httponly=True)
+    response.set_cookie(key="refresh_token", value=jwt_refresh_token, httponly=True)
     logger.info(f"User {user_info['email']} logged in successfully.")
 
     return response
