@@ -125,14 +125,15 @@ class JobApplicationUpdateBase(BaseModel):
     description: str | None = None
     skills: list[SkillBase] | None = Field(default=None)
     is_main: bool | None = Field(default=None)
-    application_status: JobStatus | None = Field(default=None)
 
 
 class JobApplicationUpdate(JobApplicationUpdateBase):
+    application_status: JobStatus | None = Field(default=None)
     city: str | None = Field(examples=["Sofia"], default=None)
 
 
 class JobApplicationUpdateFinal(JobApplicationUpdateBase):
+    status: JobStatus | None = None
     city_id: UUID | None = None
 
     @classmethod
@@ -148,7 +149,7 @@ class JobApplicationUpdateFinal(JobApplicationUpdateBase):
             description=job_application_update.description,
             skills=job_application_update.skills,
             is_main=job_application_update.is_main,
-            application_status=job_application_update.application_status,
+            status=job_application_update.application_status,
             city_id=city_id,
         )
 
