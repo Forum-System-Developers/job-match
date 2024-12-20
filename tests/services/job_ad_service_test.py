@@ -173,8 +173,7 @@ def test_update_returnsUpdatedJobAd_whenLocationIsNone(mocker) -> None:
     mock_ensure_valid_job_ad_id.assert_called_once_with(
         job_ad_id=job_ad_id, company_id=company_id
     )
-    if job_ad_data.location is not None:
-        mock_ensure_valid_city.assert_called_once_with(name=job_ad_data.location)
+    mock_ensure_valid_city.assert_not_called()
     mock_perform_put_request.assert_called_once_with(
         url=f"{JOB_AD_BY_ID_URL.format(job_ad_id=job_ad_id)}",
         json=job_ad_data.model_dump(mode="json"),
