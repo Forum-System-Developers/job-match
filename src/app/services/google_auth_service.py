@@ -20,6 +20,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 
 logger = logging.getLogger(__name__)
 
+
 async def login():
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth"
@@ -27,7 +28,6 @@ async def login():
         f"&client_id={settings.GOOGLE_CLIENT_ID}"
         f"&redirect_uri={settings.REDIRECT_URI}"
         "&scope=openid%20email%20profile"
-
     )
     return RedirectResponse(google_auth_url)
 
