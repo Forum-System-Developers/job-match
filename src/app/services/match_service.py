@@ -144,11 +144,10 @@ def reject_match_request(
     job_ad_id: UUID,
     job_application_id: UUID,
 ) -> MessageResponse:
-    perform_patch_request(
+    perform_put_request(
         url=MATCH_REQUESTS_BY_ID_URL.format(
             job_ad_id=job_ad_id, job_application_id=job_application_id
-        ),
-        json={"status": MatchStatus.REJECTED},
+        )
     )
     logger.info(
         f"Match Request rejected for JobApplication id{job_application_id} and JobAd id {job_ad_id}"
